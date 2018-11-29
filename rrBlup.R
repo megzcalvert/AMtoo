@@ -50,6 +50,8 @@ FROM wheatgenetics.phenotype LEFT JOIN wheatgenetics.plot ON
 
 plot.plot_id = phenotype.entity_id
 
+FROM wheatgenetics.phenotype LEFT JOIN wheatgenetics.plot ON plot.plot_id = phenotype.entity_id
+
 WHERE wheatgenetics.phenotype.entity_id LIKE '18ASH30%';"
 
 #run the query to get plot information
@@ -64,6 +66,7 @@ setwd("~/Dropbox/Research_Poland_Lab/AM Panel")
 saveRDS(pheno, 
         "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno18.RDS")
 
+saveRDS(pheno, "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno18.RDS") #save original plot information 
 
 dbDisconnect(wheatgenetics) #disconnect from database
 
@@ -118,6 +121,7 @@ pheno_long$year<- ff(pheno_long$entity_id, c("15ASH", "16ASH", "17ASH","18ASH"),
 modNames<- tabyl(pheno_long$Variety)
 names(modNames)[1:2] <- c("Variety", "Count")
 dataMaid::summarize(pheno_long[ , c("Variety", "trait_id", "rep", "year")])
+
 knitr::kable(tabyl(pheno_long$trait_id), 
              caption = "Number of observations per trait")
 knitr::kable(tabyl(pheno_long$rep), 
@@ -125,11 +129,20 @@ knitr::kable(tabyl(pheno_long$rep),
 knitr::kable(tabyl(pheno_long$year), 
              caption = "Number of observations per year")
 
+knitr::kable(tabyl(pheno_long$trait_id), caption = "Number of observations per trait")
+knitr::kable(tabyl(pheno_long$rep), caption = "Number of observations of reps")
+knitr::kable(tabyl(pheno_long$year), caption = "Number of observations per year")
+
+
 ### Removing lines that do not fit the assumptions
 modNames
 modNames <- modNames %>% 
+
   filter(Variety != "blank") %>%
   arrange(desc(Count))
+
+  filter(Variety != "blank")
+
 
 modNames  
 
@@ -139,6 +152,7 @@ pheno_long<- semi_join(pheno_long, modNames, by = c('Variety' = 'Variety'))
 str(pheno_long)
 pheno_long<- subset(pheno_long, pheno_long$rep != 0)
 str(pheno_long)
+
 knitr::kable(tabyl(pheno_long$trait_id), 
              caption = "Final number of observations per traits")
 knitr::kable(tabyl(pheno_long$rep), 
@@ -146,11 +160,26 @@ knitr::kable(tabyl(pheno_long$rep),
 knitr::kable(tabyl(pheno_long$year), 
              caption = "Final number of observations per year")
 
+knitr::kable(tabyl(pheno_long$trait_id), 
+             caption = "Final number of observations per traits")
+knitr::kable(tabyl(pheno_long$rep), 
+             caption = "Final number of observations per rep")
+knitr::kable(tabyl(pheno_long$year), 
+             caption = "Final number of observations per year")
+
+
 ### Conversion to Wide format
 
 #Add columns for awns and heading date
+
 pheno_long$awns<- ifelse(pheno_long$phenotype_value == "Awned", 
-                         pheno_long$phenotype_value,NA)
+                         pheno_long$phenotype_value,
+                         NA)
+
+pheno_long$awns<- ifelse(pheno_long$phenotype_value == "Awned", 
+                         pheno_long$phenotype_value,
+                         NA)
+
 str(pheno_long)
 
 awns<- pheno_long[ , c(1,11)]
@@ -168,16 +197,25 @@ pheno_long<- subset(pheno_long, pheno_long$trait_id != "PCTHEAD" )
 
 pheno_pcthead$phenotype_date = as.Date(pheno_pcthead$phenotype_date) ## set the date as a Date type
 pheno_pcthead = pheno_pcthead[!is.na(pheno_pcthead$phenotype_date), ] ## remove some rows that are missing the phenotype date
+
 pheno_pcthead = pheno_pcthead[order(pheno_pcthead$entity_id, 
                                     pheno_pcthead$phenotype_date), ]  ## sort the rows by plot and date
+
+pheno_pcthead = pheno_pcthead[order(pheno_pcthead$entity_id, pheno_pcthead$phenotype_date), ]  ## sort the rows by plot and date
+
 
 runLogReg = function(dates, pctHEAD){
   res = data.frame(phi1=NA, phi2=NA, phi3=NA, hday=NA, hdate=NA)
   
+
   if(sum(!is.na(pctHEAD))==0){return(list(res=res, dates=dates, 
                                           pctHEAD = pctHEAD, pred=NA))} ## skip if no phenotype data
   if(max(pctHEAD, na.rm=TRUE)<60){return(list(res=res, dates=dates, 
                                               pctHEAD = pctHEAD, pred=NA))} ## skip plots that never reach 50% heading
+
+  if(sum(!is.na(pctHEAD))==0){return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))} ## skip if no phenotype data
+  if(max(pctHEAD, na.rm=TRUE)<60){return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))} ## skip plots that never reach 50% heading
+
   
   days = yday(dates) ## convert to day of year
   
@@ -190,6 +228,7 @@ runLogReg = function(dates, pctHEAD){
   phi2 = coef(lm(logit(pctH/phi1)~days))[1]
   phi3 = coef(lm(logit(pctH/phi1)~days))[2]
   
+
   heading_model<-try(nls(pctH~100/(1+exp(-(phi2+phi3*days))), 
                          start=list(phi2=phi2,phi3=phi3), trace=FALSE), 
                      silent=TRUE)
@@ -197,6 +236,11 @@ runLogReg = function(dates, pctHEAD){
   if(class(heading_model)=="try-error"){return(list(res=res, dates=dates, 
                                                     pctHEAD = pctHEAD, 
                                                     pred=NA))}  ## skip if doesn't converge
+
+  heading_model<-try(nls(pctH~100/(1+exp(-(phi2+phi3*days))), start=list(phi2=phi2,phi3=phi3), trace=FALSE), silent=TRUE)
+  
+  if(class(heading_model)=="try-error"){return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))}  ## skip if doesn't converge
+
   
   #update model coefficients for predictions
   phi2 = coef(heading_model)[1]
@@ -241,8 +285,12 @@ hddt<- as.data.frame(test$res)
 
 plots = unique(pheno_pcthead$entity_id)
 
+
 #head.dates = rep(list(list(vis=list(), length=length(plots)))) 
 ## data frame to store results
+
+#head.dates = rep(list(list(vis=list(), length=length(plots)))) ## data frame to store results
+
 #names(head.dates) = plots
 
 for (i in plots){
@@ -254,8 +302,12 @@ for (i in plots){
   sample=pheno_pcthead[pheno_pcthead$entity_id == i,]
   sample$phenotype_value<- as.numeric(sample$phenotype_value)
   #sample=pheno_pcthead[pheno_pcthead$entity_id==plots[i],]
+
   vis.logistic = runLogReg(dates=sample$phenotype_date, 
                            pctHEAD=sample$phenotype_value)
+
+  vis.logistic = runLogReg(dates=sample$phenotype_date, pctHEAD=sample$phenotype_value)
+
   n<- as.data.frame(vis.logistic$res)
   hddt<- rbind(hddt, n)
   #head.dates[[plots[i]]] = list(vis=vis.logistic)
@@ -269,18 +321,27 @@ plotDates<- hddt[,c(1,5)]
 
 pheno_long$phenotype_value<-as.numeric(as.character(pheno_long$phenotype_value))
 
+
 write.table(pheno_long, 
             file="~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_Long18.txt",
+
+write.table(pheno_long, file="~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_Long18.txt",
+
             col.names=TRUE, row.names=FALSE, sep="\t", quote=FALSE)
 
 pheno_long<- fread("~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_Long18.txt", header = T)
 
 #Changing from long to wide format
 pheno_Wide <- mutate(dcast(pheno_long,  
+
                            entity_id + year + Variety + rep + block + 
                              range + column ~ trait_id, 
                            value.var = "phenotype_value", 
                            fun.aggregate = median, 
+
+                           entity_id + year + Variety + rep + block + range + column ~ trait_id, 
+                           value.var = "phenotype_value", fun.aggregate = median, 
+
                            na.rm = TRUE),
                      Variety = factor(Variety),
                      rep = factor(rep))
@@ -315,8 +376,12 @@ htpFileLoad<- function(htp, f, ...) {
     print(colnames(data))
     t <- mutate(dcast(data,  
                       Plot_ID ~ Phenotype, 
+
                       value.var = paste0(colnames(data)[3]), 
                       fun.aggregate = NULL, 
+
+                      value.var = paste0(colnames(data)[3]), fun.aggregate = NULL, 
+
                       na.rm = TRUE))
     head(t)
     f<- left_join(f, t, by = c("entity_id" = "Plot_ID"))
@@ -333,8 +398,12 @@ knitr::kable(tabyl(pheno$year), caption = "Number of observations per year")
 
 names(pheno)[names(pheno)=="Variety"] <- "Taxa"
 
+
 write.table(pheno, 
             "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_18.txt", sep = "\t") #To be used in the gapit_rrBLUP_AM.R file
+
+write.table(pheno, "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_18.txt", sep = "\t") #To be used in the gapit_rrBLUP_AM.R file
+
 
 rm(awns, data, gndvi, grvi,hHTP,iniNames,modNames,ndre,ndvi,nir,pheno_long,pheno_Wide,redE,vis.logistic,test,sample,hddt,head.dates,n,pheno_pcthead,
    plotDates, i, plots, test.plot)
@@ -348,8 +417,12 @@ pd<- pheno[!myvars]
 
 histFacet.plot <- function(x, results, info, ...) {
   
+
   md<- names(x) %in% c("rn","Taxa","year","rep","block","column","range", 
                        "entity_id")
+
+  md<- names(x) %in% c("rn","Taxa","year","rep","block","column","range", "entity_id")
+
   traits <- names(x[ , !md])
   
   for (i in traits) {
@@ -359,19 +432,31 @@ histFacet.plot <- function(x, results, info, ...) {
       theme_bw() +
       xlab(paste0(i)) +
       ylab("Frequency") +
+
       theme(panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
             axis.text = element_text(size = 15),
             axis.title = element_text(size = 15),
             strip.text = element_text(size = 15),
             text = element_text(family = "CMU Bright")) 
+
+      theme(panel.grid.major = element_blank()) +
+      theme(panel.grid.minor = element_blank()) +
+      theme(axis.text = element_text(size = 15)) +
+      theme(axis.title = element_text(size = 15)) +
+      theme(strip.text = element_text(size = 15)) 
+
     ggsave(paste0(i,"_",info,".pdf"),path=paste(results, sep=''))
     print(plots)
   }
 }
 
+
 histFacet.plot(pd,'~/Dropbox/Research_Poland_Lab/AM Panel/Figures/Hist/',
                "_raw_2018")
+
+histFacet.plot(pd,'~/Dropbox/Research_Poland_Lab/AM Panel/Figures/Hist/',"_raw_2018")
+
 
 cpg_dot<- ggplot(data = pheno, aes(x = pheno$PTHT, y = pheno$GRWT)) +
   geom_point() + 
@@ -417,8 +502,12 @@ cpm_dot
 
 correlations<- function(x, ...) {
   
+
   md<- names(x) %in% c("rn","Taxa","year","rep","block","column","range", 
                        "entity_id","HDDT")
+
+  md<- names(x) %in% c("rn","Taxa","year","rep","block","column","range", "entity_id","HDDT")
+
   corDa<-x[ , !md]
   nums <- sapply(corDa, is.numeric)
   corDa<- corDa[ , nums]
@@ -465,16 +554,24 @@ boxplot.stats(pheno$GRWT)$out
 boxplot.stats(pheno$PTHT)$out
 boxplot.stats(pheno$hday)$out
 boxplot.stats(pheno$awns)$out
+
 pheno[,c(4:9,11:ncol(pheno))]<- as.data.frame(lapply(
   pheno[,c(4:9,11:ncol(pheno))], remove_outliers))
+
+pheno[,c(4:9,11:ncol(pheno))]<- as.data.frame(lapply(pheno[,c(4:9,11:ncol(pheno))], remove_outliers))
+
 boxplot.stats(pheno$MOIST)$out
 boxplot.stats(pheno$GRWT)$out
 boxplot.stats(pheno$PTHT)$out
 boxplot.stats(pheno$awns)$out
 
 
+
 histFacet.plot(pheno,'~/Dropbox/Research_Poland_Lab/AM Panel/Figures/Hist/',
                'clean_2018')
+
+histFacet.plot(pheno,'~/Dropbox/Research_Poland_Lab/AM Panel/Figures/Hist/','clean_2018')
+
 
 cpg_dot<- ggplot(data = pheno, aes(x = pheno$PTHT, y = pheno$GRWT)) +
   geom_point() + 
@@ -530,17 +627,25 @@ calcH2r <- function(dat, fill = NA, ...) {
   
   r=length(table(dat$rep))
   
+
   effectvars <- names(dat) %in% 
     c("block", "rep", "Taxa", "year", "column", "row", "experiment_id")
+
+  effectvars <- names(dat) %in% c("block", "rep", "Taxa", "year", "column", "row", "experiment_id")
+
   
   t <- colnames(dat[ , !effectvars])
   
   for (i in t) {
     
     print(paste("Working on trait", i))
+
     h = as.data.frame(VarCorr(
       lmer(paste0(i,"~ (1|Taxa) + (1|rep) + (1|rep:block)"), 
       data = dat)))
+
+    h = as.data.frame(VarCorr(lmer(paste0(i, "~ (1|Taxa) + (1|rep) + (1|rep:block)"), data = dat)))
+
     H2= h[1,4] / (h[1,4] + (h[4,4] / r)) 
     print(H2)
   }
@@ -550,9 +655,13 @@ calcH2r <- function(dat, fill = NA, ...) {
 calcH2r(pheno)
 
 blues.rb <- function(traits, dat = ".") {
+
   b<- as.data.frame(fixef(
     lmer(paste0(traits, "~ 0 + Taxa + (1|rep) + (1|rep:block)"), 
          data = dat)))
+
+  b<- as.data.frame(fixef(lmer(paste0(traits, "~ 0 + Taxa + (1|rep) + (1|rep:block)"), data = dat)))
+
 }
 
 
@@ -561,9 +670,7 @@ effectvars <- names(pheno) %in%
   c("block", "rep", "Taxa", "year", "column", "row", "experiment_id", "HDDT")
 
 traits <- colnames(pheno[ , !effectvars])
-
 blues<- lapply(traits, blues.rb, dat = pheno)
-
 blues <- map2(blues, traits, ~ set_names(..1, ..2) %>%
                 rownames_to_column(var = "Taxa")) %>%
   reduce(full_join)
@@ -584,6 +691,22 @@ blues <- as.data.frame( blues[, !names(blues) %in%
 
 write.table(blues,
             "/Users/megzcalvert/Dropbox/Research_Poland_Lab/AM Panel/Genotype_Database/cleanPheno18Blues.txt",
+
+blues$Taxa <- str_replace_all(blues$Taxa, "Taxa", "")
+
+blues <- as.data.frame( blues[, !names(blues) %in% c("X20171205_GNDVI","X20171120_GRVI",
+                                                     "X20171120_NDRE","X20171205_NDRE",
+                                                     "X20180529_NDVI","X20171120_Nir",
+                                                     "X20171127_Nir","X20171205_Nir",
+                                                     "X20171215_Nir","X20180529_Nir",
+                                                     "X20171120_RE","X20171127_RE",
+                                                     "X20171205_RE","X20171215_RE",
+                                                     "X20180529_RE","X20171127_height")])
+
+
+
+write.table(blues, "/Users/megzcalvert/Dropbox/Research_Poland_Lab/AM Panel/Genotype_Database/cleanPheno18Blues.txt",
+
             quote = FALSE, row.names = F, col.names = T, sep = "\t", fileEncoding = "UTF-8")
 
 
@@ -592,10 +715,15 @@ write.table(blues,
 phenoLines<- as.data.frame(unique(pheno[ , 1]))
 names(phenoLines)[1] <- "Phenotype"
 
+
 missingGenotype <- anti_join(phenoLines, chipLines, 
                              by = c("Phenotype" = "snpChip")) 
 missingPhenotype <- anti_join(chipLines, phenoLines, 
                               by = c("snpChip" = "Phenotype"))
+
+missingGenotype <- anti_join(phenoLines, chipLines, by = c("Phenotype" = "snpChip")) 
+missingPhenotype <- anti_join(chipLines, phenoLines, by = c("snpChip" = "Phenotype"))
+
 nrow(missingGenotype)
 nrow(missingPhenotype)
 
@@ -677,6 +805,7 @@ pca.plot <- function(x, p, q, results, ...) {
   
 }
 
+
 pca.plot(Scores, "PC1", "PC2", 
          '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA/')
 pca.plot(Scores, "PC1", "PC3", 
@@ -699,6 +828,22 @@ rm(all.opts,blues,chipLines,chrSum,cmg_dot,cor,cordist,cpg_dot,
    resultsSingleUnP18,resultsVarSel18,Scores,snpMatrix,sumPCA,toplot,
    towrite,effectvars,hetCodes,missAmbiguous,myvars,numPhenos,resDir,traits)
 
+pca.plot(Scores, "PC1", "PC2", '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA/')
+pca.plot(Scores, "PC1", "PC3", '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
+pca.plot(Scores, "PC2", "PC3", '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
+pca.plot(Scores, "PC1", "PC4", '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
+pca.plot(Scores, "PC2", "PC4", '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
+pca.plot(Scores, "PC3", "PC4", '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
+
+
+rm(all.opts,blues,chipLines,chrSum,cmg_dot,cor,cordist,cpg_dot,cpm_dot,geno,geno.opts,
+   geno.optsDesc,genoOb,her2017,Her2017,lineInfo,misc.opts,misc.optsDesc,missingGenotype,
+   missingPhenotype,opts,opts.desc,output,pcaAM,pd,pheno,pheno.opts,pheno.optsDesc,
+   phenoDat,phenoLines,phenoOb,plotopts,plotopts.optsDesc,program,res2,resultsSingleUnP18,
+   resultsVarSel18,Scores,snpMatrix,sumPCA,toplot,towrite,effectvars,hetCodes,missAmbiguous,
+   myvars,numPhenos,resDir,traits)
+
+
 
 blues<- read.table("/Users/megzcalvert/Dropbox/Research_Poland_Lab/AM Panel/Genotype_Database/cleanPheno18Blues.txt", 
                    sep = "\t", 
@@ -706,15 +851,20 @@ blues<- read.table("/Users/megzcalvert/Dropbox/Research_Poland_Lab/AM Panel/Geno
                    stringsAsFactors = TRUE)
 
 
+
 gwaBlue<- rrBLUP::GWAS(pheno = blues, 
                        geno = snpChip, 
                        P3D = F, 
                        plot = F)
 
+gwaBlue<- rrBLUP::GWAS(pheno = blues, geno = snpChip, P3D = F, plot = F)
+
+
 blues <- na.omit(blues)
 
 filterChip<- snpChip[,4:ncol(snpChip)]
 hist(rowSums(filterChip))
+
 filterChip<- filterChip[which(
   rowSums(filterChip) != 299 | rowSums(filterChip) != -299), ]
 
@@ -729,6 +879,15 @@ write.table(gwaBlue,
             quote = FALSE, row.names = FALSE, col.names = TRUE)
 #write.table(gwaBlueHddt, 
 #file = "~/Dropbox/Research_Poland_Lab/AM Panel/AM_Panel/AM_Panel/AM_Panel/OriginalData/gwaBLUESHDDT.txt", sep = "\t",
+
+filterChip<- filterChip[which(rowSums(filterChip) != 299 | rowSums(filterChip) != -299), ]
+
+gwaBlueHddt <- rrBLUP::GWAS(pheno = blues, geno = snpChip, fixed = "hday", P3D = F, plot = F)
+
+write.table(gwaBlue, file = "~/Dropbox/Research_Poland_Lab/AM Panel/R/rrBlup/gwaBLUES18.txt", sep = "\t",
+            quote = FALSE, row.names = FALSE, col.names = TRUE)
+#write.table(gwaBlueHddt, file = "~/Dropbox/Research_Poland_Lab/AM Panel/AM_Panel/AM_Panel/AM_Panel/OriginalData/gwaBLUESHDDT.txt", sep = "\t",
+
 #            quote = FALSE, row.names = FALSE, col.names = TRUE)
 
 qqman.plot <- function(x, ...) {
@@ -739,8 +898,12 @@ qqman.plot <- function(x, ...) {
   for (i in traits) {
     P <- x[[i]]
     dat<- cbind(info, P)
+
     mypath <- file.path("~","Dropbox","Research_Poland_Lab",
                         "AM Panel","Figures","qqman_Figures",
+
+    mypath <- file.path("~","Dropbox","Research_Poland_Lab","AM Panel","Figures","qqman_Figures",
+
                         paste("rrBLUP_2018_", i, ".pdf", sep = ""))
     pdf(file = mypath, width = 70, height = 25)
     qqman::manhattan(dat,
@@ -806,9 +969,178 @@ cordist<- ggplot(data = cor, aes(cor)) +
 
 cordist
 
+
 write.table(cor, 
             "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/BluesCorr2018.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
+
+
+
+write.table(cor, "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/BluesCorr2018.txt",
+            sep = "\t", quote = F, row.names = F, col.names = T)
+
+
+
+###### Small correlated network - GRWT Corr
+
+pheno<- mPhen.readPhenoFiles(
+  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/cleanPheno18_NaNa.txt",
+  opts = pheno.opts)
+
+print(names(pheno))
+print(pheno$limit)
+#pheno$limit$covariates = pheno$limit$phenotypes[6]
+pheno$limit$phenotypes = pheno$limit$phenotypes[c(1,19,35,49,50,64,65)]
+print(pheno$limit)
+
+opts.desc<- mPhen.options("regression",descr=TRUE)
+phenoDat<- pheno$pheno
+
+opts<- mPhen.options("regression")
+phenoDat<- pheno$pheno
+phenoOb<- mPhen.preparePheno(pheno, opts = opts)
+numPhenos<- length(phenoOb$phenN)
+
+opts$mPhen.variable.selection=FALSE
+opts$mPhen.JointModel=TRUE
+opts$mPhen.inverseRegress=TRUE
+opts$mPhen.adjustSinglePv=FALSE
+
+resultsGrwtCorr2018 = mPhen.assoc(genoOb, phenoOb,  opts)
+sigInds = which(resultsGrwtCorr2018$Res[,,numPhenos,2]<0.05)
+print(resultsGrwtCorr2018$Res[,sigInds,,2])
+
+output = mPhen.writeOutput(
+  resultsGrwtCorr2018,
+  output = resDir,
+  geno = genoOb,
+  towrite = towrite,
+  toplot = toplot,
+  opts = plotopts
+)
+
+singTest<- read.table("~/Dropbox/Research_Poland_Lab/AM Panel/R/MultiPhen/resultsGrwtCorr2018.wide.txt",
+                      header = T, sep = "\t")
+
+trials<- singTest[which(singTest$label == "pval"), c(5,3:4,6:ncol(singTest))]
+
+
+qqman.plot <- function(x, ...) {
+  md <- names(x) %in% c("SNP", "pos", "chrom")
+  traits <- names(x[!md])
+  info<- x[,md]
+  
+  for (i in traits) {
+    P <- x[[i]]
+    dat<- cbind(info, P)
+    mypath <- file.path("~","Dropbox","Research_Poland_Lab","AM Panel","R",
+                        "MultiPhen","Figures",paste("Joint2018GrwtNetwork_", i, ".pdf", sep = ""))
+    pdf(file = mypath, width = 70, height = 25)
+    qqman::manhattan(dat,
+                     main = paste("MultiPhen 2018 GRWT Network",i),
+                     chr = "chrom",
+                     bp = "pos",
+                     p = "P",
+                     snp = "SNP",
+                     col = c("blue","grey40","black"),
+                     ylim = c(0,12),
+                     chrlabs = c("1A","1B","1D",
+                                 "2A","2B","2D",
+                                 "3A","3B","3D",
+                                 "4A","4B","4D",
+                                 "5A","5B","5D",
+                                 "6A","6B","6D",
+                                 "7A","7B","7D"),
+                     genomewideline = -log10(0.05 / nrow(dat)),
+                     #suggestiveline = -log10(1 - (1 - 0.05)^(1/nrow(dat))),
+                     #logp = T,
+                     cex.axis = 2.5,
+                     cex.lab = 3,
+                     cex.main= 4,
+                     cex = 3)
+    dev.off()
+    
+  }
+}
+
+qqman.plot(trials)
+
+
+####### GRWT HerCor2018
+
+pheno<- mPhen.readPhenoFiles(
+  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/cleanPheno18_NaNa.txt",
+  opts = pheno.opts)
+
+print(names(pheno))
+print(pheno$limit)
+pheno$limit$phenotypes = pheno$limit$phenotypes[c(1,4,97,22,7,93,49,36,63,94,48,62,95,21,35,79,78,83,72,77,92,5,73,69,60,82,96,3)]
+print(pheno$limit)
+
+phenoOb<- mPhen.preparePheno(pheno, opts = opts)
+
+opts$mPhen.variable.selection=FALSE
+opts$mPhen.JointModel=TRUE
+opts$mPhen.inverseRegress=TRUE
+opts$mPhen.adjustSinglePv=FALSE
+
+results2018GRWTHerCorr = mPhen.assoc(genoOb, phenoOb,  opts)
+
+output = mPhen.writeOutput(
+  results2018GRWTHerCorr,
+  output = resDir,
+  geno = genoOb,
+  towrite = towrite,
+  toplot = toplot,
+  opts = plotopts
+)
+
+singTest<- read.table("~/Dropbox/Research_Poland_Lab/AM Panel/R/MultiPhen/results2018GRWTHerCorr.wide.txt",
+                      header = T, sep = "\t")
+
+trials<- singTest[which(singTest$label == "pval"), c(5,3:4,6:ncol(singTest))]
+
+par(mar=c(5.1,4.1,4.1,2.1))
+
+qqman.plot <- function(x, ...) {
+  md <- names(x) %in% c("SNP", "BP", "CHR")
+  traits <- names(x[!md])
+  info<- x[,md]
+  
+  for (i in traits) {
+    P <- x[[i]]
+    dat<- cbind(info, P)
+    mypath <- file.path("~","Dropbox","Research_Poland_Lab","AM Panel","R",
+                        "MultiPhen","Figures",paste("2018GRWTHerCorNetwork_", i, ".pdf", sep = ""))
+    pdf(file = mypath, width = 70, height = 25)
+    qqman::manhattan(dat,
+                     main = paste("MultiPhen GRWT HerCor Network 2018",i),
+                     chr = "CHR",
+                     bp = "BP",
+                     p = "P",
+                     snp = "SNP",
+                     col = c("blue","grey40","black"),
+                     ylim = c(0,12),
+                     chrlabs = c("1A","1B","1D",
+                                 "2A","2B","2D",
+                                 "3A","3B","3D",
+                                 "4A","4B","4D",
+                                 "5A","5B","5D",
+                                 "6A","6B","6D",
+                                 "7A","7B","7D"),
+                     genomewideline = -log10(0.05 / nrow(dat)),
+                     #suggestiveline = -log10(1 - (1 - 0.05)^(1/nrow(dat))),
+                     #logp = T,
+                     cex.axis = 2.5,
+                     cex.lab = 3,
+                     cex.main= 4,
+                     cex = 3)
+    dev.off()
+    
+  }
+}
+
+qqman.plot(trials)
 
 
 ## PCA of pheno

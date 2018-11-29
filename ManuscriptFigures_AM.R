@@ -10,6 +10,7 @@ library(janitor)
 library(extrafont)
 library(sysfonts)
 library(ggbiplot)
+library(GGally)
 
 quartzFonts(CMUBright = c("CMUBright-Roman", 
                           "CMUBright-Bold",  
@@ -21,15 +22,20 @@ font_add(family = "CMUBright",
          regular = "/Library/Fonts/cmunbmr.ttf")
 font_families()
 
+#######Heritability plots for HTP
 her17<- fread(
   "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/2017heritability.txt")
 
 head(her17)
+#Separate trait into date and HTP
 her17<- separate(her17, "Trait",c("Trait","Date"), sep = "_")
 str(her17)
+#Adjust date format in case we want to use date as plotting factor
 her17$Date<- as.Date(her17$Date, format = "%Y%m%d")
+#Remove non-HTP traits
 her17<- her17[which(her17$Trait != c("BYDV","GRWT","MOIST","PTHT","TESTWT",
                                      "AWNS","HDDT")),]
+#Change names so everything fits
 her17$Trait[her17$Trait == "RedEdge"] <- "RE"
 
 
@@ -37,38 +43,47 @@ her18<- fread(
   "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/2018heritability.txt")
 
 head(her18)
+#Separate trait into date and HTP
 her18<- separate(her18, "Trait",c("Date","Trait"), sep = "_")
 str(her18)
+#Date was placed first in these files with an X, remove X
 her18$Date<- sub('.', '', her18$Date)
 str(her18)
+#Adjust date format in case we want to use date as plotting factor
 her18$Date<- as.Date(her18$Date, format = "%Y%m%d")
+#Remove non-HTP traits
 her18<- her18[which(her18$Trait != c("GRWT","GRYLD","MOIST","PTHT","SPNAREA",
                                      "TESTWT","AWNS","HDDT")),]
+#Change names so everything fits
 her18$Trait[her18$Trait == "Nir"] <- "NIR"
 
-herPlot17<- ggplot(data = her17,
-                   aes(x = factor(Date),
-                       y = heritability,
-                       colour = Trait,
-                       group = Trait)) +
+herPlot17<- ggplot(
+  data = her17,
+  aes(
+    x = factor(Date),
+    y = heritability,
+    colour = Trait,
+    group = Trait
+  )) +
   geom_line() +
   geom_point() +
   theme_bw() +
-  theme(panel.grid.major.x = element_blank(),
-        axis.text = element_text(family = "CMUBright",size = 11,
-                                 colour = "black"),
-        legend.text = element_text(family = "CMUBright",size = 10,
-                                   colour = "black"),
-        legend.title = element_text(family = "CMUBright",size = 12,
-                                    colour = "black"),
-        plot.title = element_text(family = "CMUBright",face = "bold",
-                                  size = 14,colour = "black"),
-        axis.title = element_text(family = "CMUBright",size = 12,
-                                  colour = "black"),
-        plot.tag = element_text(family = "CMUBright",size = 16,
-                                colour = "black")) +
-  labs(title = 
-         "Broad-Sense Heritability for HTP Traits for 2017 Growing Season",
+  theme(
+    panel.grid.major.x = element_blank(),
+    axis.text = element_text(size = 11),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 12),
+    plot.title = element_text(
+      face = "bold",
+      size = 14),
+    axis.title = element_text(size = 12),
+    plot.tag = element_text(size = 16),
+    text = element_text(
+      family = "CMUBright",
+      colour = "black"
+    )) +
+  labs(
+    title = "Broad-Sense Heritability for HTP Traits for 2017 Growing Season",
        tag = "A",
        x = "Date",
        y = "Broad-Sense Heritability") +
@@ -83,31 +98,30 @@ herPlot17<- ggplot(data = her17,
 herPlot17
 
 herPlot18<- ggplot(data = her18,
-                   aes(x = factor(Date),
-                       y = heritability,
-                       colour = Trait,
-                       group = Trait)) +
+                   aes(
+                     x = factor(Date),
+                     y = heritability,
+                     colour = Trait,
+                     group = Trait
+                   )) +
   geom_line() +
   geom_point() +
   theme_bw() +
   theme(panel.grid.major.x = element_blank(),
-        axis.text = element_text(family = "CMUBright",size = 11,
-                                 colour = "black"),
-        legend.text = element_text(family = "CMUBright",size = 10,
-                                   colour = "black"),
-        legend.title = element_text(family = "CMUBright",size = 12,
-                                    colour = "black"),
-        plot.title = element_text(family = "CMUBright",face = "bold",
-                                  size = 14,colour = "black"),
-        axis.title = element_text(family = "CMUBright",size = 12,
-                                  colour = "black"),
-        plot.tag = element_text(family = "CMUBright",size = 16,
-                                colour = "black")) +
-  labs(title = 
-         "Broad-Sense Heritability for HTP Traits for 2018 Growing Season",
-       tag = "B",
-       x = "Date",
-       y = "Broad-Sense Heritability") +
+        axis.text = element_text(size = 11),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        plot.title = element_text(face = "bold",
+                                  size = 14),
+        axis.title = element_text(size = 12),
+        plot.tag = element_text(size = 16),
+        text = element_text(family = "CMUBright",
+                            colour = "black")) +
+  labs(
+    title = "Broad-Sense Heritability for HTP Traits for 2018 Growing Season",
+    tag = "B",
+    x = "Date",
+    y = "Broad-Sense Heritability") +
   scale_color_manual(values = c("#762a83","#af8dc3","#dbc0de","#c7c7c7",
                                 "#b1e0a7","#7fbf7b","#1b7837")) +
   scale_x_discrete(labels = c("20Nov","27Nov","05Dec",
@@ -118,21 +132,16 @@ herPlot18<- ggplot(data = her18,
 
 herPlot18
 
-ggarrange(herPlot17,herPlot18,ncol = 1,nrow = 2)
 
-heritability <- plot_grid( herPlot17 + theme(legend.position="none"),
-                           herPlot18 + theme(legend.position="none"),
-                           nrow = 2,
-                           ncol = 1
-)
-heritability
+ggarrange(herPlot17,herPlot18,
+          common.legend = T,
+          legend = "right",
+          ncol = 1,
+          nrow = 2)
 
-legend <- get_legend(herPlot17)
 
-p <- plot_grid( heritability, legend, rel_widths = c(3, .3))
-p
 
-#### PCA of genetic markers
+######## PCA of genetic markers
 
 snpChip <- read_delim("~/Dropbox/Research_Poland_Lab/AM Panel/Genotype_Database/90KsnpChipHapMap/AMsnpChipImputed.hmp.txt", 
                       "\t", escape_double = FALSE, trim_ws = TRUE)
@@ -200,18 +209,15 @@ pcaPlt1<-ggplot(data = Scores, aes(x = PC1, y = PC2, colour = Program)) +
   geom_point(alpha = 1,position = "jitter") +
   theme_bw() +
   theme(panel.grid = element_blank(),
-        axis.text = element_text(family = "CMUBright",size = 11,
-                                 colour = "black"),
-        legend.text = element_text(family = "CMUBright",size = 10,
-                                   colour = "black"),
-        legend.title = element_text(family = "CMUBright",size = 12,
-                                    colour = "black"),
-        plot.title = element_text(family = "CMUBright",face = "bold",
-                                  size = 14,colour = "black"),
-        axis.title = element_text(family = "CMUBright",size = 12,
-                                  colour = "black"),
-        plot.tag = element_text(family = "CMUBright",size = 16,
-                                colour = "black")) +
+        axis.text = element_text(size = 11),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        plot.title = element_text(face = "bold",
+                                  size = 14),
+        axis.title = element_text(size = 12),
+        plot.tag = element_text(size = 16),
+        text = element_text(family = "CMUBright",
+                            colour = "black")) +
   labs(title = "PCA Plot of PC1 and PC2",
        tag = "A",
        x = paste("PC1 ", "R2 = ",(round(sumPCA[1,"PC1"],3))*100,"%"),
@@ -221,25 +227,21 @@ pcaPlt1<-ggplot(data = Scores, aes(x = PC1, y = PC2, colour = Program)) +
                                 '#c2a5cf','#cfacd4',"#dbc0de",'#c7c7c7',
                                 "#bbe4b2",'#9cd795','#5aae61','#1b7837',
                                 "#808080",'#00441b'))
-
 pcaPlt1
 
 pcaPlt2<-ggplot(data = Scores, aes(x = PC1, y = PC3, colour = Program)) +
   geom_point(alpha = 1,position = "jitter") +
   theme_bw() +
   theme(panel.grid = element_blank(),
-        axis.text = element_text(family = "CMUBright",size = 11,
-                                 colour = "black"),
-        legend.text = element_text(family = "CMUBright",size = 10,
-                                   colour = "black"),
-        legend.title = element_text(family = "CMUBright",size = 12,
-                                    colour = "black"),
-        plot.title = element_text(family = "CMUBright",face = "bold",
-                                  size = 14,colour = "black"),
-        axis.title = element_text(family = "CMUBright",size = 12,
-                                  colour = "black"),
-        plot.tag = element_text(family = "CMUBright",size = 16,
-                                colour = "black")) +
+        axis.text = element_text(size = 11),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        plot.title = element_text(face = "bold",
+                                  size = 14),
+        axis.title = element_text(size = 12),
+        plot.tag = element_text(size = 16),
+        text = element_text(family = "CMUBright",
+                            colour = "black")) +
   labs(title = "PCA Plot of PC1 and PC3",
        tag = "B",
        x = paste("PC1 ", "R2 = ",(round(sumPCA[1,"PC1"],3))*100,"%"),
@@ -256,18 +258,15 @@ pcaPlt3<-ggplot(data = Scores, aes(x = PC2, y = PC3, colour = Program)) +
   geom_point(alpha = 1,position = "jitter") +
   theme_bw() +
   theme(panel.grid = element_blank(),
-        axis.text = element_text(family = "CMUBright",size = 11,
-                                 colour = "black"),
-        legend.text = element_text(family = "CMUBright",size = 10,
-                                   colour = "black"),
-        legend.title = element_text(family = "CMUBright",size = 12,
-                                    colour = "black"),
-        plot.title = element_text(family = "CMUBright",face = "bold",
-                                  size = 14,colour = "black"),
-        axis.title = element_text(family = "CMUBright",size = 12,
-                                  colour = "black"),
-        plot.tag = element_text(family = "CMUBright",size = 16,
-                                colour = "black")) +
+        axis.text = element_text(size = 11),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        plot.title = element_text(face = "bold",
+                                  size = 14),
+        axis.title = element_text(size = 12),
+        plot.tag = element_text(size = 16),
+        text = element_text(family = "CMUBright",
+                            colour = "black")) +
   labs(title = "PCA Plot of PC2 and PC3",
        tag = "C",
        x = paste("PC2 ", "R2 = ",(round(sumPCA[1,"PC2"],3))*100,"%"),
@@ -279,6 +278,12 @@ pcaPlt3<-ggplot(data = Scores, aes(x = PC2, y = PC3, colour = Program)) +
                                 "#808080",'#00441b'))
 
 pcaPlt3
+
+ggarrange(pcaPlt1, pcaPlt2, pcaPlt3,
+          nrow = 2,
+          ncol = 1,
+          common.legend = T,
+          legend = "right")
 
 prow <- plot_grid( pcaPlt1 + theme(legend.position="none"),
                    pcaPlt2 + theme(legend.position="none"),
@@ -294,7 +299,7 @@ p <- plot_grid( prow, legend, rel_widths = c(3, .3))
 p
 
 
-## PCA of blues pheno
+################ PCA of blues pheno
 
 blues2018 <- read.table("~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/cleanPheno18_NaNa.txt",
                         header = T, sep = "\t")
@@ -515,15 +520,14 @@ bluesPCA12017<- ggbiplot2(
   linetype = "dashed", 
   alpha_arrow = 0.5,
   textcolor = "grey",
-  pointsize = 1
-) + 
+  pointsize = 1) + 
   scale_color_manual(
     name="Breeding\nProgram",
     values = c('#40004b','#762a83','#9970ab',"#af8dc3",
                '#c2a5cf','#cfacd4',"#dbc0de",'#c7c7c7',
                "#bbe4b2",'#9cd795','#5aae61','#1b7837',
                "#808080",'#00441b')
-  ) +
+    ) +
   labs(
     title = "PCA of Phenotypic BLUEs 2017",
     tag = "A",
@@ -531,32 +535,19 @@ bluesPCA12017<- ggbiplot2(
     y = "Standardized PC2 (18.9% explained variance)"
   ) +
   theme(panel.grid = element_blank(),
-        axis.text = element_text(
-          size = 11,
-          colour = "black"
-        ),
-        legend.text = element_text(
-          size = 10,
-          colour = "black"
-        ),
-        legend.title = element_text(
-          size = 12,
-          colour = "black"
-        ),
+        axis.text = element_text(size = 11),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
         plot.title = element_text(
           face = "bold",
-          size = 14,
-          colour = "black"
+          size = 14
         ),
-        axis.title = element_text(
-          size = 12,
+        axis.title = element_text(size = 12),
+        plot.tag = element_text(size = 16),
+        text = element_text(
+          family = "CMUBright",
           colour = "black"
-        ),
-        plot.tag = element_text(
-          size = 16,
-          colour = "black"
-        ),
-        text = element_text(family = "CMUBright"))
+        ))
 bluesPCA12017
 
 bluesPCA22017<- ggbiplot2(b27.pca,
@@ -568,8 +559,7 @@ bluesPCA22017<- ggbiplot2(b27.pca,
                           color = "grey", 
                           linetype = "dashed", 
                           alpha_arrow = 0.5,
-                          textcolor = "grey"
-) + 
+                          textcolor = "grey") + 
   scale_color_manual(name="Breeding\nProgram",
                      values = c('#40004b','#762a83','#9970ab',"#af8dc3",
                                 '#c2a5cf','#cfacd4',"#dbc0de",'#c7c7c7',
@@ -577,24 +567,21 @@ bluesPCA22017<- ggbiplot2(b27.pca,
                                 "#808080",'#00441b'))  +
   labs(
     title = "PCA of Phenotypic BLUEs 2017",
-       tag = "B",
-       x = "Standardized PC1 (33.4% explained variance)",
-       y = "Standardized PC3 (11.2% explained variance)"
-       ) +
+    tag = "B",
+    x = "Standardized PC1 (33.4% explained variance)",
+    y = "Standardized PC3 (11.2% explained variance)"
+  ) +
   theme(panel.grid = element_blank(),
-        axis.text = element_text(family = "CMUBright",size = 11,
-                                 colour = "black"),
-        legend.text = element_text(family = "CMUBright",size = 10,
-                                   colour = "black"),
-        legend.title = element_text(family = "CMUBright",size = 12,
-                                    colour = "black"),
-        plot.title = element_text(family = "CMUBright",face = "bold",
-                                  size = 14,colour = "black"),
-        axis.title = element_text(family = "CMUBright",size = 12,
-                                  colour = "black"),
-        plot.tag = element_text(family = "CMUBright",size = 16,
-                                colour = "black"),
-        text = element_text(family = "CMUBright"))
+        axis.text = element_text(size = 11),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        plot.title = element_text(
+          face = "bold",
+          size = 14),
+        axis.title = element_text(size = 12),
+        plot.tag = element_text(size = 16),
+        text = element_text(family = "CMUBright",
+                            colour = "black"))
 bluesPCA22017
 
 bluesPCA32017<- ggbiplot2(b27.pca,
@@ -606,46 +593,84 @@ bluesPCA32017<- ggbiplot2(b27.pca,
                           color = "grey", 
                           linetype = "dashed", 
                           alpha_arrow = 0.5,
-                          textcolor = "grey"
-) + 
+                          textcolor = "grey") + 
   scale_color_manual(name="Breeding\nProgram",
                      values = c('#40004b','#762a83','#9970ab',"#af8dc3",
                                 '#c2a5cf','#cfacd4',"#dbc0de",'#c7c7c7',
                                 "#bbe4b2",'#9cd795','#5aae61','#1b7837',
                                 "#808080",'#00441b')) +
-  labs(title = "PCA of Phenotypic BLUEs 2017",
-       tag = "C",
-       x = "Standardized PC2 (18.9% explained variance)",
-       y = "Standardized PC3 (11.2% explained variance)") +
+  labs(
+    title = "PCA of Phenotypic BLUEs 2017",
+    tag = "C",
+    x = "Standardized PC2 (18.9% explained variance)",
+    y = "Standardized PC3 (11.2% explained variance)"
+  ) +
   theme(panel.grid = element_blank(),
-        axis.text = element_text(family = "CMUBright",size = 11,
-                                 colour = "black"),
-        legend.text = element_text(family = "CMUBright",size = 10,
-                                   colour = "black"),
-        legend.title = element_text(family = "CMUBright",size = 12,
-                                    colour = "black"),
-        plot.title = element_text(family = "CMUBright",face = "bold",
-                                  size = 14,colour = "black"),
-        axis.title = element_text(family = "CMUBright",size = 12,
-                                  colour = "black"),
-        plot.tag = element_text(family = "CMUBright",size = 16,
-                                colour = "black"),
-        text = element_text(family = "CMUBright"))
+        axis.text = element_text(size = 11),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        plot.title = element_text(
+          face = "bold",
+          size = 14
+        ),
+        axis.title = element_text(size = 12),
+        plot.tag = element_text(size = 16),
+        text = element_text(family = "CMUBright",
+                            colour = "black"))
 bluesPCA32017
 
-prow <- plot_grid( bluesPCA12017 + theme(legend.position="none"),
-                   bluesPCA22017 + theme(legend.position="none"),
-                   bluesPCA32017 + theme(legend.position="none"),
-                   bluesPCA12018 + theme(legend.position="none"),
-                   bluesPCA22018 + theme(legend.position="none"),
-                   bluesPCA32018 + theme(legend.position="none"),
-                   nrow = 4,
-                   ncol = 2
-)
+prow <- ggarrange(
+  bluesPCA12017,
+  bluesPCA22017,
+  bluesPCA32017,
+  bluesPCA12018,
+  bluesPCA22018,
+  bluesPCA32018,
+  nrow = 4,
+  ncol = 2,
+  align = "hv",
+  legend = "right",
+  common.legend = T) 
 prow
 
-legend <- get_legend(bluesPCA12017)
+##### BLUEs Summary
 
-p <- plot_grid( prow, legend, rel_widths = c(3, .3))
-p
+#Correlation plots with GGally
 
+head(blues2017)
+head(blues2018)
+
+correlations<- function(x, ...) {
+  
+  md<- names(x) %in% c("rn","Taxa","year","rep","block","column",
+                       "range", "entity_id","HDDT","Program")
+  corDa<-x[ , !md]
+  nums <- sapply(corDa, is.numeric)
+  corDa<- corDa[ , nums]
+  ggcorr(corDa, 
+         hjust = 1,
+         size = 2,
+         label_color = "grey",
+         low = "#40004b",
+         mid = "#c7c7c7",
+         high = "#00441b",
+         midpoint = 0,
+         nbreaks = 8,
+         layout.exp = 7) +
+    theme(text = element_text(family = "CMUBright",
+                              colour = "black")) 
+  
+}
+
+cor17<-correlations(blues2017)
+cor17
+cor18<-correlations(blues2018, layout.exp = 11)
+cor18
+
+ggarrange(cor17,cor18,
+          ncol = 1,
+          nrow = 2,
+          common.legend = T,
+          legend = "right")
+
+ggpairs(pheno[,c(8:15)])
