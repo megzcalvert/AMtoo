@@ -649,17 +649,15 @@ correlations<- function(x, ...) {
   corDa<- corDa[ , nums]
   ggcorr(corDa, 
          hjust = 1,
-         size = 2,
+         size = 3,
          label_color = "grey",
          low = "#40004b",
          mid = "#c7c7c7",
          high = "#00441b",
          midpoint = 0,
          nbreaks = 8,
-         layout.exp = 7) +
-    theme(text = element_text(family = "CMUBright",
-                              colour = "black")) 
-  
+         layout.exp = 10,
+         family = "CMUBright") 
 }
 
 cor17<-correlations(blues2017)
