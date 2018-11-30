@@ -57,43 +57,53 @@ her18<- her18[which(her18$Trait != c("GRWT","GRYLD","MOIST","PTHT","SPNAREA",
 #Change names so everything fits
 her18$Trait[her18$Trait == "Nir"] <- "NIR"
 
-herPlot17<- ggplot(
-  data = her17,
-  aes(
-    x = factor(Date),
-    y = heritability,
-    colour = Trait,
-    group = Trait
-  )) +
-  geom_line() +
-  geom_point() +
+herPlot17<- ggplot(data = her17,
+                   aes(x = factor(Date),
+                       y = heritability,
+                       colour = Trait,
+                       group = Trait)) +
+  geom_line(size = 3) +
+  geom_point(size = 4 ) +
   theme_bw() +
-  theme(
-    panel.grid.major.x = element_blank(),
-    axis.text = element_text(size = 11),
-    legend.text = element_text(size = 10),
-    legend.title = element_text(size = 12),
-    plot.title = element_text(
-      face = "bold",
-      size = 14),
-    axis.title = element_text(size = 12),
-    plot.tag = element_text(size = 16),
-    text = element_text(
-      family = "CMUBright",
-      colour = "black"
-    )) +
-  labs(
-    title = "Broad-Sense Heritability for HTP Traits for 2017 Growing Season",
+  theme(panel.grid.major.x = element_blank(),
+        axis.text = element_text(size = 18),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 18),
+        plot.title = element_text(face = "bold",
+                                  size = 24),
+        axis.title = element_text(size = 20),
+        plot.tag = element_text(size = 26),
+        text = element_text(family = "CMUBright",
+                            colour = "black")) +
+  labs(title = "Broad-Sense Heritability for HTP Traits for 2017 Growing Season",
        tag = "A",
        x = "Date",
        y = "Broad-Sense Heritability") +
   scale_color_manual(values = c("#762a83","#af8dc3","#dbc0de","#c7c7c7",
                                 "#b1e0a7","#7fbf7b","#1b7837")) +
-  scale_x_discrete(labels = c("01Nov","08Nov","11Nov","23Nov",
+  scale_x_discrete(labels = c("Season","01Nov","08Nov","11Nov","23Nov",
                               "28Nov","01Dec","31Mar","06Apr",
                               "12Apr","17Apr","23Apr","03May",
                               "05May","12May","23May","02Jun",
-                              "06Jun","09Jun"))
+                              "06Jun","09Jun")) +
+  geom_hline(colour = "#b2b2b2",
+             yintercept = c(0.5393841, 0.8172119,0.6478161,0.7612984,0.7803741,
+                            0.9544459,0.9401581),
+             linetype = "dashed") +
+  annotate("text", x = 1, y = 0.55, label = "BYDV",
+           family = "CMUBright", size = 6) +
+  annotate("text", x = 1, y = 0.821, label = "GRWT",
+           family = "CMUBright", size = 6)  +
+  annotate("text", x = 1, y = 0.65, label = "MOIST",
+           family = "CMUBright", size = 6) +
+  annotate("text", x = 1, y = 0.75, label = "PTHT",
+           family = "CMUBright", size = 6) +
+  annotate("text", x = 1, y = 0.79, label = "TESTWT",
+           family = "CMUBright", size = 6) +
+  annotate("text", x = 1, y = 0.96, label = "AWNS",
+           family = "CMUBright", size = 6) +
+  annotate("text", x = 1, y = 0.93, label = "HDDT",
+           family = "CMUBright", size = 6)
 
 herPlot17
 
@@ -104,31 +114,48 @@ herPlot18<- ggplot(data = her18,
                      colour = Trait,
                      group = Trait
                    )) +
-  geom_line() +
-  geom_point() +
+  geom_line(size = 3) +
+  geom_point(size = 4 ) +
   theme_bw() +
   theme(panel.grid.major.x = element_blank(),
-        axis.text = element_text(size = 11),
-        legend.text = element_text(size = 10),
-        legend.title = element_text(size = 12),
+        axis.text = element_text(size = 18),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 18),
         plot.title = element_text(face = "bold",
-                                  size = 14),
-        axis.title = element_text(size = 12),
-        plot.tag = element_text(size = 16),
+                                  size = 24),
+        axis.title = element_text(size = 20),
+        plot.tag = element_text(size = 26),
         text = element_text(family = "CMUBright",
                             colour = "black")) +
-  labs(
-    title = "Broad-Sense Heritability for HTP Traits for 2018 Growing Season",
+  labs(title = "Broad-Sense Heritability for HTP Traits for 2018 Growing Season",
     tag = "B",
     x = "Date",
     y = "Broad-Sense Heritability") +
   scale_color_manual(values = c("#762a83","#af8dc3","#dbc0de","#c7c7c7",
                                 "#b1e0a7","#7fbf7b","#1b7837")) +
-  scale_x_discrete(labels = c("20Nov","27Nov","05Dec",
+  scale_x_discrete(labels = c("Season","20Nov","27Nov","05Dec",
                               "15Dec","18Dec","04Apr",
                               "12Apr","19Apr","23Apr",
                               "04May","14May","16May",
-                              "29May","06Jun","13Jun"))
+                              "29May","06Jun","13Jun")) +
+  geom_hline(colour = "#b2b2b2",
+             yintercept = c(0.5889003, 0.4652914,0.9464354,0.5794162,0.6473628,
+                            1,0.8817521),
+             linetype = "dashed") +
+  annotate("text", x = 1, y = 0.6, label = "GRWT",
+           family = "CMUBright", size = 6)  +
+  annotate("text", x = 1, y = 0.465, label = "MOIST",
+           family = "CMUBright", size = 6) +
+  annotate("text", x = 1, y = 0.95, label = "PTHT",
+           family = "CMUBright", size = 6) +
+  annotate("text", x = 1, y = 0.57, label = "SPNAREA",
+           family = "CMUBright", size = 6) +
+  annotate("text", x = 1, y = 0.655, label = "TESTWT",
+           family = "CMUBright", size = 6) +
+  annotate("text", x = 1, y = 1, label = "AWNS",
+           family = "CMUBright", size = 6) +
+  annotate("text", x = 1, y = 0.88, label = "HDDT",
+           family = "CMUBright", size = 6)
 
 herPlot18
 
@@ -671,4 +698,58 @@ ggarrange(cor17,cor18,
           common.legend = T,
           legend = "right")
 
-ggpairs(pheno[,c(8:15)])
+distBlues2017<- ggpairs(blues2017,
+                        mapping = NULL,
+                        columns = c(2:5,7),
+                        title = "2017 Phenotypic BLUES",
+                        upper = list(continuous = wrap("cor", size = 5, 
+                                                       color = "black",
+                                                       family = "CMUBright")),
+                        columnLabels = c("BYDV","GRWT","MOIST","PTHT","HDDT"),
+                        lower = list(continuous = "smooth"),
+                        diag = list(continuous = "densityDiag", 
+                                    discrete = "barDiag"),
+                        # params = NULL,
+                        #xlab = NULL,
+                        #ylab = NULL,
+                        axisLabels = c("show") #, ,show "internal", "none"
+                        
+) +
+  theme(text = element_text(family = "CMUBright",size = 14),
+        panel.grid = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14, face = "bold"),
+        panel.border = element_rect(fill = NA, linetype = "solid")) 
+
+distBlues2017
+
+distBlues2018<- ggpairs(blues2018,
+                        mapping = NULL,
+                        columns = c(2:5,7),
+                        title = "2018 Phenotypic BLUES",
+                        upper = list(continuous = wrap("cor", size = 5, 
+                                                       color = "black",
+                                                       family = "CMUBright")),
+                        columnLabels = c("GRWT","MOIST","PTHT",
+                                         "SPNAREA","HDDT"),
+                        lower = list(continuous = "smooth"),
+                        diag = list(continuous = "densityDiag", 
+                                    discrete = "barDiag"),
+                        # params = NULL,
+                        #xlab = NULL,
+                        #ylab = NULL,
+                        axisLabels = c("show") #, ,show "internal", "none"
+                        
+) +
+  theme(text = element_text(family = "CMUBright",size = 14),
+        panel.grid = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14, face = "bold")) 
+
+distBlues2018
+
+
