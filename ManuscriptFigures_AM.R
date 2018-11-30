@@ -671,4 +671,58 @@ ggarrange(cor17,cor18,
           common.legend = T,
           legend = "right")
 
-ggpairs(pheno[,c(8:15)])
+distBlues2017<- ggpairs(blues2017,
+                        mapping = NULL,
+                        columns = c(2:5,7),
+                        title = "2017 Phenotypic BLUES",
+                        upper = list(continuous = wrap("cor", size = 5, 
+                                                       color = "black",
+                                                       family = "CMUBright")),
+                        columnLabels = c("BYDV","GRWT","MOIST","PTHT","HDDT"),
+                        lower = list(continuous = "smooth"),
+                        diag = list(continuous = "densityDiag", 
+                                    discrete = "barDiag"),
+                        # params = NULL,
+                        #xlab = NULL,
+                        #ylab = NULL,
+                        axisLabels = c("show") #, ,show "internal", "none"
+                        
+) +
+  theme(text = element_text(family = "CMUBright",size = 14),
+        panel.grid = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14, face = "bold"),
+        panel.border = element_rect(fill = NA, linetype = "solid")) 
+
+distBlues2017
+
+distBlues2018<- ggpairs(blues2018,
+                        mapping = NULL,
+                        columns = c(2:5,7),
+                        title = "2018 Phenotypic BLUES",
+                        upper = list(continuous = wrap("cor", size = 5, 
+                                                       color = "black",
+                                                       family = "CMUBright")),
+                        columnLabels = c("GRWT","MOIST","PTHT",
+                                         "SPNAREA","HDDT"),
+                        lower = list(continuous = "smooth"),
+                        diag = list(continuous = "densityDiag", 
+                                    discrete = "barDiag"),
+                        # params = NULL,
+                        #xlab = NULL,
+                        #ylab = NULL,
+                        axisLabels = c("show") #, ,show "internal", "none"
+                        
+) +
+  theme(text = element_text(family = "CMUBright",size = 14),
+        panel.grid = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14, face = "bold")) 
+
+distBlues2018
+
+
