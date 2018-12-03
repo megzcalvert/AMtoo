@@ -767,14 +767,12 @@ histFacet.plot <- function(x, results, info, ...) {
       theme_bw() +
       xlab(paste(i)) +
       ylab("Frequency") +
-      theme(text = element_text(family = "CMUBright",
-                                size = 14,
-                                colour = "black"),
+      theme(text = element_text(colour = "black"),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
-            axis.text = element_text(size = 15),
+            axis.text = element_text(size = 12),
             axis.title = element_text(size = 15),
-            strip.text = element_text(size = 15)) 
+            strip.text = element_text(size = 12)) 
     
     plotList[[i]] = thisPlot
     print(i)
@@ -783,10 +781,33 @@ histFacet.plot <- function(x, results, info, ...) {
   return(plotList)
 }
 
-distHist2017<- histFacet.plot(blues2017[,1:72],' ',"")
+distHist2017<- histFacet.plot(blues2017,' ',"")
 
 ggarrange(plotlist = distHist2017,
           ncol = 3,
-          nrow = 4,
-          font.label = list(colour = "black",
-                            family = "CMUBright")) 
+          nrow = 3) %>%
+  ggexport(filename = "~/Dropbox/Research_Poland_Lab/AM Panel/AMPanel_Manuscript/Supplementary/SupplementaryFigure1_Distributions.pdf",
+           width = 800,
+           height = 800,
+           res = 360)
+
+reportList<- list(
+  list(distHist2017[1:9]),
+  list(distHist2017[10:18]),
+  list(distHist2017[19:27]),
+  list(distHist2017[28:36]),
+  list(distHist2017[37:45]),
+  list(distHist2017[46:54]),
+  list(distHist2017[55:63]),
+  list(distHist2017[64:71])
+)
+
+start_report(filename = "SupplementaryFigure1_Distributions") %>%
+  add_multiple_page(
+    plot = reportList,
+                    plot_hpos = c(1,3),
+                    plot_vpos = c(1,3),
+                    plot_area_layout = grid::grid.layout(3,3)
+    ) %>%
+  end_report()
+
