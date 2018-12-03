@@ -342,7 +342,7 @@ histFacet.plot <- function(x, results, info, ...) {
       geom_histogram(colour="black", fill="white") + 
       #facet_grid(x$year ~ .) +
       theme_bw() +
-      xlab(i) +
+      xlab(paste0(i)) +
       ylab("Frequency") +
       theme(panel.grid.major = element_blank()) +
       theme(panel.grid.minor = element_blank()) +

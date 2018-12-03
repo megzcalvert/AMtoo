@@ -765,7 +765,7 @@ histFacet.plot <- function(x, results, info, ...) {
     thisPlot <- ggplot(data = x, aes_string(x = i)) + 
       geom_histogram(colour="black", fill="white") + 
       theme_bw() +
-      xlab(i) +
+      xlab(paste(i)) +
       ylab("Frequency") +
       theme(text = element_text(family = "CMUBright",
                                 size = 14,
@@ -787,5 +787,6 @@ distHist2017<- histFacet.plot(blues2017[,1:72],' ',"")
 
 ggarrange(plotlist = distHist2017,
           ncol = 3,
-          nrow = 6,
-          align = "hv")
+          nrow = 4,
+          font.label = list(colour = "black",
+                            family = "CMUBright")) 
