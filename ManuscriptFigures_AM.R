@@ -332,6 +332,14 @@ blues2018 <- read.table("~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Databa
                         header = T, sep = "\t")
 blues2018 <- as.data.frame( blues2018[, !names(blues2018) %in% c("NormGRWT","TESTWT","GRYLD")])
 
+blues2018 <- rename(blues2018, 
+                    replace = c("GRWT" = "GRWT_2018",
+                                "MOIST" = "MOSIT_2018",
+                                "PTHT" = "PTHT_2018",
+                                "SPNAREA" = "SPNAREA_2018",
+                                "awns" = "AWNS_2018",
+                                "hday" = "HDDT_2018"))
+
 lineInfo <- fread(
   "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/LineDetailsAMPanel.txt", 
   header = T, check.names = F, sep = '\t', data.table = F)
@@ -523,6 +531,14 @@ blues2017 <- read.table("~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Databa
                         header = T, sep = "\t")
 blues2017 <- as.data.frame( blues2017[, !names(blues2017) %in% 
                                         c("NormGRWT","TESTWT","GRYLD")])
+
+blues2017 <- rename(blues2017, 
+                    replace = c("GRWT" = "GRWT_2017",
+                                "MOIST" = "MOSIT_2017",
+                                "PTHT" = "PTHT_2017",
+                                "BYDV" = "BYDV_2017",
+                                "awns" = "AWNS_2017",
+                                "hday" = "HDDT_2017"))
 
 b2017<- blues2017[,2:ncol(blues2017)]
 
@@ -763,18 +779,21 @@ histFacet.plot <- function(x, results, info, ...) {
   plotList = list()
   for (i in traits) {
     thisPlot <- ggplot(data = x, aes_string(x = i)) + 
-      geom_histogram(colour="black", fill="white") + 
+      geom_histogram(colour="black", 
+                     fill="white",
+                     size = 1) + 
       theme_bw() +
       xlab(paste(i)) +
       ylab("Frequency") +
-      theme(text = element_text(family = "CMUBright",
-                                size = 14,
-                                colour = "black"),
+      theme(text = element_text(colour = "black"),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
-            axis.text = element_text(size = 15),
-            axis.title = element_text(size = 15),
-            strip.text = element_text(size = 15)) 
+            axis.text = element_text(size = 24,
+                                     colour = "black"),
+            axis.title = element_text(size = 30),
+            strip.text = element_text(size = 16),
+            axis.line = element_line(colour = "black",
+                                     size = 1)) 
     
     plotList[[i]] = thisPlot
     print(i)
@@ -784,9 +803,34 @@ histFacet.plot <- function(x, results, info, ...) {
 }
 
 distHist2017<- histFacet.plot(blues2017[,1:72],' ',"")
+distHist2018<- histFacet.plot(blues2018[,1:96],"","")
 
-ggarrange(plotlist = distHist2017,
+distHist<- c(distHist2017,distHist2018)
+
+ggarrange(plotlist = distHist,
           ncol = 3,
-          nrow = 4,
-          font.label = list(colour = "black",
-                            family = "CMUBright")) 
+          nrow = 3) %>%
+  ggexport(filename = "~/Dropbox/Research_Poland_Lab/AM Panel/AMPanel_Manuscript/Supplementary/SupplementaryFigure1_Distributions.pdf",
+           width = 50,
+           height = 50)
+
+reportList<- list(
+  list(distHist2017[1:9]),
+  list(distHist2017[10:18]),
+  list(distHist2017[19:27]),
+  list(distHist2017[28:36]),
+  list(distHist2017[37:45]),
+  list(distHist2017[46:54]),
+  list(distHist2017[55:63]),
+  list(distHist2017[64:71])
+)
+
+start_report(filename = "SupplementaryFigure1_Distributions") %>%
+  add_multiple_page(
+    plot = reportList,
+                    plot_hpos = c(1,3),
+                    plot_vpos = c(1,3),
+                    plot_area_layout = grid::grid.layout(3,3)
+    ) %>%
+  end_report()
+
