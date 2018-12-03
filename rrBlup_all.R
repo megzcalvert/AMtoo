@@ -23,7 +23,6 @@ require(lubridate)
 wheatgenetics = dbConnect(MySQL( ),user="megzcalvert",
                           
                           dbname='wheatgenetics', host='beocat.cis.ksu.edu',
-                          
                           password = " " , port = 6306) 
 
 #SQL Query to get all AM Panel phenotype data
@@ -107,16 +106,20 @@ ff = function(x, patterns, replacements = patterns, fill = NA, ...)
 }
 
 #Adding a year column based on the entity_id
-pheno_long$year<- ff(pheno_long$entity_id, c("15ASH", "16ASH", "17ASH","18ASH"), 
+pheno_long$year<- ff(pheno_long$entity_id, 
+                     c("15ASH", "16ASH", "17ASH","18ASH"), 
                      c("15", "16", "17","18"),
                      "NA", ignore.case = TRUE)
 
 modNames<- tabyl(pheno_long$Variety)
 names(modNames)[1:2] <- c("Variety", "Count")
 dataMaid::summarize(pheno_long[ , c("Variety", "trait_id", "rep", "year")])
-knitr::kable(tabyl(pheno_long$trait_id), caption = "Number of observations per trait")
-knitr::kable(tabyl(pheno_long$rep), caption = "Number of observations of reps")
-knitr::kable(tabyl(pheno_long$year), caption = "Number of observations per year")
+knitr::kable(tabyl(pheno_long$trait_id), 
+             caption = "Number of observations per trait")
+knitr::kable(tabyl(pheno_long$rep), 
+             caption = "Number of observations of reps")
+knitr::kable(tabyl(pheno_long$year), 
+             caption = "Number of observations per year")
 
 ### Removing lines that do not fit the assumptions
 modNames
@@ -131,14 +134,19 @@ pheno_long<- semi_join(pheno_long, modNames, by = c('Variety' = 'Variety'))
 str(pheno_long)
 pheno_long<- subset(pheno_long, pheno_long$rep != 0)
 str(pheno_long)
-knitr::kable(tabyl(pheno_long$trait_id), caption = "Final number of observations per traits")
-knitr::kable(tabyl(pheno_long$rep), caption = "Final number of observations per rep")
-knitr::kable(tabyl(pheno_long$year), caption = "Final number of observations per year")
+knitr::kable(tabyl(pheno_long$trait_id), 
+             caption = "Final number of observations per traits")
+knitr::kable(tabyl(pheno_long$rep), 
+             caption = "Final number of observations per rep")
+knitr::kable(tabyl(pheno_long$year), 
+             caption = "Final number of observations per year")
 
 ### Conversion to Wide format
 
 #Add columns for awns and heading date
-pheno_long$awns<- ifelse(pheno_long$phenotype_value == "Awned", pheno_long$phenotype_value,NA)
+pheno_long$awns<- ifelse(pheno_long$phenotype_value == "Awned", 
+                         pheno_long$phenotype_value,
+                         NA)
 str(pheno_long)
 
 awns<- pheno_long[ , c(1,11)]
@@ -248,7 +256,8 @@ plotDates<- hddt[,c(1,5)]
 
 pheno_long$phenotype_value<-as.numeric(as.character(pheno_long$phenotype_value))
 
-write.table(pheno_long, file="~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_Long18.txt",
+write.table(pheno_long, 
+            file="~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_Long18.txt",
             col.names=TRUE, row.names=FALSE, sep="\t", quote=FALSE)
 
 pheno_long<- fread("~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_Long18.txt", header = T)
@@ -315,36 +324,42 @@ rm(awns, data, gndvi, grvi,hHTP,iniNames,modNames,ndre,ndvi,nir,pheno_long,pheno
 
 ## Visual Phenotypic Summaries
 
-pheno<- read.table("~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_18.txt", sep = "\t", header = TRUE, stringsAsFactors = TRUE)
+pheno<- read.table("~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_18.txt", 
+                   sep = "\t", header = TRUE, stringsAsFactors = TRUE)
 
 myvars <- names(pheno) %in% c("awns") 
 pd<- pheno[!myvars]
+plotList<- list(0)
 
 histFacet.plot <- function(x, results, info, ...) {
   
-  md<- names(x) %in% c("rn","Taxa","year","rep","block","column",
-                       "range", "entity_id")
+  md <- names(x) %in% c("rn","Taxa","year","rep","block","column",
+                        "range", "entity_id")
   traits <- names(x[ , !md])
+  plotList = list()
   for (i in traits) {
-    i<-ggplot(data = x, aes_string(x = i)) + 
+    thisPlot <- ggplot(data = x, aes_string(x = i)) + 
       geom_histogram(colour="black", fill="white") + 
       #facet_grid(x$year ~ .) +
       theme_bw() +
-      xlab(paste0(i)) +
+      xlab(i) +
       ylab("Frequency") +
       theme(panel.grid.major = element_blank()) +
       theme(panel.grid.minor = element_blank()) +
       theme(axis.text = element_text(size = 15)) +
       theme(axis.title = element_text(size = 15)) +
       theme(strip.text = element_text(size = 15)) 
-    ggsave(paste0(i,"_",info,".pdf"),path=paste(results, sep=''))
     
+    plotList[[i]] = thisPlot
     print(i)
+    
   }
+  return(plotList)
 }
 
-histFacet.plot(pd,'~/Dropbox/Research_Poland_Lab/AM Panel/Figures/Hist/',
+raw2018<- histFacet.plot(pd,'~/Dropbox/Research_Poland_Lab/AM Panel/Figures/Hist/',
                "_raw_2018")
+ggpubr::ggarrange(plotlist = raw2018, ncol = 2, nrow = 2)
 
 cpg_dot<- ggplot(data = pheno, aes(x = pheno$PTHT, y = pheno$GRWT)) +
   geom_point() + 
@@ -437,14 +452,16 @@ boxplot.stats(pheno$GRWT)$out
 boxplot.stats(pheno$PTHT)$out
 boxplot.stats(pheno$hday)$out
 boxplot.stats(pheno$awns)$out
-pheno[,c(4:9,11:ncol(pheno))]<- as.data.frame(lapply(pheno[,c(4:9,11:ncol(pheno))], remove_outliers))
+pheno[,c(4:9,11:ncol(pheno))]<- as.data.frame(
+  lapply(pheno[,c(4:9,11:ncol(pheno))], remove_outliers))
 boxplot.stats(pheno$MOIST)$out
 boxplot.stats(pheno$GRWT)$out
 boxplot.stats(pheno$PTHT)$out
 boxplot.stats(pheno$awns)$out
 
 
-histFacet.plot(pheno,'~/Dropbox/Research_Poland_Lab/AM Panel/Figures/Hist/','clean_2018')
+histFacet.plot(pheno,'~/Dropbox/Research_Poland_Lab/AM Panel/Figures/Hist/',
+               'clean_2018')
 
 cpg_dot<- ggplot(data = pheno, aes(x = pheno$PTHT, y = pheno$GRWT)) +
   geom_point() + 
@@ -500,14 +517,17 @@ calcH2r <- function(dat, fill = NA, ...) {
   
   r=length(table(dat$rep))
   
-  effectvars <- names(dat) %in% c("block", "rep", "Taxa", "year", "column", "row", "experiment_id")
+  effectvars <- names(dat) %in% c("block", "rep", "Taxa", "year", "column", 
+                                  "row", "experiment_id")
   
   t <- colnames(dat[ , !effectvars])
   
   for (i in t) {
     
     print(paste("Working on trait", i))
-    h = as.data.frame(VarCorr(lmer(paste0(i, "~ (1|Taxa) + (1|rep) + (1|rep:block)"), data = dat)))
+    h = as.data.frame(VarCorr(lmer(
+      paste0(i,"~ (1|Taxa) + (1|rep) + (1|rep:block)"), 
+      data = dat)))
     H2= h[1,4] / (h[1,4] + (h[4,4] / r)) 
     print(H2)
   }
@@ -534,19 +554,21 @@ blues <- map2(blues, traits, ~ set_names(..1, ..2) %>%
   reduce(full_join)
 blues$Taxa <- str_replace_all(blues$Taxa, "Taxa", "")
 
-blues <- as.data.frame( blues[, !names(blues) %in% c("X20171205_GNDVI","X20171120_GRVI",
-                                                     "X20171120_NDRE","X20171205_NDRE",
-                                                     "X20180529_NDVI","X20171120_Nir",
-                                                     "X20171127_Nir","X20171205_Nir",
-                                                     "X20171215_Nir","X20180529_Nir",
-                                                     "X20171120_RE","X20171127_RE",
-                                                     "X20171205_RE","X20171215_RE",
-                                                     "X20180529_RE","X20171127_height")])
+blues <- as.data.frame( blues[, !names(blues) %in% 
+                                c("X20171205_GNDVI","X20171120_GRVI",
+                                  "X20171120_NDRE","X20171205_NDRE",
+                                  "X20180529_NDVI","X20171120_Nir",
+                                  "X20171127_Nir","X20171205_Nir",
+                                  "X20171215_Nir","X20180529_Nir",
+                                  "X20171120_RE","X20171127_RE",
+                                  "X20171205_RE","X20171215_RE",
+                                  "X20180529_RE","X20171127_height")])
 
 
 
 write.table(blues, "/Users/megzcalvert/Dropbox/Research_Poland_Lab/AM Panel/Genotype_Database/cleanPheno18Blues.txt",
-            quote = FALSE, row.names = F, col.names = T, sep = "\t", fileEncoding = "UTF-8")
+            quote = FALSE, row.names = F, col.names = T, sep = "\t", 
+            fileEncoding = "UTF-8")
 
 
 #### Comparing names to those in genotype file
@@ -637,19 +659,26 @@ pca.plot <- function(x, p, q, results, ...) {
   
 }
 
-pca.plot(Scores, "PC1", "PC2", '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA/')
-pca.plot(Scores, "PC1", "PC3", '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
-pca.plot(Scores, "PC2", "PC3", '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
-pca.plot(Scores, "PC1", "PC4", '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
-pca.plot(Scores, "PC2", "PC4", '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
-pca.plot(Scores, "PC3", "PC4", '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
+pca.plot(Scores, "PC1", "PC2", 
+         '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA/')
+pca.plot(Scores, "PC1", "PC3", 
+         '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
+pca.plot(Scores, "PC2", "PC3", 
+         '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
+pca.plot(Scores, "PC1", "PC4", 
+         '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
+pca.plot(Scores, "PC2", "PC4", 
+         '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
+pca.plot(Scores, "PC3", "PC4", 
+         '~/Dropbox/Research_Poland_Lab/AM Panel/Figures/PCA')
 
 
-rm(all.opts,blues,chipLines,chrSum,cmg_dot,cor,cordist,cpg_dot,cpm_dot,geno,geno.opts,
-   geno.optsDesc,genoOb,her2017,Her2017,lineInfo,misc.opts,misc.optsDesc,missingGenotype,
-   missingPhenotype,opts,opts.desc,output,pcaAM,pd,pheno,pheno.opts,pheno.optsDesc,
-   phenoDat,phenoLines,phenoOb,plotopts,plotopts.optsDesc,program,res2,resultsSingleUnP18,
-   resultsVarSel18,Scores,snpMatrix,sumPCA,toplot,towrite,effectvars,hetCodes,missAmbiguous,
+rm(all.opts,blues,chipLines,chrSum,cmg_dot,cor,cordist,cpg_dot,cpm_dot,geno,
+   geno.opts,geno.optsDesc,genoOb,her2017,Her2017,lineInfo,misc.opts,
+   misc.optsDesc,missingGenotype,missingPhenotype,opts,opts.desc,output,
+   pcaAM,pd,pheno,pheno.opts,pheno.optsDesc,phenoDat,phenoLines,phenoOb,
+   plotopts,plotopts.optsDesc,program,res2,resultsSingleUnP18,resultsVarSel18,
+   Scores,snpMatrix,sumPCA,toplot,towrite,effectvars,hetCodes,missAmbiguous,
    myvars,numPhenos,resDir,traits)
 
 
@@ -659,7 +688,14 @@ blues<- read.table("/Users/megzcalvert/Dropbox/Research_Poland_Lab/AM Panel/Geno
                    stringsAsFactors = TRUE)
 
 
-gwaBlue<- rrBLUP::GWAS(pheno = blues, geno = snpChip, P3D = F, plot = F)
+gwaBlue<- rrBLUP::GWAS(pheno = blues,
+                       geno = snpChip, 
+                       fixed = NULL,
+                       K = NULL,
+                       n.PC = 0,
+                       min.MAF = 0.05,
+                       P3D = F, 
+                       plot = F)
 
 blues <- na.omit(blues)
 

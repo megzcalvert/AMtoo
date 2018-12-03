@@ -753,3 +753,39 @@ distBlues2018<- ggpairs(blues2018,
 distBlues2018
 
 
+######## BLUES distribution histograms
+
+histFacet.plot <- function(x, results, info, ...) {
+  
+  md <- names(x) %in% c("rn","Taxa","year","rep","block","column",
+                        "range", "entity_id")
+  traits <- names(x[ , !md])
+  plotList = list()
+  for (i in traits) {
+    thisPlot <- ggplot(data = x, aes_string(x = i)) + 
+      geom_histogram(colour="black", fill="white") + 
+      theme_bw() +
+      xlab(i) +
+      ylab("Frequency") +
+      theme(text = element_text(family = "CMUBright",
+                                size = 14,
+                                colour = "black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.text = element_text(size = 15),
+            axis.title = element_text(size = 15),
+            strip.text = element_text(size = 15)) 
+    
+    plotList[[i]] = thisPlot
+    print(i)
+    
+  }
+  return(plotList)
+}
+
+distHist2017<- histFacet.plot(blues2017[,1:72],' ',"")
+
+ggarrange(plotlist = distHist2017,
+          ncol = 3,
+          nrow = 6,
+          align = "hv")
