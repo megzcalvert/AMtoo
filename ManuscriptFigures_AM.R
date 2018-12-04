@@ -814,23 +814,5 @@ ggarrange(plotlist = distHist,
            width = 50,
            height = 50)
 
-reportList<- list(
-  list(distHist2017[1:9]),
-  list(distHist2017[10:18]),
-  list(distHist2017[19:27]),
-  list(distHist2017[28:36]),
-  list(distHist2017[37:45]),
-  list(distHist2017[46:54]),
-  list(distHist2017[55:63]),
-  list(distHist2017[64:71])
-)
 
-start_report(filename = "SupplementaryFigure1_Distributions") %>%
-  add_multiple_page(
-    plot = reportList,
-                    plot_hpos = c(1,3),
-                    plot_vpos = c(1,3),
-                    plot_area_layout = grid::grid.layout(3,3)
-    ) %>%
-  end_report()
 
