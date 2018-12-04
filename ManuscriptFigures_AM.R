@@ -794,6 +794,7 @@ histFacet.plot <- function(x, results, info, ...) {
             strip.text = element_text(size = 16),
             axis.line = element_line(colour = "black",
                                      size = 1)) 
+
     
     plotList[[i]] = thisPlot
     print(i)
@@ -801,6 +802,7 @@ histFacet.plot <- function(x, results, info, ...) {
   }
   return(plotList)
 }
+
 
 distHist2017<- histFacet.plot(blues2017[,1:72],' ',"")
 distHist2018<- histFacet.plot(blues2018[,1:96],"","")
@@ -813,6 +815,4 @@ ggarrange(plotlist = distHist,
   ggexport(filename = "~/Dropbox/Research_Poland_Lab/AM Panel/AMPanel_Manuscript/Supplementary/SupplementaryFigure1_Distributions.pdf",
            width = 50,
            height = 50)
-
-
 
