@@ -34,7 +34,7 @@ wheatgenetics = dbConnect(MySQL( ),user="megzcalvert",
                           
                           dbname='wheatgenetics', host='beocat.cis.ksu.edu',
                           
-                          password = " " , port = 6306) 
+                          password = "" , port = 6306) 
 
 #SQL Query to get all AM Panel phenotype data
 
