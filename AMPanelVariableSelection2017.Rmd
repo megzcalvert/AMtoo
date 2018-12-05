@@ -26,7 +26,12 @@ library(broom)
 
 # Phenotype Selection to include in Multivariate GWAS
 
-Data will be pulled directly from SQL server, converted from long format to wide format. The HDDT is calculated via Jesse's regression based approach. High-throughput phenotypes are added. Outliers are removed, before broad-sense heritability and Best Linear Unbiased Estimators are calculated. Normality will be assessed before and after. Various model selection methods will then be assessed
+Data will be pulled directly from SQL server, converted from long format to 
+wide format. The HDDT is calculated via Jesse's regression based approach. 
+High-throughput phenotypes are added. Outliers are removed, before broad-sense 
+heritability and Best Linear Unbiased Estimators are calculated. Normality 
+will be assessed before and after. Various model selection methods will 
+then be assessed
 
 ```{r SQL, warning=FALSE, include=FALSE}
 # Connect to database
@@ -34,7 +39,7 @@ wheatgenetics = dbConnect(MySQL( ),user="megzcalvert",
                           
                           dbname='wheatgenetics', host='beocat.cis.ksu.edu',
                           
-                          password = "" , port = 6306) 
+                          password = " " , port = 6306) 
 
 #SQL Query to get all AM Panel phenotype data
 
@@ -56,7 +61,9 @@ plot.range,
 
 plot.column
 
-FROM wheatgenetics.phenotype LEFT JOIN wheatgenetics.plot ON plot.plot_id = phenotype.entity_id
+FROM wheatgenetics.phenotype LEFT JOIN 
+
+wheatgenetics.plot ON plot.plot_id = phenotype.entity_id
 
 WHERE wheatgenetics.phenotype.entity_id LIKE '17ASH1%';"
 
@@ -68,7 +75,8 @@ pheno <- dbGetQuery(wheatgenetics, pheno_query)
 print(getwd( )) #get working directory set if needed
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel")
 
-saveRDS(pheno, "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno17.RDS") #save original plot information 
+saveRDS(pheno, 
+        "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno17.RDS") #save original plot information 
 
 
 dbDisconnect(wheatgenetics) #disconnect from database
@@ -88,7 +96,8 @@ getwd()
 sessionInfo() # useful infos **reproducible research**
 
 #Read in original data
-pheno_long<- readRDS("~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno17.RDS")
+pheno_long<- readRDS(
+  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno17.RDS")
 
 str(pheno_long) # structure
 head(pheno_long, 10)
@@ -121,14 +130,25 @@ ff = function(x, patterns, replacements = patterns, fill = NA, ...)
 }
 
 #Adding a year column based on the entity_id
-pheno_long$year<- ff(pheno_long$entity_id, c("15ASH", "16ASH", "17ASH"), c("15", "16", "17"),
+pheno_long$year<- ff(pheno_long$entity_id, 
+                     c("15ASH", "16ASH", "17ASH"), 
+                     c("15", "16", "17"),
                      "NA", ignore.case = TRUE)
 
 modNames<- tabyl(pheno_long$Variety)
 names(modNames)[1:2] <- c("Variety", "Count")
-knitr::kable(tabyl(pheno_long$trait_id), digits = 4, caption = "Number of observations per trait", table.attr = "style='width:50%;'")
-knitr::kable(tabyl(pheno_long$rep), digits = 4, caption = "Number of observations of reps", table.attr = "style='width:50%;'")
-knitr::kable(tabyl(pheno_long$year), digits = 4, caption = "Number of observations per year", table.attr = "style='width:50%;'")
+knitr::kable(tabyl(pheno_long$trait_id), 
+             digits = 4, 
+             caption = "Number of observations per trait", 
+             table.attr = "style='width:50%;'")
+knitr::kable(tabyl(pheno_long$rep), 
+             digits = 4, 
+             caption = "Number of observations of reps", 
+             table.attr = "style='width:50%;'")
+knitr::kable(tabyl(pheno_long$year), 
+             digits = 4, 
+             caption = "Number of observations per year", 
+             table.attr = "style='width:50%;'")
 
 ```
 
@@ -139,10 +159,21 @@ knitr::kable(tabyl(pheno_long$year), digits = 4, caption = "Number of observatio
 modNames <- modNames %>% 
   filter(Variety != "blank")
 
-pheno_long<- semi_join(pheno_long, modNames, by = c('Variety' = 'Variety')) 
-knitr::kable(tabyl(pheno_long$trait_id), digits = 4, caption = "Final number of observations per traits", table.attr = "style='width:50%;'")
-knitr::kable(tabyl(pheno_long$rep), digits = 4, caption = "Final number of observations per rep", table.attr = "style='width:50%;'")
-knitr::kable(tabyl(pheno_long$year), digits = 4, caption = "Final number of observations per year", table.attr = "style='width:50%;'")
+pheno_long<- semi_join(pheno_long, modNames, 
+                       by = c('Variety' = 'Variety')) 
+
+knitr::kable(tabyl(pheno_long$trait_id), 
+             digits = 4, 
+             caption = "Final number of observations per traits", 
+             table.attr = "style='width:50%;'")
+knitr::kable(tabyl(pheno_long$rep), 
+             digits = 4, 
+             caption = "Final number of observations per rep", 
+             table.attr = "style='width:50%;'")
+knitr::kable(tabyl(pheno_long$year), 
+             digits = 4, 
+             caption = "Final number of observations per year", 
+             table.attr = "style='width:50%;'")
 
 ```
 
@@ -151,7 +182,9 @@ knitr::kable(tabyl(pheno_long$year), digits = 4, caption = "Final number of obse
 ```{r HDDT, echo=FALSE, warning=FALSE}
 
 #Add columns for awns and heading date
-pheno_long$awns<- ifelse(pheno_long$phenotype_value == "Awned", pheno_long$phenotype_value,NA)
+pheno_long$awns<- ifelse(pheno_long$phenotype_value == "Awned", 
+                         pheno_long$phenotype_value,
+                         NA)
 
 awns<- pheno_long[ , c(1,11)]
 
@@ -166,13 +199,20 @@ pheno_long<- subset(pheno_long, pheno_long$trait_id != "PCTHEAD" )
 
 pheno_pcthead$phenotype_date = as.Date(pheno_pcthead$phenotype_date) ## set the date as a Date type
 pheno_pcthead = pheno_pcthead[!is.na(pheno_pcthead$phenotype_date), ] ## remove some rows that are missing the phenotype date
-pheno_pcthead = pheno_pcthead[order(pheno_pcthead$entity_id, pheno_pcthead$phenotype_date), ]  ## sort the rows by plot and date
+pheno_pcthead = pheno_pcthead[order(pheno_pcthead$entity_id, 
+                                    pheno_pcthead$phenotype_date), ]  ## sort the rows by plot and date
 
 runLogReg = function(dates, pctHEAD){
   res = data.frame(phi1=NA, phi2=NA, phi3=NA, hday=NA, hdate=NA)
   
-  if(sum(!is.na(pctHEAD))==0){return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))} ## skip if no phenotype data
-  if(max(pctHEAD, na.rm=TRUE)<60){return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))} ## skip plots that never reach 50% heading
+  if(sum(!is.na(pctHEAD))==0){return(list(res=res, 
+                                          dates=dates, 
+                                          pctHEAD = pctHEAD, 
+                                          pred=NA))} ## skip if no phenotype data
+  if(max(pctHEAD, na.rm=TRUE)<60){return(list(res=res, 
+                                              dates=dates, 
+                                              pctHEAD = pctHEAD,
+                                              pred=NA))} ## skip plots that never reach 50% heading
   
   days = yday(dates) ## convert to day of year
   
@@ -185,9 +225,14 @@ runLogReg = function(dates, pctHEAD){
   phi2 = coef(lm(logit(pctH/phi1)~days))[1]
   phi3 = coef(lm(logit(pctH/phi1)~days))[2]
   
-  heading_model<-try(nls(pctH~100/(1+exp(-(phi2+phi3*days))), start=list(phi2=phi2,phi3=phi3), trace=FALSE), silent=TRUE)
+  heading_model<-try(nls(pctH~100/(1+exp(-(phi2+phi3*days))), 
+                         start=list(phi2=phi2,phi3=phi3), 
+                         trace=FALSE), silent=TRUE)
   
-  if(class(heading_model)=="try-error"){return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))}  ## skip if doesn't converge
+  if(class(heading_model)=="try-error"){return(list(res=res, 
+                                                    dates=dates, 
+                                                    pctHEAD = pctHEAD, 
+                                                    pred=NA))}  ## skip if doesn't converge
   
   #update model coefficients for predictions
   phi2 = coef(heading_model)[1]
@@ -243,7 +288,8 @@ for (i in plots){
   sample=pheno_pcthead[pheno_pcthead$entity_id == i,]
   sample$phenotype_value<- as.numeric(sample$phenotype_value)
   #sample=pheno_pcthead[pheno_pcthead$entity_id==plots[i],]
-  vis.logistic = runLogReg(dates=sample$phenotype_date, pctHEAD=sample$phenotype_value)
+  vis.logistic = runLogReg(dates=sample$phenotype_date, 
+                           pctHEAD=sample$phenotype_value)
   n<- as.data.frame(vis.logistic$res)
   hddt<- rbind(hddt, n)
   #head.dates[[plots[i]]] = list(vis=vis.logistic)
@@ -264,8 +310,10 @@ pheno_long<- fread("~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Ph
 
 #Changing from long to wide format
 pheno_Wide <- mutate(dcast(pheno_long,  
-                           entity_id + year + Variety + rep + block + range + column ~ trait_id, 
-                           value.var = "phenotype_value", fun.aggregate = median, 
+                           entity_id + year + Variety + rep + block + 
+                             range + column ~ trait_id, 
+                           value.var = "phenotype_value", 
+                           fun.aggregate = median, 
                            na.rm = TRUE),
                      Variety = factor(Variety),
                      rep = factor(rep))
@@ -275,7 +323,8 @@ pheno_Wide <- left_join(pheno_Wide, plotDates, by = c("entity_id" = "plots"))
 
 histFacet.plot <- function(x, results, info, ...) {
   
-  md<- names(x) %in% c("rn","Taxa","year","rep","block","column","range", "entity_id")
+  md<- names(x) %in% c("rn","Taxa","year","rep","block",
+                       "column","range", "entity_id")
   traits <- names(x[ , !md])
   
   for (i in traits) {
@@ -311,9 +360,9 @@ ndvi<- fread(input = "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/
 nir<- fread(input = "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/2017_Ashland_AM3_traits_UAS/2017_ASH_AM_NIR.txt")
 redE<- fread(input = "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/2017_Ashland_AM3_traits_UAS/2017_ASH_AM_RedEdge.txt")
 hHTP<- fread(input = "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/2017_Ashland_AM3_traits_UAS/2017_ASH_AM_height_4.csv")
-names(hHTP) <- c("Plot_id","H1Nov","H8Nov","H11Nov","H23Nov","H28Nov","H1Dec","H31Mar",
-                 "H6Apr","H12Apr","H17Apr","H23Apr","H3May","H5May","H12May","H23May",
-                 "H6Jun","H9Jun")
+names(hHTP) <- c("Plot_id","H1Nov","H8Nov","H11Nov","H23Nov","H28Nov",
+                 "H1Dec","H31Mar","H6Apr","H12Apr","H17Apr","H23Apr",
+                 "H3May","H5May","H12May","H23May","H6Jun","H9Jun")
 
 pheno_Wide<- left_join(pheno_Wide, gndvi, by = c("entity_id" = "Plot_id"))
 pheno_Wide<- left_join(pheno_Wide, grvi, by = c("entity_id" = "Plot_id"))
@@ -325,13 +374,17 @@ pheno_Wide<- left_join(pheno_Wide, hHTP, by = c("entity_id" = "Plot_id"))
 
 head(pheno_Wide)
 
-knitr::kable(tabyl(pheno_Wide$year), digits = 4, caption = "Number of observations per year", table.attr = "style='width:50%;'")
+knitr::kable(tabyl(pheno_Wide$year), 
+             digits = 4, 
+             caption = "Number of observations per year", 
+             table.attr = "style='width:50%;'")
 
 names(pheno_Wide)[names(pheno_Wide)=="Variety"] <- "Taxa"
 
 write.table(pheno_Wide, "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_17.txt", sep = "\t") #To be used in the gapit_rrBLUP_AM.R file
 
-rm(gndvi, grvi,hHTP,iniNames,modNames,ndre,ndvi,nir,pheno_long,pheno_Wide,redE,vis.logistic,test,sample,hddt,head.dates,n,pheno_pcthead,
+rm(gndvi, grvi,hHTP,iniNames,modNames,ndre,ndvi,nir,pheno_long,
+   pheno_Wide,redE,vis.logistic,test,sample,hddt,head.dates,n,pheno_pcthead,
    plotDates, i, plots, test.plot)
 
 ```
@@ -396,7 +449,8 @@ cpm_dot
 
 correlations<- function(x, ...) {
   
-  md<- names(x) %in% c("rn","Taxa","year","rep","block","column","range", "entity_id","HDDT")
+  md<- names(x) %in% c("rn","Taxa","year","rep","block","column","range", 
+                       "entity_id","HDDT")
   corDa<-x[ , !md]
   nums <- sapply(corDa, is.numeric)
   corDa<- corDa[ , nums]
@@ -445,7 +499,9 @@ boxplot.stats(pheno$MOIST)$out
 boxplot.stats(pheno$GRWT)$out
 boxplot.stats(pheno$PTHT)$out
 boxplot.stats(pheno$hday)$out
-pheno[,c(4:8,10:ncol(pheno))]<- as.data.frame(lapply(pheno[,c(4:8,10:ncol(pheno))], remove_outliers))
+pheno[,c(4:8,10:ncol(pheno))]<- as.data.frame(
+  lapply(pheno[,c(4:8,10:ncol(pheno))], remove_outliers)
+)
 boxplot.stats(pheno$awns)$out
 boxplot.stats(pheno$MOIST)$out
 boxplot.stats(pheno$GRWT)$out
@@ -459,14 +515,16 @@ calcH2r <- function(dat, fill = NA, ...) {
   
   r=length(table(dat$rep))
   
-  effectvars <- names(dat) %in% c("block", "rep", "Taxa", "year", "column", "row", "experiment_id")
+  effectvars <- names(dat) %in% c("block", "rep", "Taxa", "year", "column", 
+                                  "row", "experiment_id")
   
   t <- colnames(dat[ , !effectvars])
   
   for (i in t) {
     
     print(paste("Working on trait", i))
-    h = as.data.frame(VarCorr(lmer(paste0(i, "~ (1|Taxa) + (1|rep) + (1|rep:block)"), data = dat)))
+    h = as.data.frame(VarCorr(lmer(
+      paste0(i, "~ (1|Taxa) + (1|rep) + (1|rep:block)"), data = dat)))
     H2= h[1,4] / (h[1,4] + (h[4,4] / r)) 
     print(H2)
   }
@@ -476,7 +534,10 @@ calcH2r <- function(dat, fill = NA, ...) {
 calcH2r(pheno)
 
 blues.rb <- function(traits, dat = ".") {
-  b<- as.data.frame(fixef(lmer(paste0(traits, "~ 0 + Taxa + (1|rep) + (1|rep:block)"), data = dat)))
+  b<- as.data.frame(
+    fixef(lmer(paste0(traits, "~ 0 + Taxa + (1|rep) + (1|rep:block)"), 
+               data = dat))
+  )
 }
 
 
@@ -489,20 +550,23 @@ traits <- colnames(pheno[ , !effectvars])
 blues<- lapply(traits, blues.rb, dat = pheno)
 
 blues <- map2(blues, traits, ~ set_names(..1, ..2) %>%
-                    rownames_to_column(var = "Taxa")) %>%
+                rownames_to_column(var = "Taxa")) %>%
   reduce(full_join)
 blues$Taxa <- str_replace_all(blues$Taxa, "Taxa", "")
 
 
 write.table(blues, "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/cleanPheno17Blues.txt",
-            quote = FALSE, row.names = F, col.names = T, sep = "\t", fileEncoding = "UTF-8")
+            quote = FALSE, row.names = F, col.names = T, sep = "\t", 
+            fileEncoding = "UTF-8")
 
 rm(cmg_dot,cpg_dot,cpm_dot,pd,snpChip,myvars,awns,chipLines)
 
-pheno<- as.data.frame( pheno[, !names(pheno) %in% c("NormGRWT","TESTWT","awns" )])
+pheno<- as.data.frame( pheno[, !names(pheno) %in% 
+                               c("NormGRWT","TESTWT","awns" )])
 pheno<- na.omit(pheno)
 
-blues<- as.data.frame(blues[, !names(blues) %in% c("NormGRWT", "TESTWT", "awns")])
+blues<- as.data.frame(blues[, !names(blues) %in% 
+                              c("NormGRWT", "TESTWT", "awns")])
 blues<- na.omit(blues)
 
 ```
@@ -539,43 +603,51 @@ Plot level data normality tests
 
 ```{r NormalityPlot, echo=FALSE, message=TRUE, warning=FALSE}
 
-plotlevel<-mvn(pheno[, !names(pheno) %in% c("Taxa","rep","block")], subset = NULL, 
-    mvnTest = c("mardia", "hz", "royston", "dh","energy"), 
-    covariance = TRUE, 
-    tol = 1e-25, 
-    alpha = 0.5,
-    scale = FALSE, 
-    transform = "none", 
-    R = 1000,
-    univariateTest = c("SW", "CVM", "Lillie", "SF", "AD"),
-    univariatePlot = "qq", 
-    multivariatePlot = "none",
-    multivariateOutlierMethod = "none", 
-    showOutliers = FALSE,
-    showNewData = FALSE)
+plotlevel<-mvn(pheno[, !names(pheno) %in% c("Taxa","rep","block")], 
+               subset = NULL, 
+               mvnTest = c("mardia", "hz", "royston", "dh","energy"), 
+               covariance = TRUE, 
+               tol = 1e-25, 
+               alpha = 0.5,
+               scale = FALSE, 
+               transform = "none", 
+               R = 1000,
+               univariateTest = c("SW", "CVM", "Lillie", "SF", "AD"),
+               univariatePlot = "qq", 
+               multivariatePlot = "none",
+               multivariateOutlierMethod = "none", 
+               showOutliers = FALSE,
+               showNewData = FALSE)
 
-knitr::kable(plotlevel$univariateNormality, digits = 4, caption = "Plot-level Normality tests", table.attr = "style='width:50%;'")
+knitr::kable(plotlevel$univariateNormality, 
+             digits = 4, 
+             caption = "Plot-level Normality tests", 
+             table.attr = "style='width:50%;'")
 
 ```
 
 #### BLUES data normality tests
 ```{r NormalityBlues, echo=FALSE, message=TRUE, warning=FALSE}
-bluelevel<-mvn(blues[, !names(blues) %in% c("Taxa")], subset = NULL, 
-    mvnTest = c("mardia", "hz", "royston", "dh","energy"), 
-    covariance = TRUE, 
-    tol = 1e-25, 
-    alpha = 0.5,
-    scale = FALSE, 
-    transform = "none", 
-    R = 1000,
-    univariateTest = c("SW", "CVM", "Lillie", "SF", "AD"),
-    univariatePlot = "qq", 
-    multivariatePlot = "none",
-    multivariateOutlierMethod = "none", 
-    showOutliers = FALSE,
-    showNewData = FALSE)
+bluelevel<-mvn(blues[, !names(blues) %in% c("Taxa")], 
+               subset = NULL, 
+               mvnTest = c("mardia", "hz", "royston", "dh","energy"), 
+               covariance = TRUE, 
+               tol = 1e-25, 
+               alpha = 0.5,
+               scale = FALSE, 
+               transform = "none", 
+               R = 1000,
+               univariateTest = c("SW", "CVM", "Lillie", "SF", "AD"),
+               univariatePlot = "qq", 
+               multivariatePlot = "none",
+               multivariateOutlierMethod = "none", 
+               showOutliers = FALSE,
+               showNewData = FALSE)
 
-knitr::kable(bluelevel$univariateNormality, digits = 4, caption = "BLUE Normality tests", table.attr = "style='width:50%;'")
+knitr::kable(bluelevel$univariateNormality, 
+             digits = 4, 
+             caption = "BLUE Normality tests", 
+             table.attr = "style='width:50%;'")
 
 ```
 
@@ -589,14 +661,19 @@ library(MASS)
 bluesT<- as.data.frame(blues[, !names(blues) %in% c("Taxa")])
 fitBlue <- lm(GRWT ~ .,data=bluesT)
 selectedFitBlue <- step(fitBlue, direction = "both")
-knitr::kable(selectedFitBlue$anova, caption = "ANOVA model comparison summary", table.attr = "style='width:90%;'") # display results
+knitr::kable(selectedFitBlue$anova, 
+             caption = "ANOVA model comparison summary", 
+             table.attr = "style='width:90%;'") # display results
 summary(selectedFitBlue)
 bluSW<- selectedFitBlue$call
 ```
 
 ```{r StepWiseResultsBlue, fig.height=13, fig.width=13, echo=FALSE, message=FALSE, warning=FALSE}
 
-knitr::kable(selectedFitBlue$anova, digits = 4, caption = "BLUES Step-wise Regression", table.attr = "style='width:90%;'") # display results
+knitr::kable(selectedFitBlue$anova, 
+             digits = 4, 
+             caption = "BLUES Step-wise Regression", 
+             table.attr = "style='width:90%;'") # display results
 summary(selectedFitBlue)
 au<- broom::augment(selectedFitBlue)
 au %>%
@@ -611,6 +688,7 @@ au %>%
 
 #### BLUEs VIF
 ```{r blueVIF, fig.height=13, fig.width=13, message=FALSE, warning=FALSE}
+
 all_vifs <- car::vif(selectedFitBlue) #Used to check Multicollinearity
 print(all_vifs) #Anything above 10 is likely to be a problem in a strong model
 
@@ -620,7 +698,8 @@ signif_all <- names(all_vifs)
 while(any(all_vifs > 10)){
   var_with_max_vif <- names(which(all_vifs == max(all_vifs)))  # get the var with max vif
   signif_all <- signif_all[!(signif_all) %in% var_with_max_vif]  # remove
-  myFormBVIF <- as.formula(paste("GRWT ~ ", paste (signif_all, collapse=" + "), sep=""))  # new formula
+  myFormBVIF <- as.formula(paste("GRWT ~ ", 
+                                 paste (signif_all, collapse=" + "), sep=""))  # new formula
   selectedFitBlue <- lm(myFormBVIF, data=bluesT)  # re-build model with new formula
   all_vifs <- car::vif(selectedFitBlue)
 }
@@ -629,7 +708,7 @@ car::vif(selectedFitBlue)
 
 myFormBVIF
 selectedFitBlue<-lm(myFormBVIF, 
-                data = bluesT)
+                    data = bluesT)
 au<- broom::augment(selectedFitBlue)
 au %>%
   gather(x,val,-contains(".")) %>%
@@ -648,7 +727,8 @@ not_significant <- not_significant[!not_significant %in% "(Intercept)"]  # remov
 # If there are any non-significant variables, 
 while(length(not_significant) > 0){
   all_vars <- all_vars[!all_vars %in% not_significant[1]]
-  myFormBVS <- as.formula(paste("GRWT ~ ", paste (all_vars, collapse=" + "), sep=""))  # new formula
+  myFormBVS <- as.formula(paste("GRWT ~ ", 
+                                paste (all_vars, collapse=" + "), sep=""))  # new formula
   selectedFitBlue <- lm(myFormBVS, data=bluesT)  # re-build model with new formula
   
   # Get the non-significant vars.
@@ -663,7 +743,7 @@ car::vif(selectedFitBlue)
 
 myFormBVS
 selectedFitBlue<-lm(myFormBVS, 
-                data = bluesT)
+                    data = bluesT)
 au<- broom::augment(selectedFitBlue)
 au %>%
   gather(x,val,-contains(".")) %>%
@@ -688,12 +768,13 @@ print(bluSW)
 print(myFormBVIF)
 ```
 
-#### Step-wise Regression in both directions with control for Multicollinearity and variable significance
+#### Step-wise Regression in both directions with control for Multicollinearity
+and variable significance
 
 ```{r bluSWVSres, echo=FALSE, message=FALSE, warning=FALSE} 
 print(myFormBVS)
 ```
-    
+
 ## LASSO Variable Selection
 LASSO variable selection performed with the glmnet package
 
@@ -712,10 +793,14 @@ coef(lassBlu)
 ```
 
 Select phenotpyes BLUEs: 8,23,54,6,7,24,32,10,55
-GNDVI_20170505,NDRE_20170503,H8Nov,GNDVI_20170417,GNDVI_20170503,NDRE_20170505,NDVI_20170505 GNDVI_20170523,H11Nov
+
+GNDVI_20170505,NDRE_20170503,H8Nov,GNDVI_20170417,GNDVI_20170503,NDRE_20170505,
+NDVI_20170505 GNDVI_20170523,H11Nov
 
 ```{r LassoBluRes, fig.height=13, fig.width=13, echo=FALSE, message=FALSE, warning=FALSE}
-fitLassoB<- lm(GRWT ~ GNDVI_20170505 + NDRE_20170503 + H8Nov + GNDVI_20170417 + GNDVI_20170503 + NDRE_20170505 + NDVI_20170505 + GNDVI_20170523 + H11Nov, data = blues)
+fitLassoB<- lm(GRWT ~ GNDVI_20170505 + NDRE_20170503 + H8Nov + GNDVI_20170417 +
+                 GNDVI_20170503 + NDRE_20170505 + NDVI_20170505 +
+                 GNDVI_20170523 + H11Nov, data = blues)
 summary(fitLassoB)
 
 fitLassoB$anova
@@ -736,13 +821,18 @@ bluPredS<- bluPred[,c(8,23,54,6,7,24,32,10,55)]
 head(bluPredS)
 
 lassBlu <- glmnet(bluPredS,bluResp,alpha = 1)
+
 plot(lassBlu,xvar = "lambda", label = T,cex=2, cex.lab=1.5, cex.axis=1.5)
 plot(lassBlu,xvar = "dev", label = T,cex=2, cex.lab=1.5, cex.axis=1.5)
+
 tidied_Blu <- tidy(lassBlu)
 glance_Blu <- glance(lassBlu)
 coef(lassBlu)
 
-cvLasBlu<- cv.glmnet(bluPred,bluResp, type.measure = "mse", nfolds = 10, alpha = 1)
+cvLasBlu<- cv.glmnet(bluPred,bluResp, 
+                     type.measure = "mse", 
+                     nfolds = 10, 
+                     alpha = 1)
 plot(cvLasBlu)
 cvLasBlu$lambda.min
 cvLasBlu$lambda.1se
@@ -756,7 +846,9 @@ coef(cvLasBluL)
 
 ## Model Validation
 
-Leave one out cross-validation and K-fold cross-validation. These validations will also be performed on the Correlation models and Correlation*Heritability models. The caret package will be used to perform this validation
+Leave one out cross-validation and K-fold cross-validation. These validations
+will also be performed on the Correlation models and Correlation*Heritability 
+models. The caret package will be used to perform this validation
 
 ### Leave One Out Cross Validation 
 
@@ -768,70 +860,106 @@ train.control <- caret::trainControl(method = "LOOCV",
                                      number = 10)
 # Full Model 
 bluLoCV <- train(GRWT ~., data = blues, method = "lm",
-               trControl = train.control)
+                 trControl = train.control)
 # Summarize Full Model
 print(bluLoCV)
 
 # Corr Model
-bluCorrLoCV <- train(GRWT ~ GNDVI_20170417 + GNDVI_20170503 +	GNDVI_20170505 + GNDVI_20170512 + GRVI_20170417 +	GRVI_20170503 +	GRVI_20170505 +	GRVI_20170512 + NDRE_20170417 + NDRE_20170503 + NDRE_20170505 + NDRE_20170512 + NDVI_20170503 + RedEdge_20170505 + RedEdge_20170512, data = blues, method = "lm",
+bluCorrLoCV <- train(GRWT ~ GNDVI_20170417 + GNDVI_20170503 +	GNDVI_20170505 + 
+                       GNDVI_20170512 + GRVI_20170417 +	GRVI_20170503 +	
+                       GRVI_20170505 +	GRVI_20170512 + NDRE_20170417 + 
+                       NDRE_20170503 + NDRE_20170505 + NDRE_20170512 + 
+                       NDVI_20170503 + RedEdge_20170505 + RedEdge_20170512, 
+                     data = blues, method = "lm",
                      trControl = train.control)
 # Summarize Corr Model
 print(bluCorrLoCV)
 
 # Her*Corr Model
-bluCorrHerLoCV <- train(GRWT ~ NDRE_20170512 + GRVI_20170505 + NDRE_20170505 + GRVI_20170512 + GRVI_20170503 + NDRE_20170503 + GNDVI_20170512 + GNDVI_20170505 + GNDVI_20170503 + NDRE_20170417 + GRVI_20170417 + GNDVI_20170417 + NDVI_20170503 + NDVI_20170505 + NDVI_20170417, data = blues, method = "lm",
-                     trControl = train.control)
+bluCorrHerLoCV <- train(GRWT ~ NDRE_20170512 + GRVI_20170505 + NDRE_20170505 + 
+                          GRVI_20170512 + GRVI_20170503 + NDRE_20170503 + 
+                          GNDVI_20170512 + GNDVI_20170505 + GNDVI_20170503 + 
+                          NDRE_20170417 + GRVI_20170417 + GNDVI_20170417 + 
+                          NDVI_20170503 + NDVI_20170505 + NDVI_20170417, 
+                        data = blues, method = "lm",
+                        trControl = train.control)
 # Summarize Full Model
 print(bluCorrHerLoCV)
 
 # Back Selection 
-bluBSLoCV <- train(GRWT ~ BYDV + MOIST + hday + GNDVI_20170331 + GNDVI_20170417 + 
-    GNDVI_20170503 + GNDVI_20170505 + GNDVI_20170523 + GRVI_20170503 + 
-    GRVI_20170512 + NDRE_20170503 + NDRE_20170505 + NDRE_20170609 + 
-    NDVI_20170505 + NDVI_20170512 + NDVI_20170602 + NDVI_20170609 + 
-    NIR_20170512 + NIR_20170523 + NIR_20170602 + NIR_20170609 + 
-    RedEdge_20170503 + RedEdge_20170512 + RedEdge_20170523 + 
-    RedEdge_20170602 + H8Nov + H11Nov + H23Nov + H28Nov + H1Dec + 
-    H31Mar + H6Apr + H12Apr + H17Apr + H6Jun, data = bluesT, method = "lm",
-               trControl = train.control)
+bluBSLoCV <- train(GRWT ~ BYDV + MOIST + hday + GNDVI_20170331 + 
+                     GNDVI_20170417 + GNDVI_20170503 + GNDVI_20170505 + 
+                     GNDVI_20170523 + GRVI_20170503 + GRVI_20170512 + 
+                     NDRE_20170503 + NDRE_20170505 + NDRE_20170609 + 
+                     NDVI_20170505 + NDVI_20170512 + NDVI_20170602 + 
+                     NDVI_20170609 + NIR_20170512 + NIR_20170523 + 
+                     NIR_20170602 + NIR_20170609 + RedEdge_20170503 + 
+                     RedEdge_20170512 + RedEdge_20170523 + RedEdge_20170602 + 
+                     H8Nov + H11Nov + H23Nov + H28Nov + H1Dec + 
+                     H31Mar + H6Apr + H12Apr + H17Apr + H6Jun, 
+                   data = bluesT, 
+                   method = "lm",
+                   trControl = train.control)
 
 # Summarize Full Model
 print(bluBSLoCV)
 
 # Back Selection VIF
-bluBSVLoCV <- train(GRWT ~ BYDV + MOIST + hday + GNDVI_20170331 + GNDVI_20170417 + 
-    GNDVI_20170523 + GRVI_20170512 + NDRE_20170609 + NDVI_20170505 + 
-    NDVI_20170602 + NIR_20170512 + NIR_20170523 + NIR_20170609 + 
-    RedEdge_20170503 + RedEdge_20170602 + H8Nov + H11Nov + H1Dec + 
-    H31Mar + H17Apr + H6Jun, data = bluesT, method = "lm",
-               trControl = train.control)
+bluBSVLoCV <- train(GRWT ~ BYDV + MOIST + hday + GNDVI_20170331 + 
+                      GNDVI_20170417 + GNDVI_20170523 + GRVI_20170512 + 
+                      NDRE_20170609 + NDVI_20170505 + NDVI_20170602 + 
+                      NIR_20170512 + NIR_20170523 + NIR_20170609 + 
+                      RedEdge_20170503 + RedEdge_20170602 + H8Nov + H11Nov + 
+                      H1Dec + H31Mar + H17Apr + H6Jun, 
+                    data = bluesT, 
+                    method = "lm",
+                    trControl = train.control)
+
 # Summarize Full Model
 print(bluBSVLoCV)
 
 # Back Selection VIF and significance
-bluBSVSLoCV <- train(GRWT ~ MOIST + hday + GNDVI_20170331 + GNDVI_20170417 + GRVI_20170512 + 
-    NDRE_20170609 + NIR_20170512 + RedEdge_20170602 + H11Nov + 
-    H31Mar + H17Apr + H6Jun, data = bluesT, method = "lm",
-               trControl = train.control)
+bluBSVSLoCV <- train(GRWT ~ MOIST + hday + GNDVI_20170331 + GNDVI_20170417 + 
+                       GRVI_20170512 + NDRE_20170609 + NIR_20170512 + 
+                       RedEdge_20170602 + H11Nov + H31Mar + H17Apr + H6Jun, 
+                     data = bluesT, 
+                     method = "lm",
+                     trControl = train.control)
+
 # Summarize Full Model
 print(bluBSVSLoCV)
 
 # LASSO 
-bluLassLoCV <- train(GRWT ~ GNDVI_20170505 + NDRE_20170503 + H8Nov + GNDVI_20170417 + GNDVI_20170503 + NDRE_20170505 + NDVI_20170505 + GNDVI_20170523 + H11Nov, 
-                     data = bluesT, method = "lm",
-               trControl = train.control)
+bluLassLoCV <- train(GRWT ~ GNDVI_20170505 + NDRE_20170503 + H8Nov + 
+                       GNDVI_20170417 + GNDVI_20170503 + NDRE_20170505 + 
+                       NDVI_20170505 + GNDVI_20170523 + H11Nov, 
+                     data = bluesT, 
+                     method = "lm",
+                     trControl = train.control)
 # Summarize Full Model
 print(bluLassLoCV)
 
 # LASSO minimised lambda cv
-bluLasLcvLoCV <- train(GRWT ~ MOIST + hday + GNDVI_20170609 + GRVI_20170523 + NDRE_20170417 + NDRE_20170503 + NDRE_20170512 + NDRE_20170523 + H12Apr + H9Jun, data = bluesT, method = "lm",
-               trControl = train.control)
+bluLasLcvLoCV <- train(GRWT ~ MOIST + hday + GNDVI_20170609 + GRVI_20170523 + 
+                         NDRE_20170417 + NDRE_20170503 + NDRE_20170512 + 
+                         NDRE_20170523 + H12Apr + H9Jun, 
+                       data = bluesT, 
+                       method = "lm",
+                       trControl = train.control)
 # Summarize Full Model
 print(bluLasLcvLoCV)
 
 # LASSO minimised lambda 
-bluLasLmlLoCV <- train(GRWT ~ BYDV + MOIST + PTHT + hday + GNDVI_20170331 + GNDVI_20170417 + GNDVI_20170609 + GRVI_20170512 + GRVI_20170523 + GRVI_20170609 + NDRE_20170503 + NDRE_20170512 + NDRE_20170523 + NDVI_20170331 + NIR_20170503 + NIR_20170505 + NIR_20170602 + RedEdge_20170523 + H1Nov + H11Nov + H23Nov + H31Mar + H12Apr + H5May + H23May + H6Jun + H9Jun, data = bluesT, method = "lm",
-               trControl = train.control)
+bluLasLmlLoCV <- train(GRWT ~ BYDV + MOIST + PTHT + hday + GNDVI_20170331 + 
+                         GNDVI_20170417 + GNDVI_20170609 + GRVI_20170512 + 
+                         GRVI_20170523 + GRVI_20170609 + NDRE_20170503 + 
+                         NDRE_20170512 + NDRE_20170523 + NDVI_20170331 + 
+                         NIR_20170503 + NIR_20170505 + NIR_20170602 + 
+                         RedEdge_20170523 + H1Nov + H11Nov + H23Nov + 
+                         H31Mar + H12Apr + H5May + H23May + H6Jun + H9Jun, 
+                       data = bluesT, 
+                       method = "lm",
+                       trControl = train.control)
 # Summarize Full Model
 print(bluLasLmlLoCV)
 ```
@@ -843,76 +971,111 @@ print(bluLasLmlLoCV)
 
 set.seed(123)
 train.control <- trainControl(## 10-fold CV
-                           method = "repeatedcv",
-                           number = 10,
-                           ## repeated ten times
-                           repeats = 10)
+  method = "repeatedcv",
+  number = 10,
+  ## repeated ten times
+  repeats = 10)
 # Full Model 
 blukCV <- train(GRWT ~., data = blues, method = "lm",
-               trControl = train.control)
+                trControl = train.control)
 # Summarize Full Model
 print(blukCV)
 
 # Corr Model
-bluCorrkCV <- train(GRWT ~ GNDVI_20170417 + GNDVI_20170503 +	GNDVI_20170505 + GNDVI_20170512 + GRVI_20170417 +	GRVI_20170503 +	GRVI_20170505 +	GRVI_20170512 + NDRE_20170417 + NDRE_20170503 + NDRE_20170505 + NDRE_20170512 + NDVI_20170503 + RedEdge_20170505 + RedEdge_20170512, data = blues, method = "lm",
-                     trControl = train.control)
+bluCorrkCV <- train(GRWT ~ GNDVI_20170417 + GNDVI_20170503 +	GNDVI_20170505 + 
+                      GNDVI_20170512 + GRVI_20170417 +	GRVI_20170503 +	
+                      GRVI_20170505 +	GRVI_20170512 + NDRE_20170417 + 
+                      NDRE_20170503 + NDRE_20170505 + NDRE_20170512 + 
+                      NDVI_20170503 + RedEdge_20170505 + RedEdge_20170512, 
+                    data = blues, 
+                    method = "lm",
+                    trControl = train.control)
 # Summarize Corr Model
 print(bluCorrkCV)
 
 # Her*Corr Model
-bluCorrHerkCV <- train(GRWT ~ NDRE_20170512 + GRVI_20170505 + NDRE_20170505 + GRVI_20170512 + GRVI_20170503 + NDRE_20170503 + GNDVI_20170512 + GNDVI_20170505 + GNDVI_20170503 + NDRE_20170417 + GRVI_20170417 + GNDVI_20170417 + NDVI_20170503 + NDVI_20170505 + NDVI_20170417, data = blues, method = "lm",
-                     trControl = train.control)
+bluCorrHerkCV <- train(GRWT ~ NDRE_20170512 + GRVI_20170505 + NDRE_20170505 + 
+                         GRVI_20170512 + GRVI_20170503 + NDRE_20170503 + 
+                         GNDVI_20170512 + GNDVI_20170505 + GNDVI_20170503 + 
+                         NDRE_20170417 + GRVI_20170417 + GNDVI_20170417 + 
+                         NDVI_20170503 + NDVI_20170505 + NDVI_20170417, 
+                       data = blues, method = "lm",
+                       trControl = train.control)
+
 # Summarize Full Model
 print(bluCorrHerkCV)
 
 # Back Selection 
-bluBSkCV <- train(GRWT ~ BYDV + MOIST + hday + GNDVI_20170331 + GNDVI_20170417 + 
-    GNDVI_20170503 + GNDVI_20170505 + GNDVI_20170523 + GRVI_20170503 + 
-    GRVI_20170512 + NDRE_20170503 + NDRE_20170505 + NDRE_20170609 + 
-    NDVI_20170505 + NDVI_20170512 + NDVI_20170602 + NDVI_20170609 + 
-    NIR_20170512 + NIR_20170523 + NIR_20170602 + NIR_20170609 + 
-    RedEdge_20170503 + RedEdge_20170512 + RedEdge_20170523 + 
-    RedEdge_20170602 + H8Nov + H11Nov + H23Nov + H28Nov + H1Dec + 
-    H31Mar + H6Apr + H12Apr + H17Apr + H6Jun, data = bluesT, method = "lm",
-               trControl = train.control)
+bluBSkCV <- train(GRWT ~ BYDV + MOIST + hday + GNDVI_20170331 + 
+                    GNDVI_20170417 + GNDVI_20170503 + GNDVI_20170505 + 
+                    GNDVI_20170523 + GRVI_20170503 + GRVI_20170512 + 
+                    NDRE_20170503 + NDRE_20170505 + NDRE_20170609 + 
+                    NDVI_20170505 + NDVI_20170512 + NDVI_20170602 + 
+                    NDVI_20170609 + NIR_20170512 + NIR_20170523 + 
+                    NIR_20170602 + NIR_20170609 + RedEdge_20170503 + 
+                    RedEdge_20170512 + RedEdge_20170523 + 
+                    RedEdge_20170602 + H8Nov + H11Nov + H23Nov + H28Nov + 
+                    H1Dec + H31Mar + H6Apr + H12Apr + H17Apr + H6Jun,
+                  data = bluesT, method = "lm",
+                  trControl = train.control)
 
 # Summarize Full Model
 print(bluBSkCV)
 
 # Back Selection VIF
-bluBSVkCV <- train(GRWT ~ BYDV + MOIST + hday + GNDVI_20170331 + GNDVI_20170417 + 
-    GNDVI_20170523 + GRVI_20170512 + NDRE_20170609 + NDVI_20170505 + 
-    NDVI_20170602 + NIR_20170512 + NIR_20170523 + NIR_20170609 + 
-    RedEdge_20170503 + RedEdge_20170602 + H8Nov + H11Nov + H1Dec + 
-    H31Mar + H17Apr + H6Jun, data = bluesT, method = "lm",
-               trControl = train.control)
+bluBSVkCV <- train(GRWT ~ BYDV + MOIST + hday + GNDVI_20170331 + 
+                     GNDVI_20170417 + GNDVI_20170523 + GRVI_20170512 + 
+                     NDRE_20170609 + NDVI_20170505 + NDVI_20170602 + 
+                     NIR_20170512 + NIR_20170523 + NIR_20170609 + 
+                     RedEdge_20170503 + RedEdge_20170602 + H8Nov + H11Nov + 
+                     H1Dec + H31Mar + H17Apr + H6Jun, 
+                   data = bluesT, 
+                   method = "lm",
+                   trControl = train.control)
 # Summarize Full Model
 print(bluBSVkCV)
 
 # Back Selection VIF and significance
-bluBSVSkCV <- train(GRWT ~ MOIST + hday + GNDVI_20170331 + GNDVI_20170417 + GRVI_20170512 + 
-    NDRE_20170609 + NIR_20170512 + RedEdge_20170602 + H11Nov + 
-    H31Mar + H17Apr + H6Jun, data = bluesT, method = "lm",
-               trControl = train.control)
+bluBSVSkCV <- train(GRWT ~ MOIST + hday + GNDVI_20170331 + GNDVI_20170417 + 
+                      GRVI_20170512 + NDRE_20170609 + NIR_20170512 + 
+                      RedEdge_20170602 + H11Nov + H31Mar + H17Apr + H6Jun, 
+                    data = bluesT, 
+                    method = "lm",
+                    trControl = train.control)
 # Summarize Full Model
 print(bluBSVSkCV)
 
 # LASSO 
-bluLasskCV <- train(GRWT ~ GNDVI_20170505 + NDRE_20170503 + H8Nov + GNDVI_20170417 + GNDVI_20170503 + NDRE_20170505 + NDVI_20170505 + GNDVI_20170523 + H11Nov, 
-                     data = bluesT, method = "lm",
-               trControl = train.control)
+bluLasskCV <- train(GRWT ~ GNDVI_20170505 + NDRE_20170503 + H8Nov + 
+                      GNDVI_20170417 + GNDVI_20170503 + NDRE_20170505 + 
+                      NDVI_20170505 + GNDVI_20170523 + H11Nov, 
+                    data = bluesT, 
+                    method = "lm",
+                    trControl = train.control)
 # Summarize Full Model
 print(bluLasskCV)
 
 # LASSO minimised lambda cv
-bluLasLcvkCV <- train(GRWT ~ MOIST + hday + GNDVI_20170609 + GRVI_20170523 + NDRE_20170417 + NDRE_20170503 + NDRE_20170512 + NDRE_20170523 + H12Apr + H9Jun, data = bluesT, method = "lm",
-               trControl = train.control)
+bluLasLcvkCV <- train(GRWT ~ MOIST + hday + GNDVI_20170609 + GRVI_20170523 + 
+                        NDRE_20170417 + NDRE_20170503 + NDRE_20170512 + 
+                        NDRE_20170523 + H12Apr + H9Jun, 
+                      data = bluesT, 
+                      method = "lm",
+                      trControl = train.control)
 # Summarize Full Model
 print(bluLasLcvkCV)
 
 # LASSO minimised lambda 
-bluLasLmlkCV <- train(GRWT ~ BYDV + MOIST + PTHT + hday + GNDVI_20170331 + GNDVI_20170417 + GNDVI_20170609 + GRVI_20170512 + GRVI_20170523 + GRVI_20170609 + NDRE_20170503 + NDRE_20170512 + NDRE_20170523 + NDVI_20170331 + NIR_20170503 + NIR_20170505 + NIR_20170602 + RedEdge_20170523 + H1Nov + H11Nov + H23Nov + H31Mar + H12Apr + H5May + H23May + H6Jun + H9Jun, data = bluesT, method = "lm",
-               trControl = train.control)
+bluLasLmlkCV <- train(GRWT ~ BYDV + MOIST + PTHT + hday + GNDVI_20170331 + 
+                        GNDVI_20170417 + GNDVI_20170609 + GRVI_20170512 + 
+                        GRVI_20170523 + GRVI_20170609 + NDRE_20170503 + 
+                        NDRE_20170512 + NDRE_20170523 + NDVI_20170331 + 
+                        NIR_20170503 + NIR_20170505 + NIR_20170602 + 
+                        RedEdge_20170523 + H1Nov + H11Nov + H23Nov + H31Mar + 
+                        H12Apr + H5May + H23May + H6Jun + H9Jun, 
+                      data = bluesT, 
+                      method = "lm",
+                      trControl = train.control)
 # Summarize Full Model
 print(bluLasLmlkCV)
 ```
@@ -925,7 +1088,12 @@ bluk <- lm(GRWT ~., data = blues)
 summary(blukCV)
 blukCV$anova
 
-bluCorr<- lm(GRWT ~ GNDVI_20170417 + GNDVI_20170503 +	GNDVI_20170505 + GNDVI_20170512 + GRVI_20170417 +	GRVI_20170503 +	GRVI_20170505 +	GRVI_20170512 + NDRE_20170417 + NDRE_20170503 + NDRE_20170505 + NDRE_20170512 + NDVI_20170503 + RedEdge_20170505 + RedEdge_20170512, data = blues)
+bluCorr<- lm(GRWT ~ GNDVI_20170417 + GNDVI_20170503 +	GNDVI_20170505 + 
+               GNDVI_20170512 + GRVI_20170417 +	GRVI_20170503 +	
+               GRVI_20170505 +	GRVI_20170512 + NDRE_20170417 + 
+               NDRE_20170503 + NDRE_20170505 + NDRE_20170512 + 
+               NDVI_20170503 + RedEdge_20170505 + RedEdge_20170512, 
+             data = blues)
 summary(bluCorr)
 
 bluCorr$anova
@@ -937,7 +1105,12 @@ au %>%
   geom_point() + 
   facet_wrap(~x, scales = "free")
 
-bluCorrHer<- lm(GRWT ~ NDRE_20170512 + GRVI_20170505 + NDRE_20170505 + GRVI_20170512 + GRVI_20170503 + NDRE_20170503 + GNDVI_20170512 + GNDVI_20170505 + GNDVI_20170503 + NDRE_20170417 + GRVI_20170417 + GNDVI_20170417 + NDVI_20170503 + NDVI_20170505 + NDVI_20170417, data = blues)
+bluCorrHer<- lm(GRWT ~ NDRE_20170512 + GRVI_20170505 + NDRE_20170505 + 
+                  GRVI_20170512 + GRVI_20170503 + NDRE_20170503 + 
+                  GNDVI_20170512 + GNDVI_20170505 + GNDVI_20170503 + 
+                  NDRE_20170417 + GRVI_20170417 + GNDVI_20170417 + 
+                  NDVI_20170503 + NDVI_20170505 + NDVI_20170417, 
+                data = blues)
 summary(bluCorr)
 
 bluCorrHer$anova
@@ -950,27 +1123,41 @@ au %>%
   facet_wrap(~x, scales = "free")
 
 # Back Selection VIF and significance
-bluBSVSk <- lm(GRWT ~ MOIST + hday + GNDVI_20170331 + GNDVI_20170417 + GRVI_20170512 + 
-    NDRE_20170609 + NIR_20170512 + RedEdge_20170602 + H11Nov + 
-    H31Mar + H17Apr + H6Jun, data = bluesT)
+bluBSVSk <- lm(GRWT ~ MOIST + hday + GNDVI_20170331 + GNDVI_20170417 + 
+                 GRVI_20170512 + NDRE_20170609 + NIR_20170512 + 
+                 RedEdge_20170602 + H11Nov + H31Mar + H17Apr + H6Jun, 
+               data = bluesT)
 # Summarize Full Model
 summary(bluBSVSk)
 bluBSVSk$anova
 
 # LASSO 
-bluLassk <- lm(GRWT ~ GNDVI_20170505 + NDRE_20170503 + H8Nov + GNDVI_20170417 + GNDVI_20170503 + NDRE_20170505 + NDVI_20170505 + GNDVI_20170523 + H11Nov, 
-                     data = bluesT)
+bluLassk <- lm(GRWT ~ GNDVI_20170505 + NDRE_20170503 + H8Nov +
+                 GNDVI_20170417 + GNDVI_20170503 + NDRE_20170505 +
+                 NDVI_20170505 + GNDVI_20170523 + H11Nov, 
+               data = bluesT)
 # Summarize Full Model
 summary(bluLassk)
 bluLassk$anova
 
 # LASSO minimised lambda cv
-bluLasLcvk <- lm(GRWT ~ MOIST + hday + GNDVI_20170609 + GRVI_20170523 + NDRE_20170417 + NDRE_20170503 + NDRE_20170512 + NDRE_20170523 + H12Apr + H9Jun, data = bluesT)
+bluLasLcvk <- lm(GRWT ~ MOIST + hday + GNDVI_20170609 + GRVI_20170523 + 
+                   NDRE_20170417 + NDRE_20170503 + NDRE_20170512 + 
+                   NDRE_20170523 + H12Apr + H9Jun, 
+                 data = bluesT)
 # Summarize Full Model
 summary(bluLasLcvk)
 bluLasLcvk$anova
 
-bluLasLml <- lm(GRWT ~ BYDV + MOIST + PTHT + hday + GNDVI_20170331 + GNDVI_20170417 + GNDVI_20170609 + GRVI_20170512 + GRVI_20170523 + GRVI_20170609 + NDRE_20170503 + NDRE_20170512 + NDRE_20170523 + NDVI_20170331 + NIR_20170503 + NIR_20170505 + NIR_20170602 + RedEdge_20170523 + H1Nov + H11Nov + H23Nov + H31Mar + H12Apr + H5May + H23May + H6Jun + H9Jun, data = blues)
+bluLasLml <- lm(GRWT ~ BYDV + MOIST + PTHT + hday + GNDVI_20170331 + 
+                  GNDVI_20170417 + GNDVI_20170609 + GRVI_20170512 + 
+                  GRVI_20170523 + GRVI_20170609 + NDRE_20170503 + 
+                  NDRE_20170512 + NDRE_20170523 + NDVI_20170331 + 
+                  NIR_20170503 + NIR_20170505 + NIR_20170602 + 
+                  RedEdge_20170523 + H1Nov + H11Nov + H23Nov + H31Mar + 
+                  H12Apr + H5May + H23May + H6Jun + H9Jun, 
+                data = blues)
+
 summary(bluLasLml)
 
 bluLasLml$anova
@@ -982,7 +1169,9 @@ au %>%
   geom_point() + 
   facet_wrap(~x, scales = "free")
 
-totalSum<- anova(bluk,bluCorr,bluCorrHer,bluBSVSk,bluLassk,bluLasLcvk,bluLasLml)
+totalSum<- anova(bluk,bluCorr,bluCorrHer,
+                 bluBSVSk,bluLassk,bluLasLcvk,
+                 bluLasLml)
 totalSum
 ```
 
