@@ -1,7 +1,6 @@
 library(tidyverse)
 library(data.table)
 library(myprettyreport)
-library(data.table)
 library(patchwork)
 library(sysfonts)
 library(ggpubr)
@@ -11,6 +10,8 @@ library(extrafont)
 library(sysfonts)
 library(ggbiplot)
 library(GGally)
+library(qqman)
+
 
 quartzFonts(CMUBright = c("CMUBright-Roman", 
                           "CMUBright-Bold",  
@@ -165,7 +166,6 @@ ggarrange(herPlot17,herPlot18,
           legend = "right",
           ncol = 1,
           nrow = 2)
-
 
 
 ######## PCA of genetic markers
@@ -815,4 +815,136 @@ ggarrange(plotlist = distHist,
   ggexport(filename = "~/Dropbox/Research_Poland_Lab/AM Panel/AMPanel_Manuscript/Supplementary/SupplementaryFigure1_Distributions.pdf",
            width = 50,
            height = 50)
+
+##### Manhattan and QQ plots
+
+dataRRblup<- fread("~/Dropbox/Research_Poland_Lab/AM Panel/R/rrBlup/gwaBLUES_all_rrBlup.txt", header = T)
+head(dataRRblup)
+
+dataMultiphen<- read.table("~/Dropbox/Research_Poland_Lab/AM Panel/R/MultiPhen/Univariate/resultsSingle52017.wide.txt",
+                           header = T, sep = "")
+
+dataMultiphen<- separate(dataMultiphen, "rsid", c("chrom","pos"), sep = "_")
+dataMultiphen$chrom <- as.numeric(dataMultiphen$chrom)
+dataMultiphen$pos <- as.numeric(dataMultiphen$pos)
+dataMultiphen<- dataMultiphen[which(dataMultiphen$label == "pval"), 
+                              c(5,3:4,6:ncol(dataMultiphen))]
+colnames(dataMultiphen)[colnames(dataMultiphen)=="GRWT"] <- "GRWT_2017"
+colnames(dataMultiphen)[colnames(dataMultiphen)=="GRYLD"] <- "GRYLD_2017"
+colnames(dataMultiphen)[colnames(dataMultiphen)=="awns"] <- "awns_2017"
+colnames(dataMultiphen)[colnames(dataMultiphen)=="hday"] <- "HDDT_2017"
+colnames(dataMultiphen)[colnames(dataMultiphen)=="MOIST"] <- "MOIST_2017"
+colnames(dataMultiphen)[colnames(dataMultiphen)=="PTHT"] <- "PTHT_2017"
+colnames(dataMultiphen)[colnames(dataMultiphen)=="TESTWT"] <- "TESTWT_2017"
+
+#traits<- colnames(pheno[,3:ncol(pheno)])
+chrBP<- dataRRblup[,c("rs_number","chrom","pos")]
+
+######### Reading in files as a list of data frames
+#Linear
+fileNames<- list.files(path = "/Users/megzcalvert/Dropbox/Research_Poland_Lab/AM Panel/plink/amPanel/amPMult/",
+                       full.names = T,
+                       pattern = ".mqfam.total$")
+
+#Names From Linear
+traitNames<- basename(fileNames) %>%
+  str_remove_all(c(".mqfam.total"))
+
+## File loading function
+load.file<- function (filename) {
+  d<- fread(file = filename,header = TRUE,check.names = F,data.table = F)
+  d
+}
+
+#Read in data
+data<- lapply(fileNames, load.file)
+#perms<- lapply(filePerms, load.file)
+
+#Adjust names and join
+names(data)<- traitNames
+
+
+## Sort data by SNPs or whatever GAPIT needs this
+sortedData<- lapply(data, function(df) {
+  df[order(df$SNP),]
+})
+
+
+##### Extract variable of interest from each dataframe in list and place into 1 dataframe
+
+circData <- map_df(sortedData,"P") #`[`, c("label","rsid","SNP","JointModel")) #Pick whichever columns, MultiPhen: (data,`[`, c("label","rsid","SNP","JointModel") or just pvalue
+
+# colnames(circData)[colnames(circData)=="GRWT"] <- "GRWT_2018"
+# colnames(circData)[colnames(circData)=="GRYLD"] <- "GRYLD_2018"
+# colnames(circData)[colnames(circData)=="awns"] <- "awns_2018"
+# colnames(circData)[colnames(circData)=="hday"] <- "HDDT_2018"
+# colnames(circData)[colnames(circData)=="MOIST"] <- "MOIST_2018"
+# colnames(circData)[colnames(circData)=="PTHT"] <- "PTHT_2018"
+# colnames(circData)[colnames(circData)=="TESTWT"] <- "TESTWT_2018"
+
+## Combine with position information obtained previously
+Circos<- cbind(chrBP,circData)
+Circos10<- Circos
+Circos10[,4:ncol(Circos10)] <- -log10(Circos10[,4:ncol(Circos10)])
+
+
+write.table(Circos10, file = "~/Dropbox/Research_Poland_Lab/AM Panel/AMPanel_Manuscript/Supplementary/PLINK/results_Multivariate-logPValue_PLINK.txt",
+            quote = F, row.names = F, col.names = T) 
+
+#### Manhattan and QQPlot 
+#qqman plots are backup, trying more customisable soulutions
+
+qqman.plot <- function(x, prog, ...) {
+  md <- names(x) %in% c("rs_number", "pos", "chrom")
+  traits <- colnames(x[,4:ncol(x)])
+  info<- x[,c("rs_number", "pos", "chrom")]
+  
+  plotList = list()
+  pdf(file = 
+        "~/Dropbox/Research_Poland_Lab/AM Panel/AMPanel_Manuscript/Supplementary/PLINK/AssociationPlots_PLINK.pdf",
+      onefile = T)
+  for (i in traits) {
+    P <- x[[i]]
+    dat<- cbind(info, P)
+    par(mar=c(5,6,4,3)+0.1)
+    thisPlot<- qqman::manhattan(dat,
+                           main = paste(prog,i),
+                           chr = "chrom",
+                           bp = "pos",
+                           p = "P",
+                           snp = "rs_number",
+                           col = c("blue","grey40","black"),
+                           chrlabs = c("1A","1B","1D",
+                                       "2A","2B","2D",
+                                       "3A","3B","3D",
+                                       "4A","4B","4D",
+                                       "5A","5B","5D",
+                                       "6A","6B","6D",
+                                       "7A","7B","7D"),
+                           genomewideline = -log10(0.05 / nrow(dat)),
+                           logp = T,
+                           #ylim = c(0,20),
+                           cex.axis = 1.5,
+                           cex.lab = 2,
+                           cex.main= 2.5,
+                           cex = 1.5)
+    plotList[[paste0(i,"_manhattan")]] = thisPlot
+    print(paste(i,"_manhattan"))
+    
+    thisPlot<- qqman::qq(dat$P,
+                   main = paste(prog,i),
+                   cex.axis = 1.2,
+                   cex.lab = 1.5,
+                   cex.main= 2,
+                   cex = 1.5)
+    plotList[[paste0(i,"_qq")]] = thisPlot
+    print(paste(i,"_qq"))
+    
+  }
+  return(plotList)
+  dev.off()
+}
+
+plinkMulti<- qqman.plot(Circos,'PLINK')
+
 
