@@ -11,6 +11,7 @@ library(sysfonts)
 library(ggbiplot)
 library(GGally)
 library(qqman)
+library(ggrepel)
 
 
 quartzFonts(CMUBright = c("CMUBright-Roman", 
@@ -39,17 +40,19 @@ her17$Date<- as.Date(her17$Date, format = "%Y%m%d")
 #Change names so everything fits
 her17$Trait[her17$Trait == "RedEdge"] <- "RE"
 
-
 her18<- fread(
   "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/2018heritability.txt")
 
 head(her18)
+
 #Separate trait into date and HTP
 her18<- separate(her18, "Trait",c("Date","Trait"), sep = "_")
 str(her18)
+
 #Date was placed first in these files with an X, remove X
 her18$Date<- sub('.', '', her18$Date)
 str(her18)
+
 #Adjust date format in case we want to use date as plotting factor
 her18$Date<- as.Date(her18$Date, format = "%Y%m%d")
 her18<- filter(her18, Date != c("2018-05-16","2018-05-29"))
@@ -88,7 +91,7 @@ herPlot17<- ggplot(data = her17,
                                 "#b1e0a7","#7fbf7b","#1b7837")) +
   scale_x_date(date_labels = "%b %d",
                date_breaks = "2 weeks") +
-  geom_text(data = filter(her17, Date == "2017-06-23"),
+  geom_text_repel(data = filter(her17, Date == "2017-06-23"),
             aes(x = Date,
                 y = heritability,
                 label = Trait),
@@ -126,7 +129,7 @@ herPlot18<- ggplot(data = her18,
                                 "#b1e0a7","#7fbf7b","#1b7837")) +
   scale_x_date(date_labels = "%b %d",
                date_breaks = "2 weeks") +
-  geom_text(data = filter(her18, Date == "2018-06-27"),
+  geom_text_repel(data = filter(her18, Date == "2018-06-27"),
             aes(x = Date,
                 y = heritability,
                 label = Trait),
@@ -863,15 +866,6 @@ circData <- circData %>%
   select(starts_with("JointModel"))
 names(circData) <- traitNames
 
-
-# colnames(circData)[colnames(circData)=="GRWT"] <- "GRWT_2018"
-# colnames(circData)[colnames(circData)=="GRYLD"] <- "GRYLD_2018"
-# colnames(circData)[colnames(circData)=="awns"] <- "awns_2018"
-# colnames(circData)[colnames(circData)=="hday"] <- "HDDT_2018"
-# colnames(circData)[colnames(circData)=="MOIST"] <- "MOIST_2018"
-# colnames(circData)[colnames(circData)=="PTHT"] <- "PTHT_2018"
-# colnames(circData)[colnames(circData)=="TESTWT"] <- "TESTWT_2018"
-
 ## Combine with position information obtained previously
 Circos<- cbind(bp,circData)
 Circos10<- Circos
@@ -885,6 +879,7 @@ Circos <- Circos  %>%
   select(-results2017BluBckSelec5,-results2017BluBckSelecVIF5,
          -results2017bluLasSelecML5,
          -results2018bluBckSelec5,-results2018bluBckSelecVIF5)
+
 #### Manhattan and QQPlot 
 #qqman plots are backup, trying more customisable soulutions
 
@@ -895,7 +890,8 @@ qqman.plot <- function(x, prog, ...) {
   
   plotList = list()
   
-  mypath <- file.path("~/Dropbox/Research_Poland_Lab/AM Panel/AMPanel_Manuscript/Supplementary",
+  mypath <- file.path(
+    "~/Dropbox/Research_Poland_Lab/AM Panel/AMPanel_Manuscript/Supplementary",
                       paste("ManhattanPlots_",prog,".pdf", 
                             sep = ""))
   pdf(file = mypath,
