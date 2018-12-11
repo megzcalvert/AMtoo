@@ -69,7 +69,7 @@ herPlot17<- ggplot(data = her17,
                        colour = Trait,
                        group = Trait)) +
   geom_line(data = filter(her17, Date != "2017-06-23"),
-    size = 3) +
+            size = 3) +
   geom_point(data = filter(her17, Date != "2017-06-23"),
              size = 4 ) +
   theme_bw() +
@@ -92,11 +92,11 @@ herPlot17<- ggplot(data = her17,
   scale_x_date(date_labels = "%b %d",
                date_breaks = "2 weeks") +
   geom_text_repel(data = filter(her17, Date == "2017-06-23"),
-            aes(x = Date,
-                y = heritability,
-                label = Trait),
-            nudge_x = 1, 
-            colour = "black") +
+                  aes(x = Date,
+                      y = heritability,
+                      label = Trait),
+                  nudge_x = 1, 
+                  colour = "black") +
   geom_point(data = filter(her17, Date == "2017-06-23"),
              colour = "#adaeae")
 
@@ -105,9 +105,9 @@ herPlot17
 
 herPlot18<- ggplot(data = her18,
                    aes(x = Date,
-                     y = heritability,
-                     colour = Trait,
-                     group = Trait)) +
+                       y = heritability,
+                       colour = Trait,
+                       group = Trait)) +
   geom_line(data = filter(her18, Date != "2018-06-27"), size = 3) +
   geom_point(data = filter(her18, Date != "2018-06-27"),size = 4 ) +
   theme_bw() +
@@ -130,11 +130,11 @@ herPlot18<- ggplot(data = her18,
   scale_x_date(date_labels = "%b %d",
                date_breaks = "2 weeks") +
   geom_text_repel(data = filter(her18, Date == "2018-06-27"),
-            aes(x = Date,
-                y = heritability,
-                label = Trait),
-            nudge_x = 1, 
-            colour = "black") +
+                  aes(x = Date,
+                      y = heritability,
+                      label = Trait),
+                  nudge_x = 1, 
+                  colour = "black") +
   geom_point(data = filter(her18, Date == "2018-06-27"),
              colour = "#adaeae")
 
@@ -798,29 +798,34 @@ ggarrange(plotlist = distHist,
 
 ##### Manhattan and QQ plots
 
-dataRRblup<- fread("~/Dropbox/Research_Poland_Lab/AM Panel/R/rrBlup/gwaBLUES_all_rrBlup.txt", header = T)
+dataRRblup<- fread(
+  "~/Dropbox/Research_Poland_Lab/AM Panel/R/rrBlup/gwaBLUES_all_rrBlup.txt", 
+  header = T)
 head(dataRRblup)
 
-<<<<<<< HEAD
-dataMultiphen<- read.table("~/Dropbox/Research_Poland_Lab/AM Panel/R/MultiPhen/Univariate/resultsSingle52018.wide.txt",
-=======
-<<<<<<< HEAD
-dataMultiphen<- read.table("~/Dropbox/Research_Poland_Lab/AM Panel/R/MultiPhen/Univariate/resultsSingle52018.wide.txt",
-=======
-dataMultiphen<- read.table("~/Dropbox/Research_Poland_Lab/AM Panel/R/MultiPhen/Univariate/resultsSingle52017.wide.txt",
->>>>>>> 392711150022b98d9adc03dd5f5ce4f857f8c58a
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
-                           header = T, sep = "")
+
+dataMultiphen<- read.table(
+  "~/Dropbox/Research_Poland_Lab/AM Panel/R/MultiPhen/Univariate/resultsSingle52018.wide.txt", 
+  header = T)
+
+
+dataMultiphen<- read.table(
+  "~/Dropbox/Research_Poland_Lab/AM Panel/R/MultiPhen/Univariate/resultsSingle52018.wide.txt",
+  header = T)
+
+dataMultiphen<- read.table(
+  "~/Dropbox/Research_Poland_Lab/AM Panel/R/MultiPhen/Univariate/resultsSingle52017.wide.txt",
+  header = T, sep = "")
 
 dataMultiphen<- separate(dataMultiphen, "rsid", c("chrom","pos"), sep = "_")
 dataMultiphen$chrom <- as.numeric(dataMultiphen$chrom)
 dataMultiphen$pos <- as.numeric(dataMultiphen$pos)
 dataMultiphen<- dataMultiphen[which(dataMultiphen$label == "pval"), 
                               c(5,3:4,6:ncol(dataMultiphen))]
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
+
+
+
+
 colnames(dataMultiphen)[colnames(dataMultiphen)=="GRWT"] <- "GRWT_2018"
 colnames(dataMultiphen)[colnames(dataMultiphen)=="GRYLD"] <- "GRYLD_2018"
 colnames(dataMultiphen)[colnames(dataMultiphen)=="awns"] <- "awns_2018"
@@ -828,9 +833,9 @@ colnames(dataMultiphen)[colnames(dataMultiphen)=="hday"] <- "HDDT_2018"
 colnames(dataMultiphen)[colnames(dataMultiphen)=="MOIST"] <- "MOIST_2018"
 colnames(dataMultiphen)[colnames(dataMultiphen)=="PTHT"] <- "PTHT_2018"
 colnames(dataMultiphen)[colnames(dataMultiphen)=="TESTWT"] <- "TESTWT_2018"
-<<<<<<< HEAD
-=======
-=======
+
+
+
 colnames(dataMultiphen)[colnames(dataMultiphen)=="GRWT"] <- "GRWT_2017"
 colnames(dataMultiphen)[colnames(dataMultiphen)=="GRYLD"] <- "GRYLD_2017"
 colnames(dataMultiphen)[colnames(dataMultiphen)=="awns"] <- "awns_2017"
@@ -838,18 +843,15 @@ colnames(dataMultiphen)[colnames(dataMultiphen)=="hday"] <- "HDDT_2017"
 colnames(dataMultiphen)[colnames(dataMultiphen)=="MOIST"] <- "MOIST_2017"
 colnames(dataMultiphen)[colnames(dataMultiphen)=="PTHT"] <- "PTHT_2017"
 colnames(dataMultiphen)[colnames(dataMultiphen)=="TESTWT"] <- "TESTWT_2017"
->>>>>>> 392711150022b98d9adc03dd5f5ce4f857f8c58a
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
+
+
 
 #traits<- colnames(pheno[,3:ncol(pheno)])
 chrBP<- dataRRblup[,c("rs_number","chrom","pos")]
 
 ######### Reading in files as a list of data frames
 #Linear
-<<<<<<< HEAD
-fileNames<- list.files(path = "/Users/megzcalvert/Dropbox/Research_Poland_Lab/AM Panel/R/MultiPhen/Multivariate",
-=======
-<<<<<<< HEAD
+
 fileNames<- list.files(path = "/Users/megzcalvert/Dropbox/Research_Poland_Lab/AM Panel/R/MultiPhen/Multivariate",
                        full.names = T,
                        pattern = ".wide.txt$")
@@ -857,20 +859,20 @@ fileNames<- list.files(path = "/Users/megzcalvert/Dropbox/Research_Poland_Lab/AM
 #Names From Linear
 traitNames<- basename(fileNames) %>%
   str_remove_all(c(".wide.txt"))
-=======
+
 fileNames<- list.files(path = "/Users/megzcalvert/Dropbox/Research_Poland_Lab/AM Panel/plink/amPanel/amPMult/",
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
+                       
                        full.names = T,
                        pattern = ".mqfam.total$")
 
 #Names From Linear
 traitNames<- basename(fileNames) %>%
-<<<<<<< HEAD
+  
   str_remove_all(c(".wide.txt"))
-=======
-  str_remove_all(c(".mqfam.total"))
->>>>>>> 392711150022b98d9adc03dd5f5ce4f857f8c58a
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
+
+str_remove_all(c(".mqfam.total"))
+
+
 
 ## File loading function
 load.file<- function (filename) {
@@ -894,10 +896,10 @@ sortedData<- lapply(data, function(df) {
 
 ##### Extract variable of interest from each dataframe in list and place into 1 dataframe
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
+
+
+
+
 circData <- map_dfc(data,`[`, c("label","rsid","SNP","JointModel")) #`[`, c("label","rsid","SNP","JointModel")) #Pick whichever columns, MultiPhen: (data,`[`, c("label","rsid","SNP","JointModel") or just pvalue
 
 circData <- circData[which(circData$label == "pval"),]
@@ -912,13 +914,13 @@ circData <- circData %>%
   select(starts_with("JointModel"))
 names(circData) <- traitNames
 
-<<<<<<< HEAD
+
 ## Combine with position information obtained previously
 Circos<- cbind(bp,circData)
-=======
-=======
+
+
 circData <- map_df(sortedData,"P") #`[`, c("label","rsid","SNP","JointModel")) #Pick whichever columns, MultiPhen: (data,`[`, c("label","rsid","SNP","JointModel") or just pvalue
->>>>>>> 392711150022b98d9adc03dd5f5ce4f857f8c58a
+
 
 # colnames(circData)[colnames(circData)=="GRWT"] <- "GRWT_2018"
 # colnames(circData)[colnames(circData)=="GRYLD"] <- "GRYLD_2018"
@@ -929,12 +931,12 @@ circData <- map_df(sortedData,"P") #`[`, c("label","rsid","SNP","JointModel")) #
 # colnames(circData)[colnames(circData)=="TESTWT"] <- "TESTWT_2018"
 
 ## Combine with position information obtained previously
-<<<<<<< HEAD
+
 Circos<- cbind(bp,circData)
-=======
+
 Circos<- cbind(chrBP,circData)
->>>>>>> 392711150022b98d9adc03dd5f5ce4f857f8c58a
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
+
+
 Circos10<- Circos
 Circos10[,4:ncol(Circos10)] <- -log10(Circos10[,4:ncol(Circos10)])
 
@@ -942,28 +944,24 @@ Circos10[,4:ncol(Circos10)] <- -log10(Circos10[,4:ncol(Circos10)])
 write.table(Circos10, file = "~/Dropbox/Research_Poland_Lab/AM Panel/AMPanel_Manuscript/Supplementary/PLINK/results_Multivariate-logPValue_PLINK.txt",
             quote = F, row.names = F, col.names = T) 
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
+
+
+
+
 Circos <- Circos  %>%
   select(-results2017BluBckSelec5,-results2017BluBckSelecVIF5,
          -results2017bluLasSelecML5,
          -results2018bluBckSelec5,-results2018bluBckSelecVIF5)
-<<<<<<< HEAD
 
-=======
-=======
->>>>>>> 392711150022b98d9adc03dd5f5ce4f857f8c58a
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
+
+
+
+
+
 #### Manhattan and QQPlot 
 #qqman plots are backup, trying more customisable soulutions
 
 qqman.plot <- function(x, prog, ...) {
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
   md <- names(x) %in% c("SNP", "pos", "chrom")
   traits <- colnames(x[,4:ncol(x)])
   info<- x[,c("SNP", "pos", "chrom")]
@@ -972,8 +970,8 @@ qqman.plot <- function(x, prog, ...) {
   
   mypath <- file.path(
     "~/Dropbox/Research_Poland_Lab/AM Panel/AMPanel_Manuscript/Supplementary",
-                      paste("ManhattanPlots_",prog,".pdf", 
-                            sep = ""))
+    paste("ManhattanPlots_",prog,".pdf", 
+          sep = ""))
   pdf(file = mypath,
       onefile = T,
       paper = "a4r",
@@ -1006,67 +1004,17 @@ qqman.plot <- function(x, prog, ...) {
                                 cex.lab = 1.5,
                                 cex.main= 2,
                                 cex = 1)
-<<<<<<< HEAD
-=======
-=======
-  md <- names(x) %in% c("rs_number", "pos", "chrom")
-  traits <- colnames(x[,4:ncol(x)])
-  info<- x[,c("rs_number", "pos", "chrom")]
-  
-  plotList = list()
-  pdf(file = 
-        "~/Dropbox/Research_Poland_Lab/AM Panel/AMPanel_Manuscript/Supplementary/PLINK/AssociationPlots_PLINK.pdf",
-      onefile = T)
-  for (i in traits) {
-    P <- x[[i]]
-    dat<- cbind(info, P)
-    par(mar=c(5,6,4,3)+0.1)
-    thisPlot<- qqman::manhattan(dat,
-                           main = paste(prog,i),
-                           chr = "chrom",
-                           bp = "pos",
-                           p = "P",
-                           snp = "rs_number",
-                           col = c("blue","grey40","black"),
-                           chrlabs = c("1A","1B","1D",
-                                       "2A","2B","2D",
-                                       "3A","3B","3D",
-                                       "4A","4B","4D",
-                                       "5A","5B","5D",
-                                       "6A","6B","6D",
-                                       "7A","7B","7D"),
-                           genomewideline = -log10(0.05 / nrow(dat)),
-                           logp = T,
-                           #ylim = c(0,20),
-                           cex.axis = 1.5,
-                           cex.lab = 2,
-                           cex.main= 2.5,
-                           cex = 1.5)
->>>>>>> 392711150022b98d9adc03dd5f5ce4f857f8c58a
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
+    
     plotList[[paste0(i,"_manhattan")]] = thisPlot
     print(paste(i,"_manhattan"))
     
     thisPlot<- qqman::qq(dat$P,
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
                          main = paste(prog,i),
                          cex.axis = 1,
                          cex.lab = 1.5,
                          cex.main= 2,
                          cex = 1)
-<<<<<<< HEAD
-=======
-=======
-                   main = paste(prog,i),
-                   cex.axis = 1.2,
-                   cex.lab = 1.5,
-                   cex.main= 2,
-                   cex = 1.5)
->>>>>>> 392711150022b98d9adc03dd5f5ce4f857f8c58a
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
+    
     plotList[[paste0(i,"_qq")]] = thisPlot
     print(paste(i,"_qq"))
     
@@ -1075,18 +1023,18 @@ qqman.plot <- function(x, prog, ...) {
   dev.off()
 }
 
-<<<<<<< HEAD
+
 plinkMulti<- qqman.plot(Circos,'MV-Multiphen')
 
 dev.off()
-=======
-<<<<<<< HEAD
+
+
 plinkMulti<- qqman.plot(Circos,'MV-Multiphen')
 
 dev.off()
-=======
+
 plinkMulti<- qqman.plot(Circos,'PLINK')
 
->>>>>>> 392711150022b98d9adc03dd5f5ce4f857f8c58a
->>>>>>> 542c14909c22f425c5f365ce10b1149d97628100
+
+
 
