@@ -23,7 +23,7 @@ require(lubridate)
 wheatgenetics = dbConnect(MySQL( ),user="megzcalvert",
                           
                           dbname='wheatgenetics', host='beocat.cis.ksu.edu',
-                          password = " " , port = 6306) 
+                          password = "" , port = 6306) 
 
 #SQL Query to get all AM Panel phenotype data
 
@@ -57,7 +57,7 @@ pheno <- dbGetQuery(wheatgenetics, pheno_query)
 print(getwd( )) #get working directory set if needed
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel")
 
-saveRDS(pheno, "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno18.RDS") #save original plot information 
+saveRDS(pheno, "./Phenotype_Database/Pheno18.RDS") #save original plot information 
 
 
 dbDisconnect(wheatgenetics) #disconnect from database
@@ -73,7 +73,7 @@ getwd()
 sessionInfo() # useful infos **reproducible research**
 
 #Read in original data
-pheno_long<- readRDS("~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno18.RDS")
+pheno_long<- readRDS("./Phenotype_Database/Pheno18.RDS")
 
 str(pheno_long) # structure
 head(pheno_long, 10)
@@ -257,10 +257,10 @@ plotDates<- hddt[,c(1,5)]
 pheno_long$phenotype_value<-as.numeric(as.character(pheno_long$phenotype_value))
 
 write.table(pheno_long, 
-            file="~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_Long18.txt",
+            file="./Phenotype_Database/Pheno_Long18.txt",
             col.names=TRUE, row.names=FALSE, sep="\t", quote=FALSE)
 
-pheno_long<- fread("~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_Long18.txt", header = T)
+pheno_long<- fread("./Phenotype_Database/Pheno_Long18.txt", header = T)
 
 #Changing from long to wide format
 pheno_Wide <- mutate(dcast(pheno_long,  
@@ -324,7 +324,7 @@ rm(awns, data, gndvi, grvi,hHTP,iniNames,modNames,ndre,ndvi,nir,pheno_long,pheno
 
 ## Visual Phenotypic Summaries
 
-pheno<- read.table("~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/Pheno_18.txt", 
+pheno<- read.table("./Phenotype_Database/Pheno_18.txt", 
                    sep = "\t", header = TRUE, stringsAsFactors = TRUE)
 
 myvars <- names(pheno) %in% c("awns") 
@@ -357,7 +357,7 @@ histFacet.plot <- function(x, results, info, ...) {
   return(plotList)
 }
 
-raw2018<- histFacet.plot(pd,'~/Dropbox/Research_Poland_Lab/AM Panel/Figures/Hist/',
+raw2018<- histFacet.plot(pd,'./Figures/Hist/',
                "_raw_2018")
 ggpubr::ggarrange(plotlist = raw2018, ncol = 2, nrow = 2)
 
@@ -423,7 +423,7 @@ ggpairs(pheno[,c(8:13,15)])
 
 pheno<- pheno[ ,c(3:ncol(pheno))] 
 
-snpChip <- read_delim("~/Dropbox/Research_Poland_Lab/AM Panel/Genotype_Database/90KsnpChipHapMap/AMsnpChipImputed.hmp.txt", 
+snpChip <- read_delim("./Genotype_Database/90KsnpChipHapMap/AMsnpChipImputed.hmp.txt", 
                       "\t", escape_double = FALSE, trim_ws = TRUE)
 
 snpChip<- snpChip %>% 
@@ -460,7 +460,7 @@ boxplot.stats(pheno$PTHT)$out
 boxplot.stats(pheno$awns)$out
 
 
-histFacet.plot(pheno,'~/Dropbox/Research_Poland_Lab/AM Panel/Figures/Hist/',
+histFacet.plot(pheno,'./Figures/Hist/',
                'clean_2018')
 
 cpg_dot<- ggplot(data = pheno, aes(x = pheno$PTHT, y = pheno$GRWT)) +
@@ -566,7 +566,7 @@ blues <- as.data.frame( blues[, !names(blues) %in%
 
 
 
-write.table(blues, "/Users/megzcalvert/Dropbox/Research_Poland_Lab/AM Panel/Genotype_Database/cleanPheno18Blues.txt",
+write.table(blues, "./Genotype_Database/cleanPheno18Blues.txt",
             quote = FALSE, row.names = F, col.names = T, sep = "\t", 
             fileEncoding = "UTF-8")
 
@@ -583,7 +583,7 @@ nrow(missingPhenotype)
 
 #### Initial GWAS analysis
 
-snpChip <- read_delim("~/Dropbox/Research_Poland_Lab/AM Panel/Genotype_Database/90KsnpChipHapMap/AMsnpChipImputed.hmp.txt", 
+snpChip <- read_delim("./Genotype_Database/90KsnpChipHapMap/AMsnpChipImputed.hmp.txt", 
                       "\t", escape_double = FALSE, trim_ws = TRUE)
 snpChip<- snpChip %>% 
   clean_names()
@@ -597,10 +597,10 @@ hapgeno[hapgeno %in% hetCodes]='H'
 snpChip=cbind(snpChip[,1:12], hapgeno)
 rm(hapgeno)
 
-write.table(snpChip, file="~/Dropbox/Research_Poland_Lab/AM Panel/Genotype_Database/SelectedImputedBeagle.txt",
+write.table(snpChip, file="./Genotype_Database/SelectedImputedBeagle.txt",
             col.names=TRUE, row.names=FALSE, sep="\t", quote=FALSE)
 
-snpChip = fread(file="~/Dropbox/Research_Poland_Lab/AM Panel/Genotype_Database/SelectedImputedBeagle.txt", 
+snpChip = fread(file="./Genotype_Database/SelectedImputedBeagle.txt", 
                 header=TRUE, check.names=F, sep = "\t")
 
 snpChip[snpChip == snpChip$allele_a] = -1
@@ -615,10 +615,10 @@ snpChip[snpChip == "."] = NA
 
 snpChip<- snpChip[ ,c(1,4,5,13:311)]
 
-write.table(snpChip, file="~/Dropbox/Research_Poland_Lab/AM Panel/Genotype_Database/SelectedImputedBeagleNumeric.txt",
+write.table(snpChip, file="./Genotype_Database/SelectedImputedBeagleNumeric.txt",
             col.names=TRUE, row.names=FALSE, sep="\t", quote=FALSE)
 
-snpChip = fread(file="~/Dropbox/Research_Poland_Lab/AM Panel/Genotype_Database/SelectedImputedBeagleNumeric.txt", 
+snpChip = fread(file="./Genotype_Database/SelectedImputedBeagleNumeric.txt", 
                 header=TRUE, check.names=F, sep = "\t")
 
 chrSum<- plyr::count(snpChip, vars = "chrom")
