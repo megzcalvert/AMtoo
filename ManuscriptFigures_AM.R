@@ -35,8 +35,7 @@ str(her17)
 #Adjust date format in case we want to use date as plotting factor
 her17$Date<- as.Date(her17$Date, format = "%Y%m%d")
 #Remove non-HTP traits
-# her17<- her17[which(her17$Trait != c("BYDV","GRWT","MOIST","PTHT","TESTWT",
-#                                      "AWNS","HDDT")),]
+ her17<- her17[which(her17$Trait != c("BYDV")),]
 #Change names so everything fits
 her17$Trait[her17$Trait == "RedEdge"] <- "RE"
 
@@ -823,9 +822,6 @@ dataMultiphen$pos <- as.numeric(dataMultiphen$pos)
 dataMultiphen<- dataMultiphen[which(dataMultiphen$label == "pval"), 
                               c(5,3:4,6:ncol(dataMultiphen))]
 
-
-
-
 colnames(dataMultiphen)[colnames(dataMultiphen)=="GRWT"] <- "GRWT_2018"
 colnames(dataMultiphen)[colnames(dataMultiphen)=="GRYLD"] <- "GRYLD_2018"
 colnames(dataMultiphen)[colnames(dataMultiphen)=="awns"] <- "awns_2018"
@@ -895,10 +891,6 @@ sortedData<- lapply(data, function(df) {
 
 
 ##### Extract variable of interest from each dataframe in list and place into 1 dataframe
-
-
-
-
 
 circData <- map_dfc(data,`[`, c("label","rsid","SNP","JointModel")) #`[`, c("label","rsid","SNP","JointModel")) #Pick whichever columns, MultiPhen: (data,`[`, c("label","rsid","SNP","JointModel") or just pvalue
 
