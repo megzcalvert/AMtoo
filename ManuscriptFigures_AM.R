@@ -309,7 +309,8 @@ p
 
 blues2018 <- read.table("~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/cleanPheno18_NaNa.txt",
                         header = T, sep = "\t")
-blues2018 <- as.data.frame( blues2018[, !names(blues2018) %in% c("NormGRWT","TESTWT","GRYLD")])
+blues2018 <- as.data.frame( blues2018[, !names(blues2018) %in% 
+                                        c("NormGRWT","TESTWT","GRYLD")])
 
 blues2018 <- rename(blues2018, 
                     replace = c("GRWT" = "GRWT_2018",
@@ -513,11 +514,12 @@ blues2017 <- as.data.frame( blues2017[, !names(blues2017) %in%
 
 blues2017 <- rename(blues2017, 
                     replace = c("GRWT" = "GRWT_2017",
-                                "MOIST" = "MOSIT_2017",
+                                "MOIST" = "MOIST_2017",
                                 "PTHT" = "PTHT_2017",
-                                "BYDV" = "BYDV_2017",
+                                "BYDV" = "BYDV)2017",
                                 "awns" = "AWNS_2017",
                                 "hday" = "HDDT_2017"))
+
 
 b2017<- blues2017[,2:ncol(blues2017)]
 
