@@ -9,6 +9,7 @@ library(janitor)
 library(GGally)
 require(lubridate)
 library(car)
+library(tidylog)
 
 # Connect to database
 wheatgenetics = dbConnect(MySQL( ),
@@ -24,6 +25,7 @@ pheno_query <- "SELECT phenotype.entity_id,
 phenotype.trait_id,
 phenotype.phenotype_value,
 phenotype.phenotype_date,
+phenotype.phenotype_person,
 plot.plot_name AS 'Variety',
 plot.block,
 plot.rep,
@@ -105,9 +107,12 @@ knitr::kable(tabyl(pheno_long$year),
 
 ### Removing lines that do not fit the assumptions
 pheno_long<- pheno_long %>% 
-  dplyr::filter(Variety != "blank") %>% 
-  dplyr::filter(!is.na(Variety)) %>% 
-  dplyr::filter(rep != 0)
+  filter(Variety != "blank") %>% 
+  filter(!is.na(Variety)) %>% 
+  filter(rep != 0) %>%
+  filter(!is.na(rep))
+
+finalNames<- tabyl(pheno_long$Variety)
 
 str(pheno_long)
 knitr::kable(tabyl(pheno_long$trait_id), 
@@ -119,38 +124,38 @@ knitr::kable(tabyl(pheno_long$year),
 
 ### Conversion to Wide format
 
-#Add columns for awns and heading date
-pheno_long$awns<- ifelse(pheno_long$phenotype_value == "Awned", 
-                         pheno_long$phenotype_value,
-                         NA)
-str(pheno_long)
-
-awns<- pheno_long[ , c(1,11)]
-
-dataMaid::summarize(awns)
-
-awns<- as.data.frame(na.omit(awns))
-
-#Removing confounding phenotypes  
-pheno_long$phenotype_date = as.Date(pheno_long$phenotype_date) ## set the date as a Date type
+#Removing confounding phenotypes  - Jesse's Code
+######################################################
+## set the date as a Date type
+pheno_long$phenotype_date = as.Date(pheno_long$phenotype_date) 
 pheno_long<- subset(pheno_long, pheno_long$trait_id != "AWNS" )
 
 pheno_pcthead<- subset(pheno_long, pheno_long$trait_id == "PCTHEAD" )
 pheno_long<- subset(pheno_long, pheno_long$trait_id != "PCTHEAD" )
 
-pheno_pcthead$phenotype_date = as.Date(pheno_pcthead$phenotype_date) ## set the date as a Date type
-pheno_pcthead = pheno_pcthead[!is.na(pheno_pcthead$phenotype_date), ] ## remove some rows that are missing the phenotype date
-pheno_pcthead = pheno_pcthead[order(pheno_pcthead$entity_id, pheno_pcthead$phenotype_date), ]  ## sort the rows by plot and date
+## set the date as a Date type
+pheno_pcthead$phenotype_date = 
+  as.Date(pheno_pcthead$phenotype_date) 
+## remove some rows that are missing the phenotype date
+pheno_pcthead = 
+  pheno_pcthead[!is.na(pheno_pcthead$phenotype_date), ] 
+## sort the rows by plot and date
+pheno_pcthead = pheno_pcthead[order(pheno_pcthead$entity_id, 
+                                    pheno_pcthead$phenotype_date), ]  
 
 runLogReg = function(dates, pctHEAD){
   res = data.frame(phi1=NA, phi2=NA, phi3=NA, hday=NA, hdate=NA)
+  ## skip if no phenotype data
+  if(sum(!is.na(pctHEAD))==0){return(list(res=res, dates=dates, 
+                                          pctHEAD = pctHEAD, pred=NA))} 
+  ## skip plots that never reach 50% heading
+  if(max(pctHEAD, na.rm=TRUE)<60){return(list(res=res, dates=dates, 
+                                              pctHEAD = pctHEAD, pred=NA))} 
+  ## convert to day of year
+  days = yday(dates) 
   
-  if(sum(!is.na(pctHEAD))==0){return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))} ## skip if no phenotype data
-  if(max(pctHEAD, na.rm=TRUE)<60){return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))} ## skip plots that never reach 50% heading
-  
-  days = yday(dates) ## convert to day of year
-  
-  ## add some dummy variables for 0% and 100% at 10, 20, 30 days before/after the phenotyping range ##
+  ## add some dummy variables for 0% and 100% at 10, 20, 30 
+  # days before/after the phenotyping range ##
   days = c(days, min(days)-c(10,20,30), max(days)+c(10,20,30))
   pctH = c(pctHEAD, c(0,0,0,100,100,100))
   
@@ -159,9 +164,12 @@ runLogReg = function(dates, pctHEAD){
   phi2 = coef(lm(logit(pctH/phi1)~days))[1]
   phi3 = coef(lm(logit(pctH/phi1)~days))[2]
   
-  heading_model<-try(nls(pctH~100/(1+exp(-(phi2+phi3*days))), start=list(phi2=phi2,phi3=phi3), trace=FALSE), silent=TRUE)
-  
-  if(class(heading_model)=="try-error"){return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))}  ## skip if doesn't converge
+  heading_model<-try(nls(pctH~100/(1+exp(-(phi2+phi3*days))), 
+                         start=list(phi2=phi2,phi3=phi3), trace=FALSE), 
+                     silent=TRUE)
+  ## skip if doesn't converge
+  if(class(heading_model)=="try-error"){
+    return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))}  
   
   #update model coefficients for predictions
   phi2 = coef(heading_model)[1]
@@ -169,21 +177,25 @@ runLogReg = function(dates, pctHEAD){
   
   ## get predicted value
   pred = getPred(phi1, phi2, phi3)
+  ## get heading day of year
+  hday = pred$x[which.min(abs(pred$y-50))] 
+  ## convert to date
+  hdate = as.Date(paste(year(dates[1]),"-01-01", sep="")) + hday 
   
-  hday = pred$x[which.min(abs(pred$y-50))] ## get heading day of year
-  hdate = as.Date(paste(year(dates[1]),"-01-01", sep="")) + hday ## convert to date
-  
-  res = data.frame(phi1, phi2, phi3, hday, hdate) ## set values
+  ## set values
+  res = data.frame(phi1, phi2, phi3, hday, hdate) 
   
   return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=pred))
   
 }
 
 getPred = function(phi1, phi2, phi3){
-  
-  x<-c((80*10):(150*10))/10  #construct a range of x values for all days of year
-  y<-phi1/(1+exp(-(phi2+phi3*x))) #predicted y values
-  pred<-data.frame(x,y) #create the prediction data frame
+  #construct a range of x values for all days of year
+  x<-c((80*10):(150*10))/10  
+  #predicted y values
+  y<-phi1/(1+exp(-(phi2+phi3*x))) 
+  #create the prediction data frame
+  pred<-data.frame(x,y) 
   
   return(pred)
 }
@@ -191,9 +203,54 @@ getPred = function(phi1, phi2, phi3){
 #################### TEST NON-LINEAR FIT #############################
 
 ## heading date calculation results
-plots = unique(pheno_pcthead$entity_id) ## get list of plots
-##plots = plots[grepl("17ASH", plots)] ## work with only 17ASH plots
-head.dates = data.frame(plot_id = plots, day=NA, phi1=NA, phi2=NA, phi3=NA)  ## data frame to store results
+## get list of plots
+plots = unique(pheno_pcthead$entity_id) 
+## work with only 17ASH plots
+plots17 = plots[grepl("17ASH", plots)] 
+## data frame to store results
+head.dates = data.frame(plot_id = plots17, day=NA, phi1=NA, phi2=NA, phi3=NA) 
+
+##first example
+test.plot='17ASH10002'
+
+sample=pheno_pcthead[pheno_pcthead$entity_id==test.plot,]
+sample$phenotype_value<- as.numeric(sample$phenotype_value)
+
+test = runLogReg(dates=sample$phenotype_date, pctHEAD=sample$phenotype_value)
+hddt17<- as.data.frame(test$res)
+
+## data frame to store results
+#head.dates = rep(list(list(vis=list(), length=length(plots)))) 
+#names(head.dates) = plots
+
+for (i in plots17){
+  ## quick fix for running only 17ASH plots
+  ##for (i in 681:length(plots)){  
+  ##for (i in 1000:1010){
+  ## subsample the data for the plot for analysis
+  print(paste("Working on:", i))
+  ## run for visual scores
+  sample=pheno_pcthead[pheno_pcthead$entity_id == i,]
+  sample$phenotype_value<- as.numeric(sample$phenotype_value)
+  #sample=pheno_pcthead[pheno_pcthead$entity_id==plots[i],]
+  vis.logistic = runLogReg(dates=sample$phenotype_date, 
+                           pctHEAD=sample$phenotype_value)
+  n<- as.data.frame(vis.logistic$res)
+  hddt17<- rbind(hddt17, n)
+  #head.dates[[plots[i]]] = list(vis=vis.logistic)
+  ##print(head.dates[[plots[i]]]$vis$res)
+  
+}
+
+hddt17<- hddt17[2:nrow(hddt17),]
+hddt17<- cbind(plots17,hddt17)
+
+plotDates17<- hddt17[,c(1,6)]
+colnames(plotDates17)[colnames(plotDates17)=="hdate"] <- "hddt17"
+
+plots18 = plots[grepl("18ASH", plots)] 
+## data frame to store results
+head.dates = data.frame(plot_id = plots18, day=NA, phi1=NA, phi2=NA, phi3=NA) 
 
 ##first example
 test.plot='18ASH30001'
@@ -202,15 +259,15 @@ sample=pheno_pcthead[pheno_pcthead$entity_id==test.plot,]
 sample$phenotype_value<- as.numeric(sample$phenotype_value)
 
 test = runLogReg(dates=sample$phenotype_date, pctHEAD=sample$phenotype_value)
-hddt<- as.data.frame(test$res)
+hddt18<- as.data.frame(test$res)
 
-plots = unique(pheno_pcthead$entity_id)
-
-#head.dates = rep(list(list(vis=list(), length=length(plots)))) ## data frame to store results
+## data frame to store results
+#head.dates = rep(list(list(vis=list(), length=length(plots)))) 
 #names(head.dates) = plots
 
-for (i in plots){
-  ##for (i in 681:length(plots)){  ## quick fix for running only 17ASH plots
+for (i in plots18){
+  ## quick fix for running only 17ASH plots
+  ##for (i in 681:length(plots)){  
   ##for (i in 1000:1010){
   ## subsample the data for the plot for analysis
   print(paste("Working on:", i))
@@ -218,17 +275,21 @@ for (i in plots){
   sample=pheno_pcthead[pheno_pcthead$entity_id == i,]
   sample$phenotype_value<- as.numeric(sample$phenotype_value)
   #sample=pheno_pcthead[pheno_pcthead$entity_id==plots[i],]
-  vis.logistic = runLogReg(dates=sample$phenotype_date, pctHEAD=sample$phenotype_value)
+  vis.logistic = runLogReg(dates=sample$phenotype_date, 
+                           pctHEAD=sample$phenotype_value)
   n<- as.data.frame(vis.logistic$res)
-  hddt<- rbind(hddt, n)
+  hddt18<- rbind(hddt18, n)
   #head.dates[[plots[i]]] = list(vis=vis.logistic)
   ##print(head.dates[[plots[i]]]$vis$res)
   
 }
 
-hddt<- hddt[2:nrow(hddt),]
-hddt<- cbind(plots,hddt)
-plotDates<- hddt[,c(1,5)]
+hddt18<- hddt18[2:nrow(hddt18),]
+hddt18<- cbind(plots18,hddt18)
+
+plotDates18<- hddt18[,c(1,6)]
+colnames(plotDates18)[colnames(plotDates18)=="hdate"] <- "hddt18"
+#####################################################################
 
 pheno_long$phenotype_value<-as.numeric(as.character(pheno_long$phenotype_value))
 
@@ -236,35 +297,46 @@ write.table(pheno_long,
             file="./Phenotype_Database/Pheno_Long1718.txt",
             col.names=TRUE, row.names=FALSE, sep="\t", quote=FALSE)
 
+rm(hddt17,hddt18,head.dates,iniNames,modNames,n,pheno_long,pheno_pcthead,
+   sample,test,vis.logistic,i,plots,plots17,plots18,getPred,runLogReg,test.plot)
+
 pheno_long<- fread("./Phenotype_Database/Pheno_Long1718.txt", header = T)
 
-#Changing from long to wide format
+#Selecting pheno of choice
 
-pheno_Wide <- mutate(dcast(pheno_long,  
-                           entity_id + year + Variety + rep + block + 
-                             range + column ~ trait_id, 
-                           value.var = "phenotype_value", 
-                           fun.aggregate = median, 
-                           na.rm = TRUE),
-                     Variety = factor(Variety),
-                     rep = factor(rep))
+unique(pheno_long$trait_id)
 
-dataMaid::summarize(pheno_Wide[ , c("Variety", "year", "rep")])
+pheno17<- pheno_long %>% 
+  filter(year == "17") %>%
+  filter(trait_id == "GRYLD") %>% 
+  dplyr::arrange(entity_id) %>%
+  left_join(plotDates17, 
+            by = c("entity_id" = "plots17")) %>% 
+  select(entity_id,phenotype_value,hddt17)
 
-pheno_Wide <- left_join(pheno_Wide, awns)
-pheno <- left_join(pheno_Wide, plotDates, by = c("entity_id" = "plots"))
+pheno18<- pheno_long %>%
+  filter(year == "18") %>%
+  filter(trait_id == "GRYLD") %>%
+  dplyr::arrange(entity_id) %>%
+  left_join(plotDates18, 
+            by = c("entity_id" = "plots18")) %>%
+  select(entity_id,phenotype_value,hddt18)
 
-head(pheno)
+str(pheno17)
 
-knitr::kable(tabyl(pheno$year), caption = "Number of observations per year")
+ggplot(pheno17,aes(x = hddt17, y = phenotype_value)) +
+  geom_point() +
+  geom_smooth(method = "lm",color = "#af8dc3",alpha = 0.25) +
+  geom_smooth(method = "loess",color = "#7fbf7b",aplha = 0.25) +
+  scale_x_date(date_breaks = "3 day",date_labels = "%b %d") +
+  theme_bw()
 
-names(pheno)[names(pheno)=="Variety"] <- "Taxa"
+ggplot(pheno18,aes(x = hddt18, y = phenotype_value)) +
+  geom_point() +
+  geom_smooth(method = "lm",color = "#af8dc3",alpha = 0.25) +
+  geom_smooth(method = "loess",color = "#7fbf7b",aplha = 0.25) +
+  scale_x_date(date_breaks = "3 day",date_labels = "%b %d") +
+  theme_bw()
 
-#To be used in the gapit_rrBLUP_AM.R file
-write.table(pheno, "./Phenotype_Database/Pheno_1718.txt", sep = "\t") 
-
-rm(awns, data, gndvi, grvi,hHTP,iniNames,modNames,ndre,ndvi,nir,
-   pheno_long,pheno_Wide,redE,vis.logistic,test,sample,hddt,head.dates,
-   n,pheno_pcthead,plotDates, i, plots, test.plot)
 
 
