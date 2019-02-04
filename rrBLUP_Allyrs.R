@@ -19,10 +19,11 @@ require(plyr)
 require(lubridate)
 
 # Connect to database
-wheatgenetics = dbConnect(MySQL( ),user="megzcalvert",
-                          
+wheatgenetics = dbConnect(MySQL( ),
+                          user=rstudioapi::askForPassword("Database user"),
                           dbname='wheatgenetics', host='beocat.cis.ksu.edu',
-                          password = "calvertm" , port = 6306) 
+                          password = rstudioapi::askForPassword("Database password"),
+                          port = 6306) 
 
 #SQL Query to get all AM Panel phenotype data
 
