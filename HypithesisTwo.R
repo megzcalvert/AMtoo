@@ -1,0 +1,13 @@
+rm(list = objects()); ls()
+
+library(readr)
+library(ggbiplot)
+library(data.table)
+library(tidyverse)
+library(RMySQL)
+library(janitor)
+library(GGally)
+require(lubridate)
+library(car)
+library(tidylog)
+library(broom)
