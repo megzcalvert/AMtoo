@@ -22,6 +22,9 @@ hddt18$hddt18<- as.Date(hddt18$hddt18)
 
 htpPheno<- c("GNDVI","GRVI","height","NDRE","NDVI","Nir","RE")
 
+#####################################################################
+#### 2017 HTP vegetaion indices over time and relation to hddt ####
+
 path <- "./Phenotype_Database/2017_Ashland_AM3_traits_UAS/2017_ASH_AM_vis.xlsx"
 htp17<- path %>% 
   excel_sheets() %>% 
