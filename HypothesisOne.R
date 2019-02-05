@@ -352,9 +352,16 @@ linReg2017tidy<- tidy(linReg2017)
 linReg2017augmented<- augment(linReg2017)
 linReg2017glance<- glance(linReg2017)
 
+outlierTest(linReg2017)
+plot(linReg2017)
+
 linReg2018<- lm(phenotype_value ~ numHddt18, data = pheno18)
 summary(linReg2018)
 linReg2018tidy<- tidy(linReg2018)
 linReg2018augmented<-augment(linReg2018)
 linReg2018glance<- glance(linReg2018)
+
+outlierTest(linReg2018)
+plot(linReg2018)
+
 
