@@ -42,10 +42,14 @@ htp17long %>%
   theme(legend.position = "none",
         plot.background = element_rect(colour = "white",
                                        fill = "white"),
-        panel.grid.major = element_line(color = "grey"),
+        panel.grid.major = element_line(color = "#d9d9d9", 
+                                        linetype = 2,
+                                        size = 0.5),
         panel.grid.minor = element_line(NULL),
         panel.background = element_rect(fill = "white", 
                                         colour = "black"),
         strip.background = element_rect(fill = "white", 
-                                        colour = "black"))
+                                        colour = "black")) +
+  geom_vline(color = "#41ae76",
+             aes(xintercept = hddt17), hddt17)
   
