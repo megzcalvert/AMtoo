@@ -10,6 +10,7 @@ library(GGally)
 require(lubridate)
 library(car)
 library(tidylog)
+library(broom)
 
 # Connect to database
 wheatgenetics = dbConnect(MySQL( ),
@@ -245,8 +246,8 @@ for (i in plots17){
 hddt17<- hddt17[2:nrow(hddt17),]
 hddt17<- cbind(plots17,hddt17)
 
-plotDates17<- hddt17[,c(1,6)]
-colnames(plotDates17)[colnames(plotDates17)=="hdate"] <- "hddt17"
+plotDates17<- hddt17[,c(1,5:6)]
+names(plotDates17)<- c("plots17","numHddt17","hddt17")
 
 plots18 = plots[grepl("18ASH", plots)] 
 ## data frame to store results
@@ -287,8 +288,8 @@ for (i in plots18){
 hddt18<- hddt18[2:nrow(hddt18),]
 hddt18<- cbind(plots18,hddt18)
 
-plotDates18<- hddt18[,c(1,6)]
-colnames(plotDates18)[colnames(plotDates18)=="hdate"] <- "hddt18"
+plotDates18<- hddt18[,c(1,5:6)]
+names(plotDates18)<- c("plots18","numHddt18","hddt18")
 #####################################################################
 
 pheno_long$phenotype_value<-as.numeric(as.character(pheno_long$phenotype_value))
@@ -312,7 +313,7 @@ pheno17<- pheno_long %>%
   dplyr::arrange(entity_id) %>%
   left_join(plotDates17, 
             by = c("entity_id" = "plots17")) %>% 
-  select(entity_id,phenotype_value,hddt17)
+  select(entity_id,phenotype_value,hddt17,numHddt17)
 
 pheno18<- pheno_long %>%
   filter(year == "18") %>%
@@ -320,23 +321,40 @@ pheno18<- pheno_long %>%
   dplyr::arrange(entity_id) %>%
   left_join(plotDates18, 
             by = c("entity_id" = "plots18")) %>%
-  select(entity_id,phenotype_value,hddt18)
+  select(entity_id,phenotype_value,hddt18,numHddt18)
 
 str(pheno17)
+
+# LOESS - Locally Weighted Scatterplot Smoothing
+# popular for regression through time lines
 
 ggplot(pheno17,aes(x = hddt17, y = phenotype_value)) +
   geom_point() +
   geom_smooth(method = "lm",color = "#af8dc3",alpha = 0.25) +
-  geom_smooth(method = "loess",color = "#7fbf7b",aplha = 0.25) +
+  geom_smooth(method = "loess",color = "#7fbf7b",alpha = 0.25) +
   scale_x_date(date_breaks = "3 day",date_labels = "%b %d") +
   theme_bw()
 
 ggplot(pheno18,aes(x = hddt18, y = phenotype_value)) +
   geom_point() +
   geom_smooth(method = "lm",color = "#af8dc3",alpha = 0.25) +
-  geom_smooth(method = "loess",color = "#7fbf7b",aplha = 0.25) +
+  geom_smooth(method = "loess",color = "#7fbf7b",alpha = 0.25) +
   scale_x_date(date_breaks = "3 day",date_labels = "%b %d") +
   theme_bw()
 
+cor.test(pheno17$numHddt17,pheno17$phenotype_value)
+cor.test(pheno18$numHddt18,pheno18$phenotype_value)
 
+
+linReg2017<- lm(phenotype_value ~ numHddt17, data = pheno17)
+summary(linReg2017)
+linReg2017tidy<- tidy(linReg2017)
+linReg2017augmented<- augment(linReg2017)
+linReg2017glance<- glance(linReg2017)
+
+linReg2018<- lm(phenotype_value ~ numHddt18, data = pheno18)
+summary(linReg2018)
+linReg2018tidy<- tidy(linReg2018)
+linReg2018augmented<-augment(linReg2018)
+linReg2018glance<- glance(linReg2018)
 
