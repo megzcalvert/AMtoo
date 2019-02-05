@@ -294,6 +294,10 @@ names(plotDates18)<- c("plots18","numHddt18","hddt18")
 
 pheno_long$phenotype_value<-as.numeric(as.character(pheno_long$phenotype_value))
 
+write.table(plotDates17, "./Phenotype_Database/HDDT2017.txt",
+            col.names = T, row.names = F, sep = "\t",quote = F)
+write.table(plotDates18, "./Phenotype_Database/HDDT2018.txt",
+            col.names = T, row.names = F, sep = "\t",quote = F)
 write.table(pheno_long, 
             file="./Phenotype_Database/Pheno_Long1718.txt",
             col.names=TRUE, row.names=FALSE, sep="\t", quote=FALSE)
@@ -363,5 +367,6 @@ linReg2018glance<- glance(linReg2018)
 
 outlierTest(linReg2018)
 plot(linReg2018)
+
 
 
