@@ -59,7 +59,7 @@ htp17long %>%
 #####################################################################
 #### 2018 HTP vegetaion indices over time and relation to hddt ####
 
-htpFileLoad<- function(htp, ...) {
+htpFileLoad<- function(htp, f, ...) {
   for (i in htp) {
     fileNames<- list.files(path = "./Phenotype_Database/2018_Ashland_AM3_traits_UAS",
                            full.names = T,
@@ -82,10 +82,55 @@ htpFileLoad<- function(htp, ...) {
                       fun.aggregate = NULL, 
                       na.rm = TRUE))
     head(t)
+    f<- left_join(f, t, by = c("plots18" = "Plot_ID"))
     
   }
-  return(t)
+  return(f)
 }
 
-htp18<- htpFileLoad(htpPheno)
+htp18<- htpFileLoad(htpPheno,hddt18)
+
+htp18Long<- htp18 %>% 
+  gather(key = Trait, value = value, `20171120_GNDVI`:`20180613_RE`) %>% 
+  separate(Trait, c("Date","ID"), sep = "_")
+htp18Long$Date<- as.Date(htp18Long$Date,"%Y%m%d")
+
+htp18Long %>%
+  ggplot(aes(x = Date, y = value, color = plots18)) + 
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ID, scales = "free", ncol = 2) + 
+  scale_x_date(breaks = "1 week",date_labels = "%b %d") +
+  theme(legend.position = "none",
+        plot.background = element_rect(colour = "white",
+                                       fill = "white"),
+        panel.grid.major = element_line(color = "#d9d9d9", 
+                                        linetype = 2,
+                                        size = 0.5),
+        panel.grid.minor = element_line(NULL),
+        panel.background = element_rect(fill = "white", 
+                                        colour = "black"),
+        strip.background = element_rect(fill = "white", 
+                                        colour = "black")) +
+  geom_vline(color = "#41ae76",
+             aes(xintercept = hddt18))
+
+htp18Long %>%
+  filter(Date >= "2018-04-01") %>% 
+  ggplot(aes(x = Date, y = value, color = plots18)) + 
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ID, scales = "free", ncol = 2) + 
+  scale_x_date(breaks = "1 week",date_labels = "%b %d") +
+  theme(legend.position = "none",
+        plot.background = element_rect(colour = "white",
+                                       fill = "white"),
+        panel.grid.major = element_line(color = "#d9d9d9", 
+                                        linetype = 2,
+                                        size = 0.5),
+        panel.grid.minor = element_line(NULL),
+        panel.background = element_rect(fill = "white", 
+                                        colour = "black"),
+        strip.background = element_rect(fill = "white", 
+                                        colour = "black")) +
+  geom_vline(color = "#41ae76",
+             aes(xintercept = hddt18))
 
