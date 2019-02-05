@@ -55,4 +55,37 @@ htp17long %>%
                                         colour = "black")) +
   geom_vline(color = "#41ae76",
              aes(xintercept = hddt17), hddt17)
-  
+
+#####################################################################
+#### 2018 HTP vegetaion indices over time and relation to hddt ####
+
+htpFileLoad<- function(htp, ...) {
+  for (i in htp) {
+    fileNames<- list.files(path = "./Phenotype_Database/2018_Ashland_AM3_traits_UAS",
+                           full.names = T,
+                           pattern = paste0("_",i))
+    
+    traitNames<- basename(fileNames) %>%
+      str_remove_all(c(".csv"))
+    load.file<- function (filename) {
+      d<- fread(file = filename,header = TRUE,check.names = F,data.table = F)
+      d
+    }
+    
+    data<- lapply(fileNames, load.file)
+    names(data)<- traitNames
+    data<- plyr::ldply(data, data.frame, .id = "Phenotype")
+    print(colnames(data))
+    t <- mutate(dcast(data,  
+                      Plot_ID ~ Phenotype, 
+                      value.var = paste0(colnames(data)[3]), 
+                      fun.aggregate = NULL, 
+                      na.rm = TRUE))
+    head(t)
+    
+  }
+  return(t)
+}
+
+htp18<- htpFileLoad(htpPheno)
+
