@@ -37,7 +37,15 @@ str(htp17long)
 htp17long %>%
   ggplot(aes(x = Date, y = value, color = Plot_ID)) + 
   geom_point(alpha = 0.5) +
-  facet_wrap(~ID, scales = "free") +
-  theme(legend.position = "none") + 
-  scale_x_date(breaks = "1 week",date_labels = "%b %d")
+  facet_wrap(~ID, scales = "free", ncol = 2) + 
+  scale_x_date(breaks = "1 week",date_labels = "%b %d") +
+  theme(legend.position = "none",
+        plot.background = element_rect(colour = "white",
+                                       fill = "white"),
+        panel.grid.major = element_line(color = "grey"),
+        panel.grid.minor = element_line(NULL),
+        panel.background = element_rect(fill = "white", 
+                                        colour = "black"),
+        strip.background = element_rect(fill = "white", 
+                                        colour = "black"))
   
