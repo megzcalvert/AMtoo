@@ -369,4 +369,26 @@ outlierTest(linReg2018)
 plot(linReg2018)
 
 
+# Influential Observations
+# added variable plots
+avPlot(linReg2017,variable = "numHddt17")
+# Cook's D plot
+# identify D values > 4/(n-k-1) 
+cutoff <- 4/((nrow(pheno17)-length(linReg2017$coefficients)-2)) 
+plot(linReg2017, which=4, cook.levels=cutoff)
+# Influence Plot 
+influencePlot(linReg2017, id.method="identify", 
+              main="Influence Plot", 
+              sub="Circle size is proportial to Cook's Distance" )
+
+avPlot(linReg2018,variable = "numHddt18")
+# Cook's D plot
+# identify D values > 4/(n-k-1) 
+cutoff <- 4/((nrow(pheno18)-length(linReg2018$coefficients)-2)) 
+plot(linReg2018, which=4, cook.levels=cutoff)
+# Influence Plot 
+influencePlot(linReg2018, id.method="identify", 
+              main="Influence Plot", 
+              sub="Circle size is proportial to Cook's Distance" )
+
 

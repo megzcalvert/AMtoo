@@ -53,7 +53,7 @@ htp17long %>%
                                         colour = "black"),
         strip.background = element_rect(fill = "white", 
                                         colour = "black")) +
-  geom_vline(color = "#41ae76",
+  geom_vline(color = "#41ae76", alpha = 0.5,
              aes(xintercept = hddt17), hddt17)
 
 #####################################################################
@@ -111,7 +111,7 @@ htp18Long %>%
                                         colour = "black"),
         strip.background = element_rect(fill = "white", 
                                         colour = "black")) +
-  geom_vline(color = "#41ae76",
+  geom_vline(color = "#41ae76", alpha = 0.5,
              aes(xintercept = hddt18))
 
 htp18Long %>%
@@ -131,6 +131,6 @@ htp18Long %>%
                                         colour = "black"),
         strip.background = element_rect(fill = "white", 
                                         colour = "black")) +
-  geom_vline(color = "#41ae76",
+  geom_vline(color = "#41ae76", alpha = 0.5,
              aes(xintercept = hddt18))
 
