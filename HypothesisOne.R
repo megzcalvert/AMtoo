@@ -391,4 +391,46 @@ influencePlot(linReg2018, id.method="identify",
               main="Influence Plot", 
               sub="Circle size is proportial to Cook's Distance" )
 
+# Non-normality
+library(MASS)
+sresid <- studres(linReg2017) 
+hist(sresid, freq=FALSE, 
+     main="Distribution of Studentized Residuals")
+xfit<-seq(min(sresid),max(sresid),length=40) 
+yfit<-dnorm(xfit) 
+lines(xfit, yfit)
+
+sresid <- studres(linReg2018) 
+hist(sresid, freq=FALSE, 
+     main="Distribution of Studentized Residuals")
+xfit<-seq(min(sresid),max(sresid),length=40) 
+yfit<-dnorm(xfit) 
+lines(xfit, yfit)
+
+
+# Evaluate homoscedasticity
+# non-constant error variance test
+ncvTest(linReg2017)
+# plot studentized residuals vs. fitted values 
+spreadLevelPlot(linReg2017)
+
+ncvTest(linReg2018)
+# plot studentized residuals vs. fitted values 
+spreadLevelPlot(linReg2018)
+
+# Evaluate Nonlinearity
+# component + residual plot 
+crPlots(linReg2017)
+crPlots(linReg2018)
+
+# Test for Autocorrelated Errors
+durbinWatsonTest(linReg2017)
+durbinWatsonTest(linReg2018)
+
+library(gvlma)
+gvmodel <- gvlma(linReg2017) 
+summary(gvmodel)
+
+gvmodel <- gvlma(linReg2018) 
+summary(gvmodel)
 
