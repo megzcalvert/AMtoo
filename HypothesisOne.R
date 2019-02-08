@@ -11,6 +11,8 @@ require(lubridate)
 library(car)
 library(tidylog)
 library(broom)
+library(gvlma)
+library(MASS)
 
 # Connect to database
 wheatgenetics = dbConnect(MySQL( ),
@@ -392,7 +394,7 @@ influencePlot(linReg2018, id.method="identify",
               sub="Circle size is proportial to Cook's Distance" )
 
 # Non-normality
-library(MASS)
+
 sresid <- studres(linReg2017) 
 hist(sresid, freq=FALSE, 
      main="Distribution of Studentized Residuals")
@@ -427,7 +429,7 @@ crPlots(linReg2018)
 durbinWatsonTest(linReg2017)
 durbinWatsonTest(linReg2018)
 
-library(gvlma)
+
 gvmodel <- gvlma(linReg2017) 
 summary(gvmodel)
 
