@@ -319,7 +319,7 @@ pheno17<- pheno_long %>%
   dplyr::arrange(entity_id) %>%
   left_join(plotDates17, 
             by = c("entity_id" = "plots17")) %>% 
-  select(entity_id,phenotype_value,hddt17,numHddt17)
+  tidylog::select(entity_id,phenotype_value,hddt17,numHddt17)
 
 pheno18<- pheno_long %>%
   filter(year == "18") %>%
@@ -327,7 +327,7 @@ pheno18<- pheno_long %>%
   dplyr::arrange(entity_id) %>%
   left_join(plotDates18, 
             by = c("entity_id" = "plots18")) %>%
-  select(entity_id,phenotype_value,hddt18,numHddt18)
+  tidylog::select(entity_id,phenotype_value,hddt18,numHddt18)
 
 str(pheno17)
 
