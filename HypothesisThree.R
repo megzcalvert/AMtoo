@@ -219,7 +219,7 @@ corMat17<- corr.test(as.matrix(phenoMatrix17), method = "pearson",
                      adjust = "holm")
 
 phenoMatrix18<- htp18Wide %>% 
-  select(-entity_id,-Variety,-year)
+  tidylog::select(-entity_id,-Variety,-year)
 
 corMat18<- corr.test(as.matrix(phenoMatrix18), method = "pearson",
                      adjust = "holm")
@@ -242,7 +242,26 @@ flattenCorrMatrix <- function(cormat, pmat) {
 flatCor17<- flattenCorrMatrix(corMat17$r,corMat17$p)
 viGryld17cor<- flatCor17 %>% 
   filter(row == "GRYLD")
+Gryld17corCI<- corMat17$ci
 
 flatCor18<- flattenCorrMatrix(corMat18$r,corMat18$p)
 viGryld18cor<- flatCor18 %>% 
   filter(row == "GRYLD")
+Gryld18corCI<- corMat18$ci
+
+#### Proportion of variance in GRYLD explained by VI by year ####
+
+htp17long<- as_tibble(htp17long)
+
+reg17GNDVI<- htp17long %>% 
+  tidylog::filter(ID == "GNDVI") %>% 
+  tidylog::select(-Variety,-Plot_ID,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         tidied = map(test, tidy)) %>% 
+  unnest(tidied) %>% 
+  tidylog::filter(term == "(Intercept)")
+
+fit<- lm(htp17Wide$GRYLD ~ htp17Wide$`GNDVI_2017-03-31`, data = htp17Wide)
+summary(fit)
+
