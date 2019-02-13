@@ -23,7 +23,7 @@ phenoGryld<- pheno %>%
   filter(phenotype_value > 0) %>% 
   filter(phenotype_value < 10) %>% 
   tidylog::select(entity_id,phenotype_value,Variety,year) %>% 
-  rename(GRYLD = phenotype_value)
+  dplyr::rename(GRYLD = phenotype_value)
 
 phenoGryld17<- phenoGryld %>% 
   filter(year == "17") 
@@ -42,7 +42,7 @@ htp17long<- map2_df(htp17, names(htp17), ~ mutate(.x, ID = .y)) %>%
   group_by(ID) %>% 
   gather(key = Date,value = value,`20170331`:`20170609`) %>% 
   left_join(phenoGryld17, by = c("Plot_ID" = "entity_id")) %>% 
-  select(-year)
+  tidylog::select(-year)
 
 htp17long$Date<- as.Date(htp17long$Date,"%Y%m%d")
 
@@ -103,7 +103,7 @@ htp17long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "GNDVI", title = "GNDVI vs GRYLD") +
+  labs(ylab = "GNDVI", title = "GNDVI vs GRYLD 2017") +
   theme_bw()
 
 htp18Long %>% 
@@ -112,7 +112,7 @@ htp18Long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "GNDVI", title = "GNDVI vs GRYLD") +
+  labs(ylab = "GNDVI", title = "GNDVI vs GRYLD 2018") +
   theme_bw()
 
 #GRVI
@@ -122,7 +122,7 @@ htp17long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "GRVI", title = "GRVI vs GRYLD") +
+  labs(ylab = "GRVI", title = "GRVI vs GRYLD 2017") +
   theme_bw()
 
 htp18Long %>% 
@@ -131,7 +131,7 @@ htp18Long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "GRVI", title = "GRVI vs GRYLD") +
+  labs(ylab = "GRVI", title = "GRVI vs GRYLD 2018") +
   theme_bw()
 
 #NDVI
@@ -141,7 +141,7 @@ htp17long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "NDVI", title = "NDVI vs GRYLD") +
+  labs(ylab = "NDVI", title = "NDVI vs GRYLD 2017") +
   theme_bw()
 
 htp18Long %>% 
@@ -150,7 +150,7 @@ htp18Long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "NDVI", title = "NDVI vs GRYLD") +
+  labs(ylab = "NDVI", title = "NDVI vs GRYLD 2018") +
   theme_bw()
 
 #NDRE
@@ -160,7 +160,7 @@ htp17long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "NDRE", title = "NDRE vs GRYLD") +
+  labs(ylab = "NDRE", title = "NDRE vs GRYLD 2017") +
   theme_bw()
 
 htp18Long %>% 
@@ -169,7 +169,7 @@ htp18Long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "NDRE", title = "NDRE vs GRYLD") +
+  labs(ylab = "NDRE", title = "NDRE vs GRYLD 2018") +
   theme_bw()
 
 #NIR
@@ -179,7 +179,7 @@ htp17long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "NIR", title = "NIR vs GRYLD") +
+  labs(ylab = "NIR", title = "NIR vs GRYLD 2017") +
   theme_bw()
 
 htp18Long %>% 
@@ -188,7 +188,7 @@ htp18Long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "NIR", title = "NIR vs GRYLD") +
+  labs(ylab = "NIR", title = "NIR vs GRYLD 2018") +
   theme_bw()
 
 #Rededge
@@ -198,7 +198,7 @@ htp17long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "RedEdge", title = "RedEdge vs GRYLD") +
+  labs(ylab = "RedEdge", title = "RedEdge vs GRYLD 2017") +
   theme_bw()
 
 htp18Long %>% 
@@ -207,7 +207,7 @@ htp18Long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "RedEdge", title = "RedEdge vs GRYLD") +
+  labs(ylab = "RedEdge", title = "RedEdge vs GRYLD 2018") +
   theme_bw()
 
 #### Data correlation with significance ####
