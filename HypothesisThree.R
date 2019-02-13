@@ -252,16 +252,148 @@ Gryld18corCI<- corMat18$ci
 #### Proportion of variance in GRYLD explained by VI by year ####
 
 htp17long<- as_tibble(htp17long)
+#check analysis
+fit<- lm(htp17Wide$GRYLD ~ htp17Wide$`GNDVI_2017-03-31`, data = htp17Wide)
+summary(fit)
 
 reg17GNDVI<- htp17long %>% 
   tidylog::filter(ID == "GNDVI") %>% 
   tidylog::select(-Variety,-Plot_ID,-ID) %>% 
   nest(-Date) %>% 
   mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
-         tidied = map(test, tidy)) %>% 
+         tidied = map(test, glance)) %>% 
   unnest(tidied) %>% 
-  tidylog::filter(term == "(Intercept)")
+  tidylog::select(-data,-test) %>% 
+  add_column(VI = "GNDVI") %>% 
+  unite("VI_date", c("VI","Date"))
+  
+reg17GRVI<- htp17long %>% 
+  tidylog::filter(ID == "GRVI") %>% 
+  tidylog::select(-Variety,-Plot_ID,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         tidied = map(test, glance)) %>% 
+  unnest(tidied) %>% 
+  tidylog::select(-data,-test) %>% 
+  add_column(VI = "GRVI") %>% 
+  unite("VI_date", c("VI","Date"))
 
-fit<- lm(htp17Wide$GRYLD ~ htp17Wide$`GNDVI_2017-03-31`, data = htp17Wide)
+reg17NDVI<- htp17long %>% 
+  tidylog::filter(ID == "NDVI") %>% 
+  tidylog::select(-Variety,-Plot_ID,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         tidied = map(test, glance)) %>% 
+  unnest(tidied) %>% 
+  tidylog::select(-data,-test) %>% 
+  add_column(VI = "NDVI") %>% 
+  unite("VI_date", c("VI","Date"))
+
+reg17NDRE<- htp17long %>% 
+  tidylog::filter(ID == "NDRE") %>% 
+  tidylog::select(-Variety,-Plot_ID,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         tidied = map(test, glance)) %>% 
+  unnest(tidied) %>% 
+  tidylog::select(-data,-test) %>% 
+  add_column(VI = "NDRE") %>% 
+  unite("VI_date", c("VI","Date"))
+
+reg17NIR<- htp17long %>% 
+  tidylog::filter(ID == "NIR") %>% 
+  tidylog::select(-Variety,-Plot_ID,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         tidied = map(test, glance)) %>% 
+  unnest(tidied) %>% 
+  tidylog::select(-data,-test) %>% 
+  add_column(VI = "NIR") %>% 
+  unite("VI_date", c("VI","Date"))
+
+reg17RE<- htp17long %>% 
+  tidylog::filter(ID == "RedEdge") %>% 
+  tidylog::select(-Variety,-Plot_ID,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         tidied = map(test, glance)) %>% 
+  unnest(tidied) %>% 
+  tidylog::select(-data,-test) %>% 
+  add_column(VI = "RE") %>% 
+  unite("VI_date", c("VI","Date"))
+
+htp18Long<- as_tibble(htp18Long)
+#check analysis
+fit<- lm(htp18Wide$GRYLD ~ htp18Wide$`20171120_GNDVI`)
 summary(fit)
 
+reg18GNDVI<- htp18Long %>% 
+  tidylog::filter(ID == "GNDVI") %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         tidied = map(test, glance)) %>% 
+  unnest(tidied) %>% 
+  tidylog::select(-data,-test) %>% 
+  add_column(VI = "GNDVI") %>% 
+  unite("VI_date", c("VI","Date"))
+
+reg18GRVI<- htp18Long %>% 
+  tidylog::filter(ID == "GRVI") %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         tidied = map(test, glance)) %>% 
+  unnest(tidied) %>% 
+  tidylog::select(-data,-test) %>% 
+  add_column(VI = "GRVI") %>% 
+  unite("VI_date", c("VI","Date"))
+
+reg18NDVI<- htp18Long %>% 
+  tidylog::filter(ID == "NDVI") %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         tidied = map(test, glance)) %>% 
+  unnest(tidied) %>% 
+  tidylog::select(-data,-test) %>% 
+  add_column(VI = "NDVI") %>% 
+  unite("VI_date", c("VI","Date"))
+
+reg18NDRE<- htp18Long %>% 
+  tidylog::filter(ID == "NDRE") %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         tidied = map(test, glance)) %>% 
+  unnest(tidied) %>% 
+  tidylog::select(-data,-test) %>% 
+  add_column(VI = "NDRE") %>% 
+  unite("VI_date", c("VI","Date"))
+
+reg18NIR<- htp18Long %>% 
+  tidylog::filter(ID == "Nir") %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         tidied = map(test, glance)) %>% 
+  unnest(tidied) %>% 
+  tidylog::select(-data,-test) %>% 
+  add_column(VI = "NIR") %>% 
+  unite("VI_date", c("VI","Date"))
+
+reg18RE<- htp18Long %>% 
+  tidylog::filter(ID == "RE") %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         tidied = map(test, glance)) %>% 
+  unnest(tidied) %>% 
+  tidylog::select(-data,-test) %>% 
+  add_column(VI = "RE") %>% 
+  unite("VI_date", c("VI","Date"))
+
+VarGryldVI<- bind_rows(reg17GNDVI,reg17GRVI,reg17NDRE,reg17NDVI,reg17NIR,
+                       reg17RE,reg18GNDVI,reg18GRVI,reg18NDRE,reg18NDVI,
+                       reg18NIR,reg17RE) %>% 
+  separate(VI_date, c("VI","Date"), sep = "_")
