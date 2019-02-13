@@ -1,7 +1,6 @@
 rm(list = objects()); ls()
 
 library(readr)
-library(ggbiplot)
 library(data.table)
 library(tidyverse)
 library(RMySQL)

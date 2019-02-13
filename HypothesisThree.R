@@ -11,6 +11,7 @@ library(broom)
 library(readxl)
 library(lme4)
 library(Hmisc)
+library(psych)
 
 getwd()
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel")
@@ -19,6 +20,8 @@ pheno<- fread("./Phenotype_Database/Pheno_Long1718.txt")
 
 phenoGryld<- pheno %>% 
   filter(trait_id == "GRYLD") %>% 
+  filter(phenotype_value > 0) %>% 
+  filter(phenotype_value < 10) %>% 
   tidylog::select(entity_id,phenotype_value,Variety,year) %>% 
   rename(GRYLD = phenotype_value)
 
@@ -47,9 +50,7 @@ str(htp17long)
 
 htp17Wide<- htp17long %>% 
   unite("trait_date",c("ID","Date")) %>% 
-  spread(trait_date,value) %>% 
-
-
+  spread(trait_date,value)
 
 ##### 2018 HTP VI data load ####
 
@@ -84,21 +85,144 @@ htpFileLoad<- function(htp, f, ...) {
   return(f)
 }
 
-phenoGryld18<- htpFileLoad(htpPheno,phenoGryld18)
+htp18Wide<- htpFileLoad(htpPheno,phenoGryld18)
 
-htp18Long<- phenoGryld18 %>% 
+htp18Long<- htp18Wide %>% 
   gather(key = Trait, value = value, `20171120_GNDVI`:`20180613_RE`) %>% 
   separate(Trait, c("Date","ID"), sep = "_")
 htp18Long$Date<- as.Date(htp18Long$Date,"%Y%m%d")
 
-#### Scatterplot if VI vs GRYLD ####
+str(htp18Long)
+
+#### Scatterplot of VI vs GRYLD ####
+
+#GNDVI
+htp17long %>% 
+  filter(ID == "GNDVI") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "GNDVI", title = "GNDVI vs GRYLD") +
+  theme_bw()
+
+htp18Long %>% 
+  filter(ID == "GNDVI") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "GNDVI", title = "GNDVI vs GRYLD") +
+  theme_bw()
+
+#GRVI
+htp17long %>% 
+  filter(ID == "GRVI") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "GRVI", title = "GRVI vs GRYLD") +
+  theme_bw()
+
+htp18Long %>% 
+  filter(ID == "GRVI") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "GRVI", title = "GRVI vs GRYLD") +
+  theme_bw()
+
+#NDVI
+htp17long %>% 
+  filter(ID == "NDVI") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "NDVI", title = "NDVI vs GRYLD") +
+  theme_bw()
+
+htp18Long %>% 
+  filter(ID == "NDVI") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "NDVI", title = "NDVI vs GRYLD") +
+  theme_bw()
+
+#NDRE
+htp17long %>% 
+  filter(ID == "NDRE") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "NDRE", title = "NDRE vs GRYLD") +
+  theme_bw()
+
+htp18Long %>% 
+  filter(ID == "NDRE") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "NDRE", title = "NDRE vs GRYLD") +
+  theme_bw()
+
+#NIR
+htp17long %>% 
+  filter(ID == "NIR") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "NIR", title = "NIR vs GRYLD") +
+  theme_bw()
+
+htp18Long %>% 
+  filter(ID == "Nir") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "NIR", title = "NIR vs GRYLD") +
+  theme_bw()
+
+#Rededge
+htp17long %>% 
+  filter(ID == "RedEdge") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "RedEdge", title = "RedEdge vs GRYLD") +
+  theme_bw()
+
+htp18Long %>% 
+  filter(ID == "RE") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "RedEdge", title = "RedEdge vs GRYLD") +
+  theme_bw()
 
 #### Data correlation with significance ####
 
-phenoMatrix17<- phenoGryld17 %>% 
-  tidylog::select(-entity_id,-Variety,-year)
+phenoMatrix17<- htp17Wide %>% 
+  tidylog::select(-"Plot_ID",-"Variety")
 
-corMat17<- rcorr(as.matrix(phenoMatrix17))
+corMat17<- corr.test(as.matrix(phenoMatrix17), method = "pearson",
+                     adjust = "holm")
+
+phenoMatrix18<- htp18Wide %>% 
+  select(-entity_id,-Variety,-year)
+
+corMat18<- corr.test(as.matrix(phenoMatrix18), method = "pearson",
+                     adjust = "holm")
 
 # ++++++++++++++++++++++++++++
 # flattenCorrMatrix
@@ -115,4 +239,10 @@ flattenCorrMatrix <- function(cormat, pmat) {
   )
 }
 
-flatCor17<- flattenCorrMatrix(corMat17$r,corMat17$P)
+flatCor17<- flattenCorrMatrix(corMat17$r,corMat17$p)
+viGryld17cor<- flatCor17 %>% 
+  filter(row == "GRYLD")
+
+flatCor18<- flattenCorrMatrix(corMat18$r,corMat18$p)
+viGryld18cor<- flatCor18 %>% 
+  filter(row == "GRYLD")
