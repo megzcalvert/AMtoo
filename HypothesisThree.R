@@ -429,3 +429,7 @@ write.table(phenoMatrix17, "./Phenotype_Database/phenoMatrix17.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
 write.table(phenoMatrix18, "./Phenotype_Database/phenoMatrix18.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
+write.table(htp18Long, "./Phenotype_Database/pheno18_htpLong.txt",
+            sep = "\t", quote = F, row.names = F, col.names = T)
+write.table(htp17long, "./Phenotype_Database/pheno17_htpLong.txt",
+            sep = "\t", quote = F, row.names = F, col.names = T)
