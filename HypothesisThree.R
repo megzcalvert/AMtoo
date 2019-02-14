@@ -261,9 +261,11 @@ reg17GNDVI<- htp17long %>%
   tidylog::select(-Variety,-Plot_ID,-ID) %>% 
   nest(-Date) %>% 
   mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
-         tidied = map(test, glance)) %>% 
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
   unnest(tidied) %>% 
-  tidylog::select(-data,-test) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
   add_column(VI = "GNDVI") %>% 
   unite("VI_date", c("VI","Date"))
   
@@ -272,9 +274,11 @@ reg17GRVI<- htp17long %>%
   tidylog::select(-Variety,-Plot_ID,-ID) %>% 
   nest(-Date) %>% 
   mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
-         tidied = map(test, glance)) %>% 
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
   unnest(tidied) %>% 
-  tidylog::select(-data,-test) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
   add_column(VI = "GRVI") %>% 
   unite("VI_date", c("VI","Date"))
 
@@ -283,9 +287,11 @@ reg17NDVI<- htp17long %>%
   tidylog::select(-Variety,-Plot_ID,-ID) %>% 
   nest(-Date) %>% 
   mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
-         tidied = map(test, glance)) %>% 
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
   unnest(tidied) %>% 
-  tidylog::select(-data,-test) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
   add_column(VI = "NDVI") %>% 
   unite("VI_date", c("VI","Date"))
 
@@ -294,9 +300,11 @@ reg17NDRE<- htp17long %>%
   tidylog::select(-Variety,-Plot_ID,-ID) %>% 
   nest(-Date) %>% 
   mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
-         tidied = map(test, glance)) %>% 
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
   unnest(tidied) %>% 
-  tidylog::select(-data,-test) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
   add_column(VI = "NDRE") %>% 
   unite("VI_date", c("VI","Date"))
 
@@ -305,9 +313,11 @@ reg17NIR<- htp17long %>%
   tidylog::select(-Variety,-Plot_ID,-ID) %>% 
   nest(-Date) %>% 
   mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
-         tidied = map(test, glance)) %>% 
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
   unnest(tidied) %>% 
-  tidylog::select(-data,-test) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
   add_column(VI = "NIR") %>% 
   unite("VI_date", c("VI","Date"))
 
@@ -316,9 +326,11 @@ reg17RE<- htp17long %>%
   tidylog::select(-Variety,-Plot_ID,-ID) %>% 
   nest(-Date) %>% 
   mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
-         tidied = map(test, glance)) %>% 
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
   unnest(tidied) %>% 
-  tidylog::select(-data,-test) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
   add_column(VI = "RE") %>% 
   unite("VI_date", c("VI","Date"))
 
@@ -329,12 +341,14 @@ summary(fit)
 
 reg18GNDVI<- htp18Long %>% 
   tidylog::filter(ID == "GNDVI") %>% 
-  tidylog::select(-Variety,-entity_id,-ID) %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>%  
   nest(-Date) %>% 
   mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
-         tidied = map(test, glance)) %>% 
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
   unnest(tidied) %>% 
-  tidylog::select(-data,-test) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
   add_column(VI = "GNDVI") %>% 
   unite("VI_date", c("VI","Date"))
 
@@ -343,9 +357,11 @@ reg18GRVI<- htp18Long %>%
   tidylog::select(-Variety,-entity_id,-ID) %>% 
   nest(-Date) %>% 
   mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
-         tidied = map(test, glance)) %>% 
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
   unnest(tidied) %>% 
-  tidylog::select(-data,-test) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
   add_column(VI = "GRVI") %>% 
   unite("VI_date", c("VI","Date"))
 
@@ -354,9 +370,11 @@ reg18NDVI<- htp18Long %>%
   tidylog::select(-Variety,-entity_id,-ID) %>% 
   nest(-Date) %>% 
   mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
-         tidied = map(test, glance)) %>% 
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
   unnest(tidied) %>% 
-  tidylog::select(-data,-test) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
   add_column(VI = "NDVI") %>% 
   unite("VI_date", c("VI","Date"))
 
@@ -365,20 +383,24 @@ reg18NDRE<- htp18Long %>%
   tidylog::select(-Variety,-entity_id,-ID) %>% 
   nest(-Date) %>% 
   mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
-         tidied = map(test, glance)) %>% 
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
   unnest(tidied) %>% 
-  tidylog::select(-data,-test) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
   add_column(VI = "NDRE") %>% 
   unite("VI_date", c("VI","Date"))
 
 reg18NIR<- htp18Long %>% 
   tidylog::filter(ID == "Nir") %>% 
-  tidylog::select(-Variety,-entity_id,-ID) %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>%  
   nest(-Date) %>% 
   mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
-         tidied = map(test, glance)) %>% 
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
   unnest(tidied) %>% 
-  tidylog::select(-data,-test) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
   add_column(VI = "NIR") %>% 
   unite("VI_date", c("VI","Date"))
 
@@ -387,13 +409,23 @@ reg18RE<- htp18Long %>%
   tidylog::select(-Variety,-entity_id,-ID) %>% 
   nest(-Date) %>% 
   mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
-         tidied = map(test, glance)) %>% 
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
   unnest(tidied) %>% 
-  tidylog::select(-data,-test) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
   add_column(VI = "RE") %>% 
   unite("VI_date", c("VI","Date"))
 
 VarGryldVI<- bind_rows(reg17GNDVI,reg17GRVI,reg17NDRE,reg17NDVI,reg17NIR,
                        reg17RE,reg18GNDVI,reg18GRVI,reg18NDRE,reg18NDVI,
                        reg18NIR,reg17RE) %>% 
-  separate(VI_date, c("VI","Date"), sep = "_")
+  separate(VI_date, c("VI","Date"), sep = "_") %>% 
+  group_by(Date)
+
+write.table(VarGryldVI, "./Phenotype_Database/linearRegression_VIbyDate.txt",
+            sep = "\t", quote = F, row.names = F, col.names = T)
+write.table(phenoMatrix17, "./Phenotype_Database/phenoMatrix17.txt",
+            sep = "\t", quote = F, row.names = F, col.names = T)
+write.table(phenoMatrix18, "./Phenotype_Database/phenoMatrix18.txt",
+            sep = "\t", quote = F, row.names = F, col.names = T)
