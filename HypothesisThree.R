@@ -20,8 +20,8 @@ pheno<- fread("./Phenotype_Database/Pheno_Long1718.txt")
 
 phenoGryld<- pheno %>% 
   filter(trait_id == "GRYLD") %>% 
-  filter(phenotype_value > 0) %>% 
-  filter(phenotype_value < 10) %>% 
+  filter(phenotype_value > 0) %>% #checking for strange
+  filter(phenotype_value < 10) %>% #checking for strange
   tidylog::select(entity_id,phenotype_value,Variety,year) %>% 
   dplyr::rename(GRYLD = phenotype_value)
 
