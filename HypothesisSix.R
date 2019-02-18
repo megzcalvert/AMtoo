@@ -53,12 +53,86 @@ trial<- pheno17 %>%
   filter(ID == "NDVI") %>% 
   tidylog::select(-ID) 
 trial$Date<- as.factor(trial$Date)
-fit.lm<- lm(trial$value ~ trial$Date + trial$Variety + trial$Date:trial$Variety)
-summary(fit.lm)
-tidyFit.lm<- tidy(fit.lm)
-glance(fit.lm)
-fit.anova<- anova(fit.lm)
-tidy(fit.anova)
+fit.NDVI<- lm(trial$value ~ trial$Date * trial$Variety)
+summary(fit.NDVI)
+tidyFit.NDVI<- tidy(fit.NDVI)
+glance(fit.NDVI)
+anovaNDVI<- anova(fit.NDVI)
+anovaNDVI<- anovaNDVI %>% 
+  tidy() %>% 
+  add_column(ID = "NDVI")
+
+trial<- pheno17 %>% 
+  tidylog::select(-Plot_ID) %>% 
+  filter(ID == "NDRE") %>% 
+  tidylog::select(-ID) 
+trial$Date<- as.factor(trial$Date)
+fit.NDRE<- lm(trial$value ~ trial$Date * trial$Variety)
+summary(fit.NDRE)
+tidyFit.NDRE<- tidy(fit.NDRE)
+glance(fit.NDRE)
+anovaNDRE<- anova(fit.NDRE)
+anovaNDRE<- anovaNDRE %>% 
+  tidy() %>% 
+  add_column(ID = "NDRE")
+
+trial<- pheno17 %>% 
+  tidylog::select(-Plot_ID) %>% 
+  filter(ID == "GNDVI") %>% 
+  tidylog::select(-ID) 
+trial$Date<- as.factor(trial$Date)
+fit.GNDVI<- lm(trial$value ~ trial$Date * trial$Variety)
+summary(fit.GNDVI)
+tidyFit.GNDVI<- tidy(fit.GNDVI)
+glance(fit.GNDVI)
+anovaGNDVI<- anova(fit.GNDVI)
+anovaGNDVI<- anovaGNDVI %>% 
+  tidy() %>% 
+  add_column(ID = "GNDVI")
+
+trial<- pheno17 %>% 
+  tidylog::select(-Plot_ID) %>% 
+  filter(ID == "GRVI") %>% 
+  tidylog::select(-ID) 
+trial$Date<- as.factor(trial$Date)
+fit.GRVI<- lm(trial$value ~ trial$Date * trial$Variety)
+summary(fit.GRVI)
+tidyFit.GRVI<- tidy(fit.GRVI)
+glance(fit.GRVI)
+anovaGRVI<- anova(fit.GRVI)
+anovaGRVI<- anovaGRVI %>% 
+  tidy() %>% 
+  add_column(ID = "GRVI")
+
+trial<- pheno17 %>% 
+  tidylog::select(-Plot_ID) %>% 
+  filter(ID == "NIR") %>% 
+  tidylog::select(-ID) 
+trial$Date<- as.factor(trial$Date)
+fit.NIR<- lm(trial$value ~ trial$Date * trial$Variety)
+summary(fit.NIR)
+tidyFit.NIR<- tidy(fit.NIR)
+glance(fit.NIR)
+anovaNIR<- anova(fit.NIR)
+anovaNIR<- anovaNIR %>% 
+  tidy() %>% 
+  add_column(ID = "NIR")
+
+trial<- pheno17 %>% 
+  tidylog::select(-Plot_ID) %>% 
+  filter(ID == "RedEdge") %>% 
+  tidylog::select(-ID) 
+trial$Date<- as.factor(trial$Date)
+fit.RE<- lm(trial$value ~ trial$Date * trial$Variety)
+summary(fit.RE)
+tidyFit.RE<- tidy(fit.RE)
+glance(fit.RE)
+anovaRE<- anova(fit.RE)
+anovaRE<- anovaRE %>% 
+  tidy() %>% 
+  add_column(ID = "RE")
+
+
 
 pheno17$Date<- as.Date(pheno17$Date)
 nested17<- pheno17 %>% 
@@ -67,8 +141,8 @@ nested17<- pheno17 %>%
   nest() %>% 
   mutate(regression = 
            map(data, 
-               ~lm(.x$value ~ .x$Date + .x$Variety + .x$Date:.x$Variety)),
-         Res = map(regression,tidy)) %>% 
+               ~lm(.x$value ~ .x$Date * .x$Variety)),
+         Res = map(regression,anova)) %>% 
   unnest(Res)
 
 pheno18$Date<- as.Date(pheno18$Date)
