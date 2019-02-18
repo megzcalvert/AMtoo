@@ -55,9 +55,20 @@ nested17<- pheno17 %>%
   do(tidy(anova(lm(value ~ Date + Variety + Date:Variety, data = .))))
 
 pheno18$Date<- as.factor(pheno18$Date)
-nested18<- pheno18 %>%
+nested18All<- pheno18 %>%
   tidylog::select(-entity_id) %>%
   filter(ID == "height") %>% 
+  group_by(ID) %>%
+  do(tidy(anova(lm(value ~ Date + Variety + Date:Variety, data = .))))
+
+nested18AfterV<- pheno18 %>%
+  tidylog::select(-entity_id) %>%
+  filter(Date != "2017-11-20") %>% 
+  filter(Date != "2017-11-27") %>%
+  filter(Date != "2017-12-05") %>% 
+  filter(Date != "2017-12-15") %>% 
+  filter(Date != "2017-12-18") %>% 
+  filter(ID != "height") %>% 
   group_by(ID) %>%
   do(tidy(anova(lm(value ~ Date + Variety + Date:Variety, data = .))))
 
