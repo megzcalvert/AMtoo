@@ -291,3 +291,4 @@ for(r in 1:cycles) {
 }
 mean(accuracy)
 sd(accuracy)
+sd(accuracy)/sqrt(length(accuracy))
