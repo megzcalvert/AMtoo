@@ -16,7 +16,7 @@ setwd("~/Dropbox/Research_Poland_Lab/AM Panel")
 
 snpChip <- read_delim(
   "./Genotype_Database/90KsnpChipHapMap/AMsnpChipImputed.hmp.txt", 
-                      "\t", escape_double = FALSE, trim_ws = TRUE)
+  "\t", escape_double = FALSE, trim_ws = TRUE)
 snpChip<- snpChip %>% 
   clean_names()
 
@@ -65,7 +65,7 @@ knitr::kable(sumPCA)
 
 lineInfo <- fread(
   "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/LineDetailsAMPanel.txt", 
-                  header = T, check.names = F, sep = '\t', data.table = F)
+  header = T, check.names = F, sep = '\t', data.table = F)
 lineInfo$Name <- tolower(lineInfo$Name)
 lineInfo$Name<- str_replace_all(lineInfo$Name, " ", "_")
 lineInfo$Name<- str_replace_all(lineInfo$Name, "-", "_")
@@ -237,19 +237,21 @@ markerMatrix[1:5,1:5]
 
 blues<- as.matrix(blues[,2])
 markerMatrix<- markerMatrix %>% 
-  select(-rn)
+  tidylog::select(-rn)
 markerMatrix<- as.matrix(markerMatrix)
 markerMatrix[1:5,1:5]
 
 train<- as.matrix(sample(1:161,96))
 head(train)
 test<- setdiff(1:161,train)
-head(test)
+test
 
 pheno_train<- blues[train,]
 m_train<- markerMatrix[train,]
+str(m_train)
 pheno_valid<- blues[test,]
 m_valid<- markerMatrix[test,]
+str(m_valid)
 
 pinA_answer<- mixed.solve(pheno_train,Z=m_train,K=NULL,SE=F,return.Hinv = F)
 
@@ -257,6 +259,34 @@ PinA<- pinA_answer$u
 e<- as.matrix(PinA)
 head(e)
 pred_pinA_valid<- m_valid %*% e
-pred_pinA<- pred_pinA_valid + pinA_answer$beta
+str(pred_pinA_valid)
+pred_pinA<- as.vector(pred_pinA_valid) + pinA_answer$beta
 pred_pinA
 PinA_accuracy<- cor(pred_pinA_valid,pheno_valid)
+PinA_accuracy
+
+#### cross validation for many cycles for yield only
+traits=1
+cycles=500
+accuracy = matrix(nrow=cycles, ncol=traits)
+for(r in 1:cycles) {
+  
+  train= as.matrix(sample(1:161, 96))
+  test<-setdiff(1:161,train)
+  Pheno_train=blues[train,]
+  m_train=markerMatrix[train,]
+  Pheno_valid=blues[test,]
+  m_valid=markerMatrix[test,]
+  
+  pinA=Pheno_train
+  pinA_answer<-mixed.solve(pinA, Z=m_train, K=NULL, 
+                            SE = FALSE, return.Hinv=FALSE)
+  PinA = pinA_answer$u
+  e = as.matrix(PinA)
+  pred_PinA_valid =  m_valid %*% e
+  
+  pinA_valid = Pheno_valid
+  
+  accuracy[r,1] <-cor(pred_PinA_valid, pinA_valid, use="complete" )
+}
+mean(accuracy)
