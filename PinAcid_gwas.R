@@ -267,7 +267,7 @@ PinA_accuracy
 
 #### cross validation for many cycles for yield only
 traits=1
-cycles=500
+cycles=1000
 accuracy = matrix(nrow=cycles, ncol=traits)
 for(r in 1:cycles) {
   
@@ -286,7 +286,8 @@ for(r in 1:cycles) {
   pred_PinA_valid =  m_valid %*% e
   
   pinA_valid = Pheno_valid
-  
+  print(r)
   accuracy[r,1] <-cor(pred_PinA_valid, pinA_valid, use="complete" )
 }
 mean(accuracy)
+sd(accuracy)
