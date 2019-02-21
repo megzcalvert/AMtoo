@@ -78,6 +78,6 @@ nested18AfterV<- pheno18 %>%
   group_by(ID) %>%
   do(tidy(anova(lm(value ~ Date + Variety + Date:Variety, data = .))))
 
-write.table(nested18All, 
+write.table(nested18AfterV, 
             "./Phenotype_Database/ANOVA_VIbyDateVariety18_afterVern.txt",
             quote = F, row.names = F, col.names = T, sep = "\t")
