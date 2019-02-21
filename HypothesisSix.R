@@ -59,6 +59,7 @@ nested18All<- pheno18 %>%
   tidylog::select(-entity_id) %>%
   filter(ID == "height") %>% 
   group_by(ID) %>%
+  group_by(ID) %>%
   do(tidy(anova(lm(value ~ Date + Variety + Date:Variety, data = .))))
 
 nested18AfterV<- pheno18 %>%
