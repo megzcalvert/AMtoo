@@ -22,7 +22,8 @@ pheno17$Date<- as.Date(pheno17$Date)
 
 colnames(pheno18)
 pheno18<- pheno18 %>% 
-  tidylog::select(-GRYLD,-year)
+  tidylog::select(-GRYLD,-year) %>% 
+  filter(ID != "height")
 pheno18$Date<- as.Date(pheno18$Date)
 
 pheno17 %>% 
@@ -54,12 +55,17 @@ nested17<- pheno17 %>%
   group_by(ID) %>%
   do(tidy(anova(lm(value ~ Date + Variety + Date:Variety, data = .))))
 
+write.table(nested17, "./Phenotype_Database/ANOVA_VIbyDateVariety17.txt",
+            quote = F, row.names = F, col.names = T, sep = "\t")
+
 pheno18$Date<- as.factor(pheno18$Date)
 nested18All<- pheno18 %>%
   tidylog::select(-entity_id) %>%
-  filter(ID != "height") %>% 
   group_by(ID) %>%
   do(tidy(anova(lm(value ~ Date + Variety + Date:Variety, data = .))))
+
+write.table(nested18All, "./Phenotype_Database/ANOVA_VIbyDateVariety18.txt",
+            quote = F, row.names = F, col.names = T, sep = "\t")
 
 nested18AfterV<- pheno18 %>%
   tidylog::select(-entity_id) %>%
@@ -72,3 +78,6 @@ nested18AfterV<- pheno18 %>%
   group_by(ID) %>%
   do(tidy(anova(lm(value ~ Date + Variety + Date:Variety, data = .))))
 
+write.table(nested18All, 
+            "./Phenotype_Database/ANOVA_VIbyDateVariety18_afterVern.txt",
+            quote = F, row.names = F, col.names = T, sep = "\t")
