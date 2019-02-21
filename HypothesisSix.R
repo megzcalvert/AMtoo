@@ -57,7 +57,7 @@ nested17<- pheno17 %>%
 pheno18$Date<- as.factor(pheno18$Date)
 nested18All<- pheno18 %>%
   tidylog::select(-entity_id) %>%
-  filter(ID == "height") %>% 
+  filter(ID != "height") %>% 
   group_by(ID) %>%
   do(tidy(anova(lm(value ~ Date + Variety + Date:Variety, data = .))))
 
