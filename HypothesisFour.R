@@ -73,4 +73,8 @@ nested18 %>%
                                 '#5aae61','#1b7837')) +
   labs(title = "Correlation with CI 2018") +
   ylab("Pearson correlation co-efficient")
- 
+
+write.table(nested17, "./Phenotype_Database/Correlation_VI_2017.txt",
+            sep = "\t", quote = F, row.names = F, col.names = T)
+write.table(nested18, "./Phenotype_Database/Correlation_VI_2018.txt",
+            sep = "\t", quote = F, row.names = F, col.names = T)
