@@ -76,6 +76,7 @@ t17<- asreml(fixed = GNDVI_03May ~ 1,
              random = ~Variety + rep + rep:block,
              data = pheno17)
 plot(t17)
+
 h<- as.data.frame(summary(t17)$varcomp)
 h
 
@@ -95,15 +96,16 @@ ntraits<- 1:nrow(H2_2017)
 for (i in ntraits) {
   print(paste("Working on trait", H2_2017[i,1]))
   j<- H2_2017[i,1]
-  print(paste("Creating Data Frame", j))
+  
   data<- cbind(fieldInfo, pheno17[,paste(j)])
   names(data)<- c("Variety","rep","block","column","range","Trait")
   
   t17<- asreml(fixed = Trait ~ 1,
                random = ~Variety + rep + rep:block,
                data = data)
-  plot(t17,title = paste(j))
+  plot(t17)
   h<- as.data.frame(summary(t17)$varcomp)
+  print(paste("Creating Data Frame", j))
   print(h)
   
   h2<- (h[3,1] / (h[3,1] + (h[4,1]/2)))
@@ -140,6 +142,7 @@ calcH2r(pheno17)
 t17<- asreml(fixed = GNDVI_03May ~ 1,
              random = ~Variety + rep + rep:block,
              data = pheno17)
+plot(t17)
 
 h<- as.data.frame(summary(t17)$varcomp)
 h
@@ -147,7 +150,7 @@ h
 h2<-as.data.frame(h[3,1] / (h[3,1] + (h[4,1]/2)))
 h2
 
-## 2017 all
+## 2018 all
 effectvars <- names(pheno18) %in% c("block", "rep", "Variety", "year", "column", 
                                     "range", "Plot_ID")
 traits <- colnames(pheno18[ , !effectvars])
