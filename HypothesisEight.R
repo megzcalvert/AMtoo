@@ -7,7 +7,7 @@ library(janitor)
 library(tidylog)
 library(broom)
 library(plotly)
-library(synbreed)
+library(rrBLUP)
 
 getwd()
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")

@@ -7,6 +7,7 @@ library(janitor)
 library(tidylog)
 library(broom)
 library(asreml)
+library(lme4)
 
 getwd()
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")
@@ -69,6 +70,131 @@ pheno18$column<- as.factor(pheno18$column)
 #2017 trial
 # Without the auto-reggression correlation
 
-t17<- asreml(fixed = GRYLD ~ 1,
-             random = ~block,
+asreml.license.status()
+
+t17<- asreml(fixed = GNDVI_03May ~ 1,
+             random = ~Variety + rep + rep:block,
              data = pheno17)
+plot(t17)
+h<- as.data.frame(summary(t17)$varcomp)
+h
+
+h2<-as.data.frame(h[3,1] / (h[3,1] + (h[4,1]/2)))
+h2
+
+## 2017 all
+effectvars <- names(pheno17) %in% c("block", "rep", "Variety", "year", "column", 
+                                "range", "Plot_ID")
+traits <- colnames(pheno17[ , !effectvars])
+H2_2017<- data.frame(traits)
+H2_2017$Heritability<- NA
+fieldInfo<- pheno17 %>% 
+  tidylog::select(Variety, rep, block, column, range)
+ntraits<- 1:nrow(H2_2017)
+
+for (i in ntraits) {
+  print(paste("Working on trait", H2_2017[i,1]))
+  j<- H2_2017[i,1]
+  print(paste("Creating Data Frame", j))
+  data<- cbind(fieldInfo, pheno17[,paste(j)])
+  names(data)<- c("Variety","rep","block","column","range","Trait")
+  
+  t17<- asreml(fixed = Trait ~ 1,
+               random = ~Variety + rep + rep:block,
+               data = data)
+  plot(t17,title = paste(j))
+  h<- as.data.frame(summary(t17)$varcomp)
+  print(h)
+  
+  h2<- (h[3,1] / (h[3,1] + (h[4,1]/2)))
+  h2
+  H2_2017[i,2]<- h2
+}
+
+
+# lme4 comparison 2017
+calcH2r <- function(dat, fill = NA, ...) {
+  
+  r=length(table(dat$rep))
+  
+  effectvars <- names(dat) %in% c("block", "rep", "Variety", "year", "column", 
+                                  "range", "Plot_ID")
+  
+  t <- colnames(dat[ , !effectvars])
+  
+  for (i in t) {
+    
+    print(paste("Working on trait", i))
+    h = as.data.frame(VarCorr(
+      lmer(paste0(i, "~ (1|Variety) + (1|rep) + (1|rep:block)"), data = dat)))
+    H2= h[1,4] / (h[1,4] + (h[4,4] / r)) 
+    print(H2)
+  }
+  
+}
+
+calcH2r(pheno17)
+
+## 2018
+
+t17<- asreml(fixed = GNDVI_03May ~ 1,
+             random = ~Variety + rep + rep:block,
+             data = pheno17)
+
+h<- as.data.frame(summary(t17)$varcomp)
+h
+
+h2<-as.data.frame(h[3,1] / (h[3,1] + (h[4,1]/2)))
+h2
+
+## 2017 all
+effectvars <- names(pheno18) %in% c("block", "rep", "Variety", "year", "column", 
+                                    "range", "Plot_ID")
+traits <- colnames(pheno18[ , !effectvars])
+H2_2018<- data.frame(traits)
+H2_2018$Heritability<- NA
+fieldInfo<- pheno18 %>% 
+  tidylog::select(Variety, rep, block, column, range)
+ntraits<- 1:nrow(H2_2018)
+
+for (i in ntraits) {
+  print(paste("Working on trait", H2_2018[i,1]))
+  j<- H2_2018[i,1]
+  print(paste("Creating Data Frame", j))
+  data<- cbind(fieldInfo, pheno18[,paste(j)])
+  names(data)<- c("Variety","rep","block","column","range","Trait")
+  
+  t17<- asreml(fixed = Trait ~ 1,
+               random = ~Variety + rep + rep:block,
+               data = data)
+  plot(t17)
+  h<- as.data.frame(summary(t17)$varcomp)
+  print(h)
+  
+  h2<- (h[3,1] / (h[3,1] + (h[4,1]/2)))
+  h2
+  H2_2018[i,2]<- h2
+}
+
+# lme4 comparison 2018
+calcH2r <- function(dat, fill = NA, ...) {
+  
+  r=length(table(dat$rep))
+  
+  effectvars <- names(dat) %in% c("block", "rep", "Variety", "year", "column", 
+                                  "range", "Plot_ID")
+  
+  t <- colnames(dat[ , !effectvars])
+  
+  for (i in t) {
+    
+    print(paste("Working on trait", i))
+    h = as.data.frame(VarCorr(
+      lmer(paste0(i, "~ (1|Variety) + (1|rep) + (1|rep:block)"), data = dat)))
+    H2= h[1,4] / (h[1,4] + (h[4,4] / r)) 
+    print(H2)
+  }
+  
+}
+
+calcH2r(pheno18)
