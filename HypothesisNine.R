@@ -206,13 +206,14 @@ hddt17<- htpPct17 %>%
   distinct() %>% 
   group_by(entity_id) %>% 
   summarise(first(Indicator)) %>% 
-  rename(HDDT = `first(Indicator)`)
+  rename(HDDT = `first(Indicator)`) %>% 
+  glimpse()
 
 htpPct17 <- htpPct17 %>% 
   left_join(hddt17) %>% 
-  mutate(Ind = if_else(phenotype_date < HDDT, "1", "2", "NA")) %>% 
-  tidylog::select(-Indicator,-HDDT)
-
+  mutate(Ind = if_else(phenotype_date < HDDT, "0", "1", "NA")) %>% 
+  tidylog::select(-Indicator,-HDDT) %>% 
+  glimpse()
 
 
 ##### 2018 HTP VI data load ####
@@ -257,20 +258,46 @@ htp18Wide<- htpFileLoad(htpPheno,plotData18)
 htp18long<- htp18Wide %>% 
   gather(key = "trait_id", value = "phenotype_value",
          `20171120_GNDVI`:`20180613_RE`) %>% 
-  separate(trait_id, c("phenotype_date","trait_id"), sep = "_") 
+  separate(trait_id, c("phenotype_date","trait_id"), sep = "_") %>% 
+  mutate(Indicator = NA)
 
-#htp18long$phenotype_date<- as.Date(htp18long$phenotype_date, format = "%Y%m%d")
+colnames(htp18long)
+colnames(pheno18)
+
+htp18long$phenotype_date<- as.Date(htp18long$phenotype_date, format = "%Y%m%d")
+pheno18$phenotype_date<- as.Date(pheno18$phenotype_date)
 
 htpPct18<- htp18long %>% 
   bind_rows(pheno18) %>% 
   arrange(entity_id,phenotype_date,trait_id) %>% 
-  tidylog::filter(phenotype_date > "2018-04-01") %>% 
-  tidylog::filter(trait_id != "height") %>% 
+  filter(phenotype_date > "2018-04-01") %>% 
   tidylog::select(entity_id,Variety,phenotype_date,trait_id,phenotype_value,
                   Indicator, block,rep,range,column) %>% 
   group_by(entity_id) %>% 
   glimpse()
 
-rm(htp17,pheno,pheno_long,plotData17,plotData18,htpPheno,path,htp18Wide)
+hddt18<- htpPct18 %>% 
+  tidylog::select(entity_id,Indicator) %>% 
+  tidylog::filter(!is.na(Indicator)) %>% 
+  distinct() %>% 
+  group_by(entity_id) %>% 
+  summarise(first(Indicator)) %>% 
+  rename(HDDT = `first(Indicator)`) %>% 
+  glimpse()
 
+htpPct18 <- htpPct18 %>% 
+  left_join(hddt18, by = "entity_id") %>% 
+  glimpse()
+
+htpPct18$phenotype_date<- as.Date(htpPct18$phenotype_date, format = "%Y%m%d")
+htpPct18$HDDT<- as.Date(htpPct18$HDDT)
+glimpse(htpPct18)
+
+htpPct18 <- htpPct18 %>%  
+  mutate(Ind = if_else(phenotype_date < HDDT, "0", "1", "NA")) %>% 
+  tidylog::select(-Indicator,-HDDT) %>% 
+  glimpse()
+
+rm(hddt17,hddt18,htp17,htp18Wide,htp17long,htp18long,pheno,pheno_long,pheno17,
+   pheno18,plotData17,plotData18,htpPheno,path,htpFileLoad)
 
