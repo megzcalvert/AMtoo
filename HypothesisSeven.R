@@ -21,7 +21,7 @@ glimpse(pheno18)
 glimpse(phenoLong)
 
 phenoLong<- phenoLong %>% 
-  rename(Plot_ID = entity_id) %>% 
+  dplyr::rename(Plot_ID = entity_id) %>% 
   tidylog::select(Plot_ID,Variety,block,rep,range,column)
 
 pheno17$Date<- as.Date(pheno17$Date,format = "%Y-%m-%d")
@@ -40,7 +40,7 @@ pheno17<- pheno17 %>%
   glimpse()
 
 pheno18<- pheno18 %>% 
-  rename(Plot_ID = entity_id)  %>% 
+  dplyr::rename(Plot_ID = entity_id)  %>% 
   unite("ID",c("ID","Date")) %>% 
   spread(key = ID, value = value) %>% 
   tidylog::select(Plot_ID,Variety,GRYLD,

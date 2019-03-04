@@ -12,7 +12,8 @@ library(car)
 library(readxl)
 library(lme4)
 library(Hmisc)
-library(psych)
+library(caret)
+library(lme4)
 
 
 # Connect to database
@@ -140,22 +141,21 @@ pheno17<- pheno %>%
   tidylog::select(entity_id, trait_id, phenotype_value, phenotype_date, Variety,
                   block, rep, range, column) %>% 
   arrange(phenotype_date) %>% 
-  mutate(Indicator = if_else(phenotype_value >= 50, 
+  dplyr::mutate(Indicator = if_else(phenotype_value >= 50, 
                              .data$phenotype_date, "NA")) %>% 
   glimpse()
-
-pheno17$phenotype_date<- as.Date(pheno17$phenotype_date)
 
 pheno18<- pheno %>% 
   filter(year == "18") %>% 
   tidylog::select(entity_id, trait_id, phenotype_value, phenotype_date, Variety,
                   block, rep, range, column) %>% 
-  arrange(phenotype_date) %>%
-  mutate(Indicator = if_else(phenotype_value >= 50, 
-                             .data$phenotype_date, "NA")) %>%  
+  arrange(phenotype_date) %>% 
+  dplyr::mutate(Indicator = if_else(phenotype_value >= 50, 
+                                    .data$phenotype_date, "NA")) %>% 
   glimpse()
 
 pheno18$phenotype_date<- as.Date(pheno18$phenotype_date)
+pheno17$phenotype_date<- as.Date(pheno17$phenotype_date)
 
 write.table(pheno17, "./Phenotype_Database/IndicatorPCTHEAD_17.txt", quote = F,
             sep = "\t", na = "NA", row.names = F,col.names = T)
@@ -186,7 +186,7 @@ htp17long$Date<- as.Date(htp17long$Date,"%Y%m%d")
 pheno17$phenotype_date<- as.Date(pheno17$phenotype_date)
 
 htp17long<- htp17long %>% 
-  rename(entity_id = Plot_ID, trait_id = ID, phenotype_value = value,
+  dplyr::rename(entity_id = Plot_ID, trait_id = ID, phenotype_value = value,
          phenotype_date = Date) %>% 
   left_join(plotData17) %>% 
   mutate(Indicator = NA) %>% 
@@ -202,20 +202,20 @@ htpPct17<- htp17long %>%
 
 hddt17<- htpPct17 %>% 
   tidylog::select(entity_id,Indicator) %>% 
-  tidylog::filter(!is.na(Indicator)) %>% 
-  distinct() %>% 
+  tidylog::filter(!is.na(Indicator))  %>% 
   group_by(entity_id) %>% 
-  summarise(first(Indicator)) %>% 
-  rename(HDDT = `first(Indicator)`) %>% 
+  dplyr::summarise(first(Indicator)) %>% 
+  dplyr::rename(HDDT = `first(Indicator)`) %>% 
   glimpse()
 
 htpPct17 <- htpPct17 %>% 
   left_join(hddt17) %>% 
   mutate(Ind = if_else(phenotype_date < HDDT, "0", "1", "NA")) %>% 
-  tidylog::select(-Indicator,-HDDT) %>% 
+  tidylog::select(-Indicator) %>% 
   glimpse()
 
-
+missing17<- htpPct17[which(htpPct17$Ind == "NA"),]
+unique(missing17$entity_id)
 ##### 2018 HTP VI data load ####
 
 htpPheno<- c("GNDVI","GRVI","height","NDRE","NDVI","Nir","RE")
@@ -259,6 +259,7 @@ htp18long<- htp18Wide %>%
   gather(key = "trait_id", value = "phenotype_value",
          `20171120_GNDVI`:`20180613_RE`) %>% 
   separate(trait_id, c("phenotype_date","trait_id"), sep = "_") %>% 
+  filter(trait_id != "height") %>% 
   mutate(Indicator = NA)
 
 colnames(htp18long)
@@ -279,10 +280,9 @@ htpPct18<- htp18long %>%
 hddt18<- htpPct18 %>% 
   tidylog::select(entity_id,Indicator) %>% 
   tidylog::filter(!is.na(Indicator)) %>% 
-  distinct() %>% 
   group_by(entity_id) %>% 
-  summarise(first(Indicator)) %>% 
-  rename(HDDT = `first(Indicator)`) %>% 
+  dplyr::summarise(first(Indicator)) %>% 
+  dplyr::rename(HDDT = `first(Indicator)`) %>% 
   glimpse()
 
 htpPct18 <- htpPct18 %>% 
@@ -295,9 +295,188 @@ glimpse(htpPct18)
 
 htpPct18 <- htpPct18 %>%  
   mutate(Ind = if_else(phenotype_date < HDDT, "0", "1", "NA")) %>% 
-  tidylog::select(-Indicator,-HDDT) %>% 
+  tidylog::select(-Indicator,HDDT) %>% 
   glimpse()
 
 rm(hddt17,hddt18,htp17,htp18Wide,htp17long,htp18long,pheno,pheno_long,pheno17,
    pheno18,plotData17,plotData18,htpPheno,path,htpFileLoad)
 
+###############################################################################
+write.table(htpPct17, "./Phenotype_Database/htpPct17.txt", quote = F,
+            sep = "\t", na = "NA", row.names = F,col.names = T)
+write.table(htpPct18, "./Phenotype_Database/htpPct18.txt", quote = F,
+            sep = "\t", na = "NA", row.names = F,col.names = T)
+htpPct17<- fread("./Phenotype_Database/htpPct17.txt")
+htpPct18<- fread("./Phenotype_Database/htpPct18.txt")
+
+htpPct17$phenotype_date<- as.Date(htpPct17$phenotype_date)
+htpPct18$phenotype_date<- as.Date(htpPct18$phenotype_date)
+
+htpPct17[which(is.na(htpPct17$Ind)),]
+
+htpPct17 %>% 
+  ggplot(aes(x = phenotype_date, y = phenotype_value, color = Ind)) +
+  geom_point() +
+  facet_wrap(~trait_id, scales = "free") +
+  theme_bw()
+
+htpPct18 %>% 
+  ggplot(aes(x = phenotype_date, y = phenotype_value, color = Ind)) +
+  geom_point() +
+  facet_wrap(~trait_id, scales = "free") +
+  theme_bw()
+
+htpPct17_wide <- htpPct17 %>% 
+  filter(trait_id != "PCTHEAD") %>% 
+  spread(trait_id,phenotype_value) %>% 
+  glimpse()
+
+# Trial
+set.seed(1966)
+
+htp_20170505<- htpPct17_wide %>% 
+  filter(phenotype_date == "2017-05-05") %>% 
+  filter(!is.na(Ind)) %>% 
+  glimpse()
+
+train.control <- trainControl(method = "repeatedcv", 
+                              number = 10, repeats = 10)
+
+lmfit_VarietyOnly<- lm(Ind ~ Variety, data = htp_20170505)
+summary(lmfit_VarietyOnly)
+layout(matrix(c(1,2,3,4),2,2))
+plot(lmfit_VarietyOnly)
+tidy(lmfit_VarietyOnly)
+glance(lmfit_VarietyOnly)
+anova(lmfit_VarietyOnly)
+
+VarietyOnly_cv<- train(Ind ~ Variety, data = htp_20170505,
+                       method = "lm", trControl = train.control)
+VarietyOnly_cv
+
+lmfit_GNDVIOnly<- lm(Ind ~ GNDVI, 
+                 data = htp_20170505)
+summary(lmfit_GNDVIOnly)
+layout(matrix(c(1,2,3,4),2,2))
+plot(lmfit_GNDVIOnly)
+tidy(lmfit_GNDVIOnly)
+glance(lmfit_GNDVIOnly)
+anova(lmfit_GNDVIOnly)
+
+GNDVIOnly_cv<- train(factor(Ind) ~ GNDVI, data = htp_20170505,
+                       method = "lm", trControl = train.control)
+GNDVIOnly_cv
+
+lmfit_GNDVI<- lm(Ind ~ Variety + GNDVI + Variety:GNDVI, 
+           data = htp_20170505)
+summary(lmfit_GNDVI)
+layout(matrix(c(1,2,3,4),2,2))
+plot(lmfit_GNDVI)
+tidy(lmfit_GNDVI)
+glance(lmfit_GNDVI)
+anova(lmfit_GNDVI)
+
+GNDVI_cv<- train(Ind ~ Variety + GNDVI + Variety:GNDVI, data = htp_20170505,
+                       method = "lm", trControl = train.control)
+GNDVIOnly_cv
+
+lmfit_GRVI<- lm(Ind ~ Variety + GRVI + Variety:GRVI, 
+                 data = htp_20170505)
+summary(lmfit_GRVI)
+layout(matrix(c(1,2,3,4),2,2))
+plot(lmfit_GRVI)
+tidy(lmfit_GRVI)
+glance(lmfit_GRVI)
+anova(lmfit_GRVI)
+
+lmfit_NDRE<- lm(Ind ~ Variety + NDRE + Variety:NDRE, 
+                data = htp_20170505)
+summary(lmfit_NDRE)
+layout(matrix(c(1,2,3,4),2,2))
+plot(lmfit_NDRE)
+tidy(lmfit_NDRE)
+glance(lmfit_NDRE)
+anova(lmfit_NDRE)
+
+lmfit_NDVI<- lm(Ind ~ Variety + NDVI + Variety:NDVI, 
+                data = htp_20170505)
+summary(lmfit_NDVI)
+layout(matrix(c(1,2,3,4),2,2))
+plot(lmfit_NDVI)
+tidy(lmfit_NDVI)
+glance(lmfit_NDVI)
+anova(lmfit_NDVI)
+
+anova(lmfit_GNDVI,lmfit_GRVI,lmfit_NDRE,lmfit_NDVI)
+
+lmfit_2VI<- lm(Ind ~ Variety + GRVI + Variety:GRVI + NDRE + Variety:NDRE, 
+           data = htp_20170505)
+summary(lmfit_2VI)
+layout(matrix(c(1,2,3,4),2,2))
+plot(lmfit_2VI)
+tidy(lmfit_2VI)
+glance(lmfit_2VI)
+anova(lmfit_2VI)
+
+fit<- lm(Ind ~ GRVI + GNDVI + NDVI + NDRE + Variety:GRVI + Variety:GNDVI + 
+           Variety:NDVI + Variety:NDRE, data = htp_20170505)
+summary(fit)
+layout(matrix(c(1,2,3,4),2,2))
+plot(fit)
+tidy(fit)
+glance(fit)
+anova(fit)
+
+rm(list = objects()); ls()
+###############################################################################
+#### Trial 2 ####
+
+htpPct17<- fread("./Phenotype_Database/htpPct17.txt")
+htpPct18<- fread("./Phenotype_Database/htpPct18.txt")
+
+htpPct17$phenotype_date<- as.Date(htpPct17$phenotype_date)
+htpPct18$phenotype_date<- as.Date(htpPct18$phenotype_date)
+
+htpPct17[which(is.na(htpPct17$Ind)),]
+
+
+htpPct17 %>% 
+  ggplot(aes(x = phenotype_date, y = phenotype_value, color = Ind)) +
+  geom_point() +
+  facet_wrap(~trait_id, scales = "free") +
+  theme_bw()
+
+htpPct18 %>% 
+  ggplot(aes(x = phenotype_date, y = phenotype_value, color = Ind)) +
+  geom_point() +
+  facet_wrap(~trait_id, scales = "free") +
+  theme_bw()
+
+htpPct17_wide <- htpPct17 %>% 
+  filter(trait_id != "PCTHEAD") %>% 
+  spread(trait_id,phenotype_value) %>% 
+  glimpse()
+
+htpPct18_wide <- htpPct18 %>% 
+  tidylog::filter(trait_id != "PCTHEAD") %>% 
+  tidylog::filter(phenotype_date > "2018-05-01") %>% 
+  tidylog::filter(phenotype_date < "2018-06-01") %>% 
+  spread(trait_id,phenotype_value) %>% 
+  glimpse()
+
+fit18<- lm(Ind ~ GNDVI + GRVI + NDRE + NDVI, data = htpPct18_wide)
+
+summary(fit18)
+layout(matrix(c(1,2,3,4),2,2))
+plot(fit18)
+tidy(fit18)
+glance(fit18)
+tidy(anova(fit18))
+
+train.control
+
+htpPct18_wide[which(is.na(htpPct18_wide$Ind)),]
+
+fit18Train<- train(Ind ~ GNDVI + GRVI + NDRE + NDVI, data = htpPct18_wide,
+                   method = "lm", trControl = train.control)
+fit18Train
