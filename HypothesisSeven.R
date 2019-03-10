@@ -103,7 +103,9 @@ for (i in ntraits) {
   t17<- asreml(fixed = Trait ~ 1,
                random = ~Variety + rep + rep:block,
                data = data)
+  pdf(paste0("./Figures/ASREML_repBlock17_",H2_2017[i,1],".pdf"))
   plot(t17)
+  dev.off()
   h<- as.data.frame(summary(t17)$varcomp)
   print(paste("Creating Data Frame", j))
   print(h)
@@ -113,7 +115,7 @@ for (i in ntraits) {
   H2_2017[i,2]<- h2
 }
 
-
+dev.off()
 # lme4 comparison 2017
 calcH2r <- function(dat, fill = NA, ...) {
   
@@ -138,10 +140,11 @@ calcH2r <- function(dat, fill = NA, ...) {
 calcH2r(pheno17)
 
 ## 2018
+dev.off()
 
-t17<- asreml(fixed = GNDVI_03May ~ 1,
+t17<- asreml(fixed = GNDVI_04May ~ 1,
              random = ~Variety + rep + rep:block,
-             data = pheno17)
+             data = pheno18)
 plot(t17)
 
 h<- as.data.frame(summary(t17)$varcomp)
@@ -170,7 +173,9 @@ for (i in ntraits) {
   t17<- asreml(fixed = Trait ~ 1,
                random = ~Variety + rep + rep:block,
                data = data)
+  pdf(paste0("./Figures/ASREML_repBlock18_",H2_2018[i,1],".pdf"))
   plot(t17)
+  dev.off()
   h<- as.data.frame(summary(t17)$varcomp)
   print(h)
   
@@ -201,3 +206,15 @@ calcH2r <- function(dat, fill = NA, ...) {
 }
 
 calcH2r(pheno18)
+
+H2_2017 %>% 
+  separate(traits,c("Trait","date"),sep = "_") %>% 
+  ggplot(aes(x = date, y = Heritability)) +
+  geom_point() + 
+  facet_wrap(~Trait)
+
+H2_2018 %>% 
+  separate(traits,c("Trait","date"),sep = "_") %>% 
+  ggplot(aes(x = date, y = Heritability)) +
+  geom_point() + 
+  facet_wrap(~Trait)

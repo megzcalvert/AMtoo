@@ -202,7 +202,7 @@ htpPct17<- htp17long %>%
 
 hddt17<- htpPct17 %>% 
   tidylog::select(entity_id,Indicator) %>% 
-  tidylog::filter(!is.na(Indicator))  %>% 
+  tidylog::filter(Indicator != "NA")  %>% 
   group_by(entity_id) %>% 
   dplyr::summarise(first(Indicator)) %>% 
   dplyr::rename(HDDT = `first(Indicator)`) %>% 
@@ -214,8 +214,11 @@ htpPct17 <- htpPct17 %>%
   tidylog::select(-Indicator) %>% 
   glimpse()
 
-missing17<- htpPct17[which(htpPct17$Ind == "NA"),]
+missing17<- htpPct17 %>% 
+  tidylog::filter(Ind == "NA") %>% 
+  tidylog::filter(trait_id == "PCTHEAD")
 unique(missing17$entity_id)
+unique(missing17$Variety)
 ##### 2018 HTP VI data load ####
 
 htpPheno<- c("GNDVI","GRVI","height","NDRE","NDVI","Nir","RE")
@@ -327,7 +330,7 @@ htpPct18 %>%
   theme_bw()
 
 htpPct17_wide <- htpPct17 %>% 
-  filter(trait_id != "PCTHEAD") %>% 
+  #filter(trait_id != "PCTHEAD") %>% 
   spread(trait_id,phenotype_value) %>% 
   glimpse()
 
@@ -339,95 +342,27 @@ htp_20170505<- htpPct17_wide %>%
   filter(!is.na(Ind)) %>% 
   glimpse()
 
-train.control <- trainControl(method = "repeatedcv", 
-                              number = 10, repeats = 10)
+htp_20170505 %>% 
+  ggplot(aes(x = Ind, y = GNDVI, group = Ind)) +
+  geom_boxplot() + 
+  theme_bw()
 
-lmfit_VarietyOnly<- lm(Ind ~ Variety, data = htp_20170505)
-summary(lmfit_VarietyOnly)
-layout(matrix(c(1,2,3,4),2,2))
-plot(lmfit_VarietyOnly)
-tidy(lmfit_VarietyOnly)
-glance(lmfit_VarietyOnly)
-anova(lmfit_VarietyOnly)
+t.test(htp_20170505$GNDVI ~ htp_20170505$Ind)
 
-VarietyOnly_cv<- train(Ind ~ Variety, data = htp_20170505,
-                       method = "lm", trControl = train.control)
-VarietyOnly_cv
+htp_20170505 %>% 
+  ggplot(aes(x = Ind, y = GRVI, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
 
-lmfit_GNDVIOnly<- lm(Ind ~ GNDVI, 
-                 data = htp_20170505)
-summary(lmfit_GNDVIOnly)
-layout(matrix(c(1,2,3,4),2,2))
-plot(lmfit_GNDVIOnly)
-tidy(lmfit_GNDVIOnly)
-glance(lmfit_GNDVIOnly)
-anova(lmfit_GNDVIOnly)
+t.test(htp_20170505$GRVI ~ htp_20170505$Ind)
 
-GNDVIOnly_cv<- train(factor(Ind) ~ GNDVI, data = htp_20170505,
-                       method = "lm", trControl = train.control)
-GNDVIOnly_cv
+htp_20170505 %>% 
+  ggplot(aes(x = Ind, y = NDRE, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
 
-lmfit_GNDVI<- lm(Ind ~ Variety + GNDVI + Variety:GNDVI, 
-           data = htp_20170505)
-summary(lmfit_GNDVI)
-layout(matrix(c(1,2,3,4),2,2))
-plot(lmfit_GNDVI)
-tidy(lmfit_GNDVI)
-glance(lmfit_GNDVI)
-anova(lmfit_GNDVI)
+t.test(htp_20170505$NDRE ~ htp_20170505$Ind)
 
-GNDVI_cv<- train(Ind ~ Variety + GNDVI + Variety:GNDVI, data = htp_20170505,
-                       method = "lm", trControl = train.control)
-GNDVIOnly_cv
-
-lmfit_GRVI<- lm(Ind ~ Variety + GRVI + Variety:GRVI, 
-                 data = htp_20170505)
-summary(lmfit_GRVI)
-layout(matrix(c(1,2,3,4),2,2))
-plot(lmfit_GRVI)
-tidy(lmfit_GRVI)
-glance(lmfit_GRVI)
-anova(lmfit_GRVI)
-
-lmfit_NDRE<- lm(Ind ~ Variety + NDRE + Variety:NDRE, 
-                data = htp_20170505)
-summary(lmfit_NDRE)
-layout(matrix(c(1,2,3,4),2,2))
-plot(lmfit_NDRE)
-tidy(lmfit_NDRE)
-glance(lmfit_NDRE)
-anova(lmfit_NDRE)
-
-lmfit_NDVI<- lm(Ind ~ Variety + NDVI + Variety:NDVI, 
-                data = htp_20170505)
-summary(lmfit_NDVI)
-layout(matrix(c(1,2,3,4),2,2))
-plot(lmfit_NDVI)
-tidy(lmfit_NDVI)
-glance(lmfit_NDVI)
-anova(lmfit_NDVI)
-
-anova(lmfit_GNDVI,lmfit_GRVI,lmfit_NDRE,lmfit_NDVI)
-
-lmfit_2VI<- lm(Ind ~ Variety + GRVI + Variety:GRVI + NDRE + Variety:NDRE, 
-           data = htp_20170505)
-summary(lmfit_2VI)
-layout(matrix(c(1,2,3,4),2,2))
-plot(lmfit_2VI)
-tidy(lmfit_2VI)
-glance(lmfit_2VI)
-anova(lmfit_2VI)
-
-fit<- lm(Ind ~ GRVI + GNDVI + NDVI + NDRE + Variety:GRVI + Variety:GNDVI + 
-           Variety:NDVI + Variety:NDRE, data = htp_20170505)
-summary(fit)
-layout(matrix(c(1,2,3,4),2,2))
-plot(fit)
-tidy(fit)
-glance(fit)
-anova(fit)
-
-rm(list = objects()); ls()
 ###############################################################################
 #### Trial 2 ####
 
