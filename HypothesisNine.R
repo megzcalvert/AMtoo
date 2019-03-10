@@ -363,6 +363,27 @@ htp_20170505 %>%
 
 t.test(htp_20170505$NDRE ~ htp_20170505$Ind)
 
+htp_20170505 %>% 
+  ggplot(aes(x = Ind, y = NDVI, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20170505$NDVI ~ htp_20170505$Ind)
+
+htp_20170505 %>% 
+  ggplot(aes(x = Ind, y = NIR, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20170505$NIR ~ htp_20170505$Ind)
+
+htp_20170505 %>% 
+  ggplot(aes(x = Ind, y = RedEdge, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20170505$RedEdge ~ htp_20170505$Ind)
+
 ###############################################################################
 #### Trial 2 ####
 
