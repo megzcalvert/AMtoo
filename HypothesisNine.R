@@ -384,6 +384,53 @@ htp_20170505 %>%
 
 t.test(htp_20170505$RedEdge ~ htp_20170505$Ind)
 
+htp_20170512<- htpPct17_wide %>% 
+  filter(phenotype_date == "2017-05-12") %>% 
+  filter(!is.na(Ind)) %>% 
+  glimpse()
+
+htp_20170512 %>% 
+  ggplot(aes(x = Ind, y = GNDVI, group = Ind)) +
+  geom_boxplot() + 
+  theme_bw()
+
+t.test(htp_20170512$GNDVI ~ htp_20170512$Ind)
+
+htp_20170512 %>% 
+  ggplot(aes(x = Ind, y = GRVI, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20170512$GRVI ~ htp_20170512$Ind)
+
+htp_20170512 %>% 
+  ggplot(aes(x = Ind, y = NDRE, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20170512$NDRE ~ htp_20170512$Ind)
+
+htp_20170512 %>% 
+  ggplot(aes(x = Ind, y = NDVI, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20170512$NDVI ~ htp_20170512$Ind)
+
+htp_20170512 %>% 
+  ggplot(aes(x = Ind, y = NIR, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20170512$NIR ~ htp_20170512$Ind)
+
+htp_20170512 %>% 
+  ggplot(aes(x = Ind, y = RedEdge, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20170512$RedEdge ~ htp_20170512$Ind)
+
 ###############################################################################
 #### Trial 2 ####
 
