@@ -431,6 +431,107 @@ htp_20170512 %>%
 
 t.test(htp_20170512$RedEdge ~ htp_20170512$Ind)
 
+htpPct18_wide <- htpPct18 %>% 
+  tidylog::filter(trait_id != "PCTHEAD") %>% 
+  tidylog::filter(phenotype_date > "2018-05-01") %>% 
+  tidylog::filter(phenotype_date < "2018-06-01") %>% 
+  spread(trait_id,phenotype_value) %>% 
+  glimpse()
+
+htp_20180514 <- htpPct18_wide %>% 
+  tidylog::filter(phenotype_date == "2018-05-14") %>% 
+  glimpse()
+
+htp_20180514 %>% 
+  ggplot(aes(x = Ind, y = GNDVI, group = Ind)) +
+  geom_boxplot() + 
+  theme_bw()
+
+t.test(htp_20180514$GNDVI ~ htp_20180514$Ind)
+
+htp_20180514 %>% 
+  ggplot(aes(x = Ind, y = GRVI, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20180514$GRVI ~ htp_20180514$Ind)
+
+htp_20180514 %>% 
+  ggplot(aes(x = Ind, y = NDRE, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20180514$NDRE ~ htp_20180514$Ind)
+
+htp_20180514 %>% 
+  ggplot(aes(x = Ind, y = NDVI, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20180514$NDVI ~ htp_20180514$Ind)
+
+htp_20180514 %>% 
+  ggplot(aes(x = Ind, y = Nir, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20180514$Nir ~ htp_20180514$Ind)
+
+htp_20180514 %>% 
+  ggplot(aes(x = Ind, y = RE, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20180514$RE ~ htp_20180514$Ind)
+
+htp_20180516 <- htpPct18_wide %>% 
+  tidylog::filter(phenotype_date == "2018-05-16") %>% 
+  glimpse()
+
+htp_20180516 %>% 
+  ggplot(aes(x = Ind, y = GNDVI, group = Ind)) +
+  geom_boxplot() + 
+  theme_bw()
+
+t.test(htp_20180516$GNDVI ~ htp_20180516$Ind)
+
+htp_20180516 %>% 
+  ggplot(aes(x = Ind, y = GRVI, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20180516$GRVI ~ htp_20180516$Ind)
+
+htp_20180516 %>% 
+  ggplot(aes(x = Ind, y = NDRE, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20180516$NDRE ~ htp_20180516$Ind)
+
+htp_20180516 %>% 
+  ggplot(aes(x = Ind, y = NDVI, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20180516$NDVI ~ htp_20180516$Ind)
+
+htp_20180516 %>% 
+  ggplot(aes(x = Ind, y = Nir, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20180516$Nir ~ htp_20180516$Ind)
+
+htp_20180516 %>% 
+  ggplot(aes(x = Ind, y = RE, group = Ind)) +
+  geom_boxplot() +
+  theme_bw()
+
+t.test(htp_20180516$RE ~ htp_20180516$Ind)
+
+
+
 ###############################################################################
 #### Trial 2 ####
 
