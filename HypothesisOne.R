@@ -338,14 +338,16 @@ ggplot(pheno17,aes(x = hddt17, y = phenotype_value)) +
   geom_smooth(method = "lm",color = "#af8dc3",alpha = 0.25) +
   geom_smooth(method = "loess",color = "#7fbf7b",alpha = 0.25) +
   scale_x_date(date_breaks = "3 day",date_labels = "%b %d") +
-  theme_bw()
+  theme_bw() +
+  labs(y = "GRYLD")
 
 ggplot(pheno18,aes(x = hddt18, y = phenotype_value)) +
   geom_point() +
   geom_smooth(method = "lm",color = "#af8dc3",alpha = 0.25) +
   geom_smooth(method = "loess",color = "#7fbf7b",alpha = 0.25) +
   scale_x_date(date_breaks = "3 day",date_labels = "%b %d") +
-  theme_bw()
+  theme_bw() +
+  labs(y = "GRYLD")
 
 cor.test(pheno17$numHddt17,pheno17$phenotype_value)
 cor.test(pheno18$numHddt18,pheno18$phenotype_value)
