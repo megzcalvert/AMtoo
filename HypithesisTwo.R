@@ -54,7 +54,8 @@ htp17long %>%
         strip.background = element_rect(fill = "white", 
                                         colour = "black")) +
   geom_vline(color = "#41ae76", alpha = 0.5,
-             aes(xintercept = hddt17), hddt17)
+             aes(xintercept = hddt17), hddt17) +
+  labs(title = "2016/2017 season VI with HDDT")
 
 #####################################################################
 #### 2018 HTP vegetaion indices over time and relation to hddt ####
@@ -132,5 +133,6 @@ htp18Long %>%
         strip.background = element_rect(fill = "white", 
                                         colour = "black")) +
   geom_vline(color = "#41ae76", alpha = 0.5,
-             aes(xintercept = hddt18))
+             aes(xintercept = hddt18)) +
+  labs(title = "2017/2018 season VI with HDDT")
 
