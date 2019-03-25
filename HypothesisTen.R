@@ -6,7 +6,7 @@ library(tidyverse)
 library(tidylog)
 library(readr)
 library(data.table)
-library(RMySQL)
+library(asreml)
 
 getwd()
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")
@@ -32,8 +32,8 @@ write.table(snpChip, file="./Genotype_Database/SelectedImputedBeagle.txt",
 snpChip = fread(file="./Genotype_Database/SelectedImputedBeagle.txt", 
                 header=TRUE, check.names=F, sep = "\t")
 
-snpChip[snpChip == snpChip$allele_a] = -1
-snpChip[snpChip == snpChip$allele_b] = 1
+snpChip[snpChip == snpChip$allele_a] = 1
+snpChip[snpChip == snpChip$allele_b] = -1
 snpChip[snpChip == "H"] = 0
 snpChip[snpChip == "C"] = NA
 snpChip[snpChip == "A"] = NA
@@ -59,67 +59,177 @@ snpMatrix<- setDT(as.data.frame(snpMatrix),keep.rownames = T)
 snpMatrix[1:10,1:10]
 
 ##### Phenotypes ####
-pheno_long<- readRDS("./Phenotype_Database/Pheno1718.RDS")
 
-str(pheno_long) # structure
-head(pheno_long, 10)
+pheno17<- fread("./Phenotype_Database/pheno17_htpLong.txt")
+pheno18<- fread("./Phenotype_Database/pheno18_htpLong.txt")
+phenoLong<- fread("./Phenotype_Database/Pheno_Long1718.txt")
 
-iniNames<- tabyl(pheno_long$Variety)
-names(iniNames)[1:2] <- c("Variety", "Count")
+glimpse(pheno17)
+glimpse(pheno18)
+glimpse(phenoLong)
 
-## Long Format Summaries with modified names
-pheno_long$Variety<- tolower(pheno_long$Variety)
-pheno_long$Variety<- str_replace_all(pheno_long$Variety, " ", "_")
-pheno_long$Variety<- str_replace_all(pheno_long$Variety, "-", "_")
-pheno_long$Variety<- str_replace_all(pheno_long$Variety, "'", "")
+phenoLong<- phenoLong %>% 
+  dplyr::rename(Plot_ID = entity_id) %>% 
+  tidylog::select(Plot_ID,Variety,block,rep,range,column)
 
-#Function to add a column based on a portion of text in another column
-ff = function(x, patterns, replacements = patterns, fill = NA, ...)
-{
-  stopifnot(length(patterns) == length(replacements))
+pheno17$Date<- as.Date(pheno17$Date,format = "%Y-%m-%d")
+pheno17$Date<- format(pheno17$Date, "%d%b")
+pheno18$Date<- as.Date(pheno18$Date,format = "%Y-%m-%d")
+pheno18$Date<- format(pheno18$Date, "%d%b")
+
+pheno17<- pheno17 %>% 
+  unite("ID",c("ID","Date")) %>% 
+  spread(key = ID, value = value) %>% 
+  tidylog::select(Plot_ID,Variety,GRYLD,
+                  GNDVI_02Jun:RedEdge_31Mar) %>% 
+  tidylog::inner_join(phenoLong) %>% 
+  glimpse() %>% 
+  distinct() %>% 
+  glimpse()
+
+pheno18<- pheno18 %>% 
+  dplyr::rename(Plot_ID = entity_id)  %>% 
+  unite("ID",c("ID","Date")) %>% 
+  spread(key = ID, value = value) %>% 
+  tidylog::select(Plot_ID,Variety,GRYLD,
+                  GNDVI_04Apr:RE_29May) %>% 
+  tidylog::inner_join(phenoLong) %>% 
+  glimpse() %>% 
+  distinct() %>% 
+  glimpse()
+
+pheno17$Plot_ID<- as.factor(pheno17$Plot_ID)
+pheno17$Variety<- as.factor(pheno17$Variety)
+pheno17$block<- as.factor(pheno17$block)
+pheno17$rep<- as.factor(pheno17$rep)
+pheno17$range<- as.factor(pheno17$range)
+pheno17$column<- as.factor(pheno17$column)
+
+pheno18$Plot_ID<- as.factor(pheno18$Plot_ID)
+pheno18$Variety<- as.factor(pheno18$Variety)
+pheno18$block<- as.factor(pheno18$block)
+pheno18$rep<- as.factor(pheno18$rep)
+pheno18$range<- as.factor(pheno18$range)
+pheno18$column<- as.factor(pheno18$column)
+
+asreml.license.status()
+
+##### Trialing something ####
+
+set.seed(1962)
+
+t17<- asreml(fixed = GRYLD ~ 0 + Variety,
+             random = ~ rep + rep:block,
+             data = pheno17)
+plot(t17)
+blues<- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
+blues$rn<- str_remove(blues$rn,"Variety_")
+dat17<- blues %>% 
+  rename(GRYLD = effect) %>% 
+  glimpse() %>% 
+  inner_join(snpMatrix, by = "rn")
+
+lambda<- 1
+
+y<- dat17$GRYLD
+(X<- model.Matrix(y ~ 1, data = dat17, sparse = T))
+
+xnam<- paste("V",1:14523,sep = "")
+fmla<- as.formula(paste("y ~ -1 +", paste(xnam, collapse = "+")))
+
+Z<- model.Matrix(fmla, data = dat17, sparse = T)
+
+XX <- Matrix::crossprod(X)
+XZ <- Matrix::crossprod(X, Z)
+ZZ <- Matrix::crossprod(Z)
+
+Xy <- Matrix::crossprod(X, y)
+Zy <- Matrix::crossprod(Z, y)
+
+LHS <- rBind(cBind(XX,    XZ),
+              cBind(t(XZ), ZZ + Diagonal(n=dim(ZZ)[1]) * lambda))
+
+RHS <- rBind(Xy,
+              Zy)
+
+sol_perVarietyGryld <- solve(LHS, RHS)
+
+sol_perVarietyGryld<- setDT(as.data.frame(as.matrix(sol_perVarietyGryld)),
+                            keep.rownames = T)
+sol_perVarietyGryld<- sol_perVarietyGryld %>% 
+  rename(GRYLD = V1)
+
+##### Making it a function for all of the VI's
+
+effectvars <- names(pheno17) %in% c("block", "rep", "Variety", "year", 
+                                    "column","range", "Plot_ID","GRYLD")
+traits <- colnames(pheno17[ , !effectvars])
+traits
+fieldInfo<- pheno17 %>% 
+  tidylog::select(Variety, rep, block, column, range)
+
+for (i in traits) {
+  print(paste("Working on trait", i))
+  j<- i
   
-  ans = rep_len(as.character(fill), length(x))    
-  empty = seq_along(x)
+  data<- cbind(fieldInfo, pheno17[,paste(i)])
+  names(data)<- c("Variety","rep","block","column","range","Trait")
+  print(colnames(data))
   
-  for(i in seq_along(patterns)) {
-    greps = grepl(patterns[[i]], x[empty], ...)
-    ans[empty[greps]] = replacements[[i]]  
-    empty = empty[!greps]
-  }
+  t17<- asreml(fixed = Trait ~ 0 + Variety,
+               random = ~ rep + rep:block,
+               data = data)
   
-  return(ans)
+  blues<- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
+  blues$rn<- str_remove(blues$rn,"Variety_")
+  colnames(blues)[colnames(blues)=="effect"] <- paste(i)
+  dat17<- blues %>% 
+    inner_join(dat17)
+  
 }
 
-#Adding a year column based on the entity_id
-pheno_long$year<- ff(pheno_long$entity_id, 
-                     c("17ASH","18ASH"), 
-                     c("17","18"),
-                     "NA", ignore.case = TRUE)
 
-modNames<- tabyl(pheno_long$Variety)
-names(modNames)[1:2] <- c("Variety", "Count")
-dataMaid::summarize(pheno_long[ , c("Variety", "trait_id", "rep", "year")])
-knitr::kable(tabyl(pheno_long$trait_id), 
-             caption = "Number of observations per trait")
-knitr::kable(tabyl(pheno_long$rep), 
-             caption = "Number of observations of reps")
-knitr::kable(tabyl(pheno_long$year), 
-             caption = "Number of observations per year")
+###############################################################
 
-### Removing lines that do not fit the assumptions
-pheno_long<- pheno_long %>% 
-  filter(Variety != "blank") %>% 
-  filter(!is.na(Variety)) %>% 
-  filter(rep != 0) %>%
-  filter(!is.na(rep))
+plot(t17)
+blues<- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
+blues$rn<- str_remove(blues$rn,"Variety_")
+dat17<- blues %>% 
+  rename(GNDVI_03May = effect) %>% 
+  glimpse() %>% 
+  inner_join(snpMatrix, by = "rn")
 
-finalNames<- tabyl(pheno_long$Variety)
+lambda<- 1
 
-str(pheno_long)
-knitr::kable(tabyl(pheno_long$trait_id), 
-             caption = "Final number of observations per traits")
-knitr::kable(tabyl(pheno_long$rep), 
-             caption = "Final number of observations per rep")
-knitr::kable(tabyl(pheno_long$year), 
-             caption = "Final number of observations per year")
+y<- dat17$GNDVI_03May
+(X<- model.Matrix(y ~ 1, data = dat17, sparse = T))
 
+xnam<- paste("V",1:14523,sep = "")
+fmla<- as.formula(paste("y ~ -1 +", paste(xnam, collapse = "+")))
+
+Z<- model.Matrix(fmla, data = dat17, sparse = T)
+
+XX <- Matrix::crossprod(X)
+XZ <- Matrix::crossprod(X, Z)
+ZZ <- Matrix::crossprod(Z)
+
+Xy <- Matrix::crossprod(X, y)
+Zy <- Matrix::crossprod(Z, y)
+
+LHS <- rBind(cBind(XX,    XZ),
+             cBind(t(XZ), ZZ + Diagonal(n=dim(ZZ)[1]) * lambda))
+
+RHS <- rBind(Xy,
+             Zy)
+
+sol_perVarietyGNDVI_03May <- solve(LHS, RHS)
+
+sol_perVarietyGNDVI_03May<- setDT(as.data.frame(
+  as.matrix(sol_perVarietyGNDVI_03May)),
+                            keep.rownames = T)
+sol_perVarietyGNDVI_03May<- sol_perVarietyGNDVI_03May %>% 
+  rename(GNDVI_03May = V1)
+
+proc.time()
+
+cor.test(sol_perVarietyGryld$GRYLD,sol_perVarietyGNDVI_03May$GNDVI_03May)

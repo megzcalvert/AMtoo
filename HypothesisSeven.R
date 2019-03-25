@@ -76,6 +76,10 @@ t17<- asreml(fixed = GNDVI_03May ~ 1,
              random = ~Variety + rep + rep:block,
              data = pheno17)
 plot(t17)
+coef(t17)$random
+fitted(t17)
+summary(t17)
+resid(t17)
 
 h<- as.data.frame(summary(t17)$varcomp)
 h
