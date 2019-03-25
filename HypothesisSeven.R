@@ -103,7 +103,7 @@ for (i in ntraits) {
   t17<- asreml(fixed = Trait ~ 1,
                random = ~Variety + rep + rep:block,
                data = data)
-  pdf(paste0("./Figures/ASREML_repBlock17_",H2_2017[i,1],".pdf"))
+  pdf(paste0("./Figures/AsremlPlots/ASREML_repBlock17_",H2_2017[i,1],".pdf"))
   plot(t17)
   dev.off()
   h<- as.data.frame(summary(t17)$varcomp)
@@ -173,7 +173,7 @@ for (i in ntraits) {
   t17<- asreml(fixed = Trait ~ 1,
                random = ~Variety + rep + rep:block,
                data = data)
-  pdf(paste0("./Figures/ASREML_repBlock18_",H2_2018[i,1],".pdf"))
+  pdf(paste0("./Figures/AsremlPlots/ASREML_repBlock18_",H2_2018[i,1],".pdf"))
   plot(t17)
   dev.off()
   h<- as.data.frame(summary(t17)$varcomp)
@@ -207,14 +207,55 @@ calcH2r <- function(dat, fill = NA, ...) {
 
 calcH2r(pheno18)
 
-H2_2017 %>% 
-  separate(traits,c("Trait","date"),sep = "_") %>% 
-  ggplot(aes(x = date, y = Heritability)) +
-  geom_point() + 
-  facet_wrap(~Trait)
 
-H2_2018 %>% 
-  separate(traits,c("Trait","date"),sep = "_") %>% 
+H2_2017<- H2_2017 %>% 
+  separate(traits,c("Trait","date"),sep = "_") 
+H2_2017$date<- as.Date(H2_2017$date, format = "%d%b")
+H2_2017 %>% 
+  tidylog::filter(Trait != "GRYLD") %>% 
   ggplot(aes(x = date, y = Heritability)) +
   geom_point() + 
-  facet_wrap(~Trait)
+  facet_wrap(~Trait, scales = "free") +
+  theme_bw() + 
+  labs(title = "Broad-sense heritability of VI over Date 2016/2017")
+
+H2_2018<- H2_2018 %>% 
+  separate(traits,c("Trait","date"),sep = "_") 
+  
+H2_2018$date<- as.Date(H2_2018$date, format = "%d%b")
+H2_2018<- H2_2018 %>% 
+  tidylog::filter(date != "2019-12-15") %>% 
+  tidylog::filter(date != "2019-12-05") %>% 
+  tidylog::filter(date != "2019-12-18") %>% 
+  tidylog::filter(date != "2019-11-20") %>% 
+  tidylog::filter(date != "2019-11-27")
+H2_2018 %>% 
+  tidylog::filter(Trait != "GRYLD") %>% 
+  ggplot(aes(x = date, y = Heritability)) +
+  geom_point() + 
+  facet_wrap(~Trait, scales = "free") +
+  theme_bw() + 
+  labs(title = "Broad-sense heritability of VI over Date 2017/2018")
+
+###### Examine weird residuals #####
+
+t18<- asreml(fixed = GRVI_16May ~ 1,
+             random = ~Variety + rep + rep:block,
+             data = pheno18)
+plot(t18)
+
+residuals<- setDT(as.data.frame(t18[["residuals"]]), keep.rownames = T)
+names(residuals)<- c("plot","residual")
+plotInfo<- pheno18 %>% 
+  tidylog::select(block,rep,range,column,GRVI_16May) %>% 
+  bind_cols(residuals) 
+plotInfo %>% 
+  ggplot(aes(x = GRVI_16May, y = residual, colour = rep)) +
+  geom_point() + 
+  theme_bw() +
+  labs(x = "fitted", y = "Residual", title = "Residual plots for GRVI_16May")
+
+coef(t18)$random
+
+h2<-as.data.frame(h[3,1] / (h[3,1] + (h[4,1]/2)))
+h2

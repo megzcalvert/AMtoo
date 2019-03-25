@@ -321,13 +321,15 @@ htpPct17 %>%
   ggplot(aes(x = phenotype_date, y = phenotype_value, color = Ind)) +
   geom_point() +
   facet_wrap(~trait_id, scales = "free") +
-  theme_bw()
+  theme_bw() +
+  labs(title = "VI over date coloured by heading status 2016/2017 season")
 
 htpPct18 %>% 
   ggplot(aes(x = phenotype_date, y = phenotype_value, color = Ind)) +
   geom_point() +
   facet_wrap(~trait_id, scales = "free") +
-  theme_bw()
+  theme_bw() +
+  labs(title = "VI over date coloured by heading status 2017/2018 season")
 
 htpPct17_wide <- htpPct17 %>% 
   #filter(trait_id != "PCTHEAD") %>% 
@@ -345,42 +347,54 @@ htp_20170505<- htpPct17_wide %>%
 htp_20170505 %>% 
   ggplot(aes(x = Ind, y = GNDVI, group = Ind)) +
   geom_boxplot() + 
-  theme_bw()
+  theme_bw() +
+  labs(title = "GNDVI_20170505", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20170505$GNDVI ~ htp_20170505$Ind)
 
 htp_20170505 %>% 
   ggplot(aes(x = Ind, y = GRVI, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "GRVI_20170505", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20170505$GRVI ~ htp_20170505$Ind)
 
 htp_20170505 %>% 
   ggplot(aes(x = Ind, y = NDRE, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "NDRE_20170505", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20170505$NDRE ~ htp_20170505$Ind)
 
 htp_20170505 %>% 
   ggplot(aes(x = Ind, y = NDVI, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "NDVI_20170505", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20170505$NDVI ~ htp_20170505$Ind)
 
 htp_20170505 %>% 
   ggplot(aes(x = Ind, y = NIR, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "NIR_20170505", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20170505$NIR ~ htp_20170505$Ind)
 
 htp_20170505 %>% 
   ggplot(aes(x = Ind, y = RedEdge, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "RedEdge_20170505", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20170505$RedEdge ~ htp_20170505$Ind)
 
@@ -392,42 +406,54 @@ htp_20170512<- htpPct17_wide %>%
 htp_20170512 %>% 
   ggplot(aes(x = Ind, y = GNDVI, group = Ind)) +
   geom_boxplot() + 
-  theme_bw()
+  theme_bw() +
+  labs(title = "GNDVI_20170512", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20170512$GNDVI ~ htp_20170512$Ind)
 
 htp_20170512 %>% 
   ggplot(aes(x = Ind, y = GRVI, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "GRVI_20170512", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20170512$GRVI ~ htp_20170512$Ind)
 
 htp_20170512 %>% 
   ggplot(aes(x = Ind, y = NDRE, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "NDRE_20170512", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20170512$NDRE ~ htp_20170512$Ind)
 
 htp_20170512 %>% 
   ggplot(aes(x = Ind, y = NDVI, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "NDVI_20170512", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20170512$NDVI ~ htp_20170512$Ind)
 
 htp_20170512 %>% 
   ggplot(aes(x = Ind, y = NIR, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "NIR_20170512", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20170512$NIR ~ htp_20170512$Ind)
 
 htp_20170512 %>% 
   ggplot(aes(x = Ind, y = RedEdge, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "RedEdge_20170512", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20170512$RedEdge ~ htp_20170512$Ind)
 
@@ -445,42 +471,54 @@ htp_20180514 <- htpPct18_wide %>%
 htp_20180514 %>% 
   ggplot(aes(x = Ind, y = GNDVI, group = Ind)) +
   geom_boxplot() + 
-  theme_bw()
+  theme_bw() +
+  labs(title = "GNDVI_20180514", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20180514$GNDVI ~ htp_20180514$Ind)
 
 htp_20180514 %>% 
   ggplot(aes(x = Ind, y = GRVI, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "GRVI_20180514", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20180514$GRVI ~ htp_20180514$Ind)
 
 htp_20180514 %>% 
   ggplot(aes(x = Ind, y = NDRE, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "NDRE_20180514", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20180514$NDRE ~ htp_20180514$Ind)
 
 htp_20180514 %>% 
   ggplot(aes(x = Ind, y = NDVI, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "NDVI_20180514", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20180514$NDVI ~ htp_20180514$Ind)
 
 htp_20180514 %>% 
   ggplot(aes(x = Ind, y = Nir, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "NIR_20180514", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20180514$Nir ~ htp_20180514$Ind)
 
 htp_20180514 %>% 
   ggplot(aes(x = Ind, y = RE, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "RedEdge_20180514", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20180514$RE ~ htp_20180514$Ind)
 
@@ -491,42 +529,54 @@ htp_20180516 <- htpPct18_wide %>%
 htp_20180516 %>% 
   ggplot(aes(x = Ind, y = GNDVI, group = Ind)) +
   geom_boxplot() + 
-  theme_bw()
+  theme_bw() +
+  labs(title = "GNDVI_20180516", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20180516$GNDVI ~ htp_20180516$Ind)
 
 htp_20180516 %>% 
   ggplot(aes(x = Ind, y = GRVI, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "GRVI_20180516", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20180516$GRVI ~ htp_20180516$Ind)
 
 htp_20180516 %>% 
   ggplot(aes(x = Ind, y = NDRE, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "NDRE_20180516", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20180516$NDRE ~ htp_20180516$Ind)
 
 htp_20180516 %>% 
   ggplot(aes(x = Ind, y = NDVI, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "NDVI_20180516", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20180516$NDVI ~ htp_20180516$Ind)
 
 htp_20180516 %>% 
   ggplot(aes(x = Ind, y = Nir, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "NIR_20180516", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20180516$Nir ~ htp_20180516$Ind)
 
 htp_20180516 %>% 
   ggplot(aes(x = Ind, y = RE, group = Ind)) +
   geom_boxplot() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "RedEdge_20180516", 
+       subtitle = "0 is before HDDT and 1 is after HDDT")
 
 t.test(htp_20180516$RE ~ htp_20180516$Ind)
 

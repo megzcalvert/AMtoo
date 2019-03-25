@@ -96,11 +96,7 @@ pca.plot(Scores, "PC3", "PC4")
 
 
 p <- plot_ly(Scores, x = ~PC1, y = ~PC2, z = ~PC3, 
-             color = ~Program, size = 2,
-             colors = c("#550031",'#8e0152','#c51b7d','#de77ae',
-                        '#eda1cf','#fbcbe4','#c5c5c5','#d0eca6',
-                        '#b8e186','#7fbc41','#4d9221','#276419',
-                        "#808080","#1b4611")) %>%
+             color = ~Program, size = 2) %>%
   add_markers(size = 2) %>%
   layout(scene = list(xaxis = list(title = 'PC1 R2 = 5.2%'),
                       yaxis = list(title = 'PC2 R2 = 4.5%'),

@@ -31,14 +31,16 @@ pheno17 %>%
   geom_line(alpha = 0.25) +
   facet_wrap( ~ID, scales = "free",ncol = 2) + 
   theme_bw() +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  labs(title = "VI by line over time 2016/2017")
 
 pheno18 %>% 
   ggplot(aes(x = Date, y = value, colour = entity_id)) +
   geom_line(alpha = 0.25) +
   facet_wrap( ~ID, scales = "free",ncol = 2) + 
   theme_bw() +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  labs(title = "VI by line over time 2017/2018")
 
 pheno18 %>% 
   filter(Date > "2018-04-1") %>% 
@@ -46,7 +48,8 @@ pheno18 %>%
   geom_line(alpha = 0.25) +
   facet_wrap( ~ID, scales = "free",ncol = 2) + 
   theme_bw() +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  labs(title = "VI by line over time 2017/2018")
 
 #Anova of linear reg
 pheno17$Date<- as.factor(pheno17$Date)

@@ -54,8 +54,6 @@ nested17 %>%
   theme_bw() +
   scale_x_date(date_breaks = "1 week", 
                date_labels = "%d%b") +
-  scale_color_manual(values = c('#762a83','#9970ab','#c2a5cf',
-                                '#a6dba0','#5aae61','#1b7837')) +
   labs(title = "Correlation with CI 2017") +
   ylab("Pearson correlation co-efficient")
 
@@ -68,9 +66,6 @@ nested18 %>%
   theme_bw() +
   scale_x_date(date_breaks = "1 week", 
                date_labels = "%d%b") +
-  scale_color_manual(values = c('#762a83','#9970ab',
-                                '#c2a5cf','#a6dba0',
-                                '#5aae61','#1b7837')) +
   labs(title = "Correlation with CI 2018") +
   ylab("Pearson correlation co-efficient")
 
