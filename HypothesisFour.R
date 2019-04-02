@@ -47,27 +47,35 @@ nested18$Date<- as.Date(nested18$Date)
 
 nested17 %>% 
   ggplot(aes(x = Date, y = estimate, color = ID)) +
-  geom_point() +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) + 
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), size = 1) + 
   geom_hline(yintercept = 0, linetype = 2, 
              colour = "darkgrey") +
   theme_bw() +
   scale_x_date(date_breaks = "1 week", 
                date_labels = "%d%b") +
   labs(title = "Correlation with CI 2017") +
-  ylab("Pearson correlation co-efficient")
+  ylab("Pearson correlation co-efficient") +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(size = 16), 
+        title = element_text(size = 20),
+        legend.position = "bottom")
 
 nested18 %>% 
   ggplot(aes(x = Date, y = estimate, color = ID)) +
-  geom_point() +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) + 
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), size = 1) + 
   geom_hline(yintercept = 0, linetype = 2, 
              colour = "darkgrey") +
   theme_bw() +
   scale_x_date(date_breaks = "1 week", 
                date_labels = "%d%b") +
   labs(title = "Correlation with CI 2018") +
-  ylab("Pearson correlation co-efficient")
+  ylab("Pearson correlation co-efficient") +
+  theme(axis.text = element_text(colour = "black", size = 12),
+        axis.title = element_text(size = 16), 
+        title = element_text(size = 20),
+        legend.position = "bottom")
 
 write.table(nested17, "./Phenotype_Database/Correlation_VI_2017.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)

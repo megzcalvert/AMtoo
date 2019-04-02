@@ -147,17 +147,13 @@ pheno_pcthead = pheno_pcthead[order(pheno_pcthead$entity_id,
 
 runLogReg = function(dates, pctHEAD){
   res = data.frame(phi1=NA, phi2=NA, phi3=NA, hday=NA, hdate=NA)
-  ## skip if no phenotype data
-  if(sum(!is.na(pctHEAD))==0){return(list(res=res, dates=dates, 
-                                          pctHEAD = pctHEAD, pred=NA))} 
-  ## skip plots that never reach 50% heading
-  if(max(pctHEAD, na.rm=TRUE)<60){return(list(res=res, dates=dates, 
-                                              pctHEAD = pctHEAD, pred=NA))} 
-  ## convert to day of year
-  days = yday(dates) 
   
-  ## add some dummy variables for 0% and 100% at 10, 20, 30 
-  # days before/after the phenotyping range ##
+  if(sum(!is.na(pctHEAD))==0){return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))} ## skip if no phenotype data
+  if(max(pctHEAD, na.rm=TRUE)<60){return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))} ## skip plots that never reach 50% heading
+  
+  days = yday(dates) ## convert to day of year
+  
+  ## add some dummy variables for 0% and 100% at 10, 20, 30 days before/after the phenotyping range ##
   days = c(days, min(days)-c(10,20,30), max(days)+c(10,20,30))
   pctH = c(pctHEAD, c(0,0,0,100,100,100))
   
@@ -166,12 +162,9 @@ runLogReg = function(dates, pctHEAD){
   phi2 = coef(lm(logit(pctH/phi1)~days))[1]
   phi3 = coef(lm(logit(pctH/phi1)~days))[2]
   
-  heading_model<-try(nls(pctH~100/(1+exp(-(phi2+phi3*days))), 
-                         start=list(phi2=phi2,phi3=phi3), trace=FALSE), 
-                     silent=TRUE)
-  ## skip if doesn't converge
-  if(class(heading_model)=="try-error"){
-    return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))}  
+  heading_model<-try(nls(pctH~100/(1+exp(-(phi2+phi3*days))), start=list(phi2=phi2,phi3=phi3), trace=FALSE), silent=TRUE)
+  
+  if(class(heading_model)=="try-error"){return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=NA))}  ## skip if doesn't converge
   
   #update model coefficients for predictions
   phi2 = coef(heading_model)[1]
@@ -179,29 +172,25 @@ runLogReg = function(dates, pctHEAD){
   
   ## get predicted value
   pred = getPred(phi1, phi2, phi3)
-  ## get heading day of year
-  hday = pred$x[which.min(abs(pred$y-50))] 
-  ## convert to date
-  hdate = as.Date(paste(year(dates[1]),"-01-01", sep="")) + hday 
   
-  ## set values
-  res = data.frame(phi1, phi2, phi3, hday, hdate) 
+  hday = pred$x[which.min(abs(pred$y-50))] ## get heading day of year
+  hdate = as.Date(paste(year(dates[1]),"-01-01", sep="")) + hday ## convert to date
+  
+  res = data.frame(phi1, phi2, phi3, hday, hdate) ## set values
   
   return(list(res=res, dates=dates, pctHEAD = pctHEAD, pred=pred))
   
 }
 
+
 getPred = function(phi1, phi2, phi3){
-  #construct a range of x values for all days of year
-  x<-c((80*10):(150*10))/10  
-  #predicted y values
-  y<-phi1/(1+exp(-(phi2+phi3*x))) 
-  #create the prediction data frame
-  pred<-data.frame(x,y) 
+  
+  x<-c((80*10):(150*10))/10  #construct a range of x values for all days of year
+  y<-phi1/(1+exp(-(phi2+phi3*x))) #predicted y values
+  pred<-data.frame(x,y) #create the prediction data frame
   
   return(pred)
 }
-
 #################### TEST NON-LINEAR FIT #############################
 
 ## heading date calculation results
@@ -307,6 +296,8 @@ rm(hddt17,hddt18,head.dates,iniNames,modNames,n,pheno_long,pheno_pcthead,
    sample,test,vis.logistic,i,plots,plots17,plots18,getPred,runLogReg,test.plot)
 
 pheno_long<- fread("./Phenotype_Database/Pheno_Long1718.txt", header = T)
+plotDates17<- fread("./Phenotype_Database/HDDT2017.txt")
+plotDates18<-fread("./Phenotype_Database/HDDT2018.txt")
 
 #Selecting pheno of choice
 
@@ -319,6 +310,7 @@ pheno17<- pheno_long %>%
   left_join(plotDates17, 
             by = c("entity_id" = "plots17")) %>% 
   tidylog::select(entity_id,phenotype_value,hddt17,numHddt17)
+pheno17$hddt17<- as.Date(pheno17$hddt17)
 
 pheno18<- pheno_long %>%
   filter(year == "18") %>%
@@ -327,6 +319,7 @@ pheno18<- pheno_long %>%
   left_join(plotDates18, 
             by = c("entity_id" = "plots18")) %>%
   tidylog::select(entity_id,phenotype_value,hddt18,numHddt18)
+pheno18$hddt18<- as.Date(pheno18$hddt18)
 
 str(pheno17)
 
@@ -335,36 +328,52 @@ str(pheno17)
 
 ggplot(pheno17,aes(x = hddt17, y = phenotype_value)) +
   geom_point() +
-  geom_smooth(method = "lm",color = "#af8dc3",alpha = 0.25) +
-  geom_smooth(method = "loess",color = "#7fbf7b",alpha = 0.25) +
+  geom_smooth(method = "lm",alpha = 0.25) +
+  #geom_smooth(method = "loess",color = "#7fbf7b",alpha = 0.25) +
   scale_x_date(date_breaks = "3 day",date_labels = "%b %d") +
   theme_bw() +
-  labs(y = "GRYLD")
+  theme(axis.title = element_text(colour = "black", size = 16),
+        axis.text = element_text(colour = "black", size = 14),
+        title = element_text(size = 20)) +
+  labs(y = "GRYLD",
+       x = "HDDT",
+       title = "GRYLD vs HDDT 2016/2017") +
+  annotate("text", x = as.Date("2017-05-13"), y = 6.5, 
+           label = "italic(R) ^ 2 == -0.468",
+           parse = TRUE, size = 8)
 
 ggplot(pheno18,aes(x = hddt18, y = phenotype_value)) +
   geom_point() +
-  geom_smooth(method = "lm",color = "#af8dc3",alpha = 0.25) +
-  geom_smooth(method = "loess",color = "#7fbf7b",alpha = 0.25) +
+  geom_smooth(method = "lm",alpha = 0.25) +
+  #geom_smooth(method = "loess",color = "#7fbf7b",alpha = 0.25) +
   scale_x_date(date_breaks = "3 day",date_labels = "%b %d") +
   theme_bw() +
-  labs(y = "GRYLD")
+  theme(axis.title = element_text(colour = "black", size = 16),
+        axis.text = element_text(colour = "black", size = 14),
+        title = element_text(size = 20)) +
+  labs(y = "GRYLD",
+       x = "HDDT",
+       title = "GRYLD vs HDDT 2017/2018") +
+  annotate("text", x = as.Date("2018-05-19"), y = 5, 
+           label = "italic(R) ^ 2 == 0.0008",
+           parse = TRUE, size = 8)
 
-cor.test(pheno17$numHddt17,pheno17$phenotype_value)
-cor.test(pheno18$numHddt18,pheno18$phenotype_value)
+tidy(cor.test(pheno17$numHddt17,pheno17$phenotype_value))
+tidy(cor.test(pheno18$numHddt18,pheno18$phenotype_value))
 
 
 linReg2017<- lm(phenotype_value ~ numHddt17, data = pheno17)
 summary(linReg2017)
-linReg2017tidy<- tidy(linReg2017)
-linReg2017augmented<- augment(linReg2017)
-linReg2017glance<- glance(linReg2017)
+(linReg2017tidy<- tidy(linReg2017))
+(linReg2017augmented<- augment(linReg2017))
+(linReg2017glance<- glance(linReg2017))
 
 outlierTest(linReg2017)
 plot(linReg2017)
 
 linReg2018<- lm(phenotype_value ~ numHddt18, data = pheno18)
 summary(linReg2018)
-linReg2018tidy<- tidy(linReg2018)
+(linReg2018tidy<- tidy(linReg2018))
 linReg2018augmented<-augment(linReg2018)
 linReg2018glance<- glance(linReg2018)
 

@@ -72,9 +72,9 @@ pheno18$column<- as.factor(pheno18$column)
 
 asreml.license.status()
 
-t17<- asreml(fixed = GNDVI_03May ~ 1,
+t17<- asreml(fixed = GRVI_05Dec ~ 1,
              random = ~Variety + rep + rep:block,
-             data = pheno17)
+             data = pheno18)
 plot(t17)
 coef(t17)$random
 fitted(t17)
@@ -243,21 +243,25 @@ H2_2018 %>%
 
 ###### Examine weird residuals #####
 
-t18<- asreml(fixed = GRVI_16May ~ 1,
+t18<- asreml(fixed = GNDVI_05Dec ~ 1,
              random = ~Variety + rep + rep:block,
              data = pheno18)
 plot(t18)
 
 residuals<- setDT(as.data.frame(t18[["residuals"]]), keep.rownames = T)
 names(residuals)<- c("plot","residual")
+fits<- as.data.frame(fitted.asreml(t18))
+names(fits)<- "fitted"
 plotInfo<- pheno18 %>% 
-  tidylog::select(block,rep,range,column,GRVI_16May) %>% 
-  bind_cols(residuals) 
+  tidylog::select(block,rep,range,column) %>% 
+  bind_cols(residuals) %>% 
+  bind_cols(fits)
+
 plotInfo %>% 
-  ggplot(aes(x = GRVI_16May, y = residual, colour = rep)) +
+  ggplot(aes(x = fitted, y = residual, colour = rep)) +
   geom_point() + 
   theme_bw() +
-  labs(x = "fitted", y = "Residual", title = "Residual plots for GRVI_16May")
+  labs(x = "fitted", y = "Residual", title = "Residual plots for GNDVI_05Dec")
 
 coef(t18)$random
 

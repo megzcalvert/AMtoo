@@ -104,7 +104,11 @@ htp17long %>%
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
   labs(ylab = "GNDVI", title = "GNDVI vs GRYLD 2017") +
-  theme_bw()
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
 
 htp18Long %>% 
   filter(ID == "GNDVI") %>% 
@@ -113,8 +117,11 @@ htp18Long %>%
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
   labs(ylab = "GNDVI", title = "GNDVI vs GRYLD 2018") +
-  theme_bw()
-
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
 #GRVI
 htp17long %>% 
   filter(ID == "GRVI") %>% 
@@ -122,8 +129,12 @@ htp17long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "GRVI", title = "GRVI vs GRYLD 2017") +
-  theme_bw()
+  labs(ylab = "GRVI", title = "GRVI vs GRYLD season 2016/2017") +
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
 
 htp18Long %>% 
   filter(ID == "GRVI") %>% 
@@ -131,8 +142,12 @@ htp18Long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "GRVI", title = "GRVI vs GRYLD 2018") +
-  theme_bw()
+  labs(ylab = "GRVI", title = "GRVI vs GRYLD season 2017/2018") +
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
 
 #NDVI
 htp17long %>% 
@@ -142,7 +157,11 @@ htp17long %>%
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
   labs(ylab = "NDVI", title = "NDVI vs GRYLD 2017") +
-  theme_bw()
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
 
 htp18Long %>% 
   filter(ID == "NDVI") %>% 
@@ -151,7 +170,11 @@ htp18Long %>%
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
   labs(ylab = "NDVI", title = "NDVI vs GRYLD 2018") +
-  theme_bw()
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
 
 #NDRE
 htp17long %>% 
@@ -161,7 +184,11 @@ htp17long %>%
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
   labs(ylab = "NDRE", title = "NDRE vs GRYLD 2017") +
-  theme_bw()
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
 
 htp18Long %>% 
   filter(ID == "NDRE") %>% 
@@ -170,7 +197,11 @@ htp18Long %>%
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
   labs(ylab = "NDRE", title = "NDRE vs GRYLD 2018") +
-  theme_bw()
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
 
 #NIR
 htp17long %>% 
@@ -180,7 +211,11 @@ htp17long %>%
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
   labs(ylab = "NIR", title = "NIR vs GRYLD 2017") +
-  theme_bw()
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
 
 htp18Long %>% 
   filter(ID == "Nir") %>% 
@@ -189,8 +224,11 @@ htp18Long %>%
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
   labs(ylab = "NIR", title = "NIR vs GRYLD 2018") +
-  theme_bw()
-
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
 #Rededge
 htp17long %>% 
   filter(ID == "RedEdge") %>% 
@@ -199,7 +237,11 @@ htp17long %>%
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
   labs(ylab = "RedEdge", title = "RedEdge vs GRYLD 2017") +
-  theme_bw()
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
 
 htp18Long %>% 
   filter(ID == "RE") %>% 
@@ -208,7 +250,11 @@ htp18Long %>%
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
   labs(ylab = "RedEdge", title = "RedEdge vs GRYLD 2018") +
-  theme_bw()
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
 
 #### Data correlation with significance ####
 
@@ -433,3 +479,4 @@ write.table(htp18Long, "./Phenotype_Database/pheno18_htpLong.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
 write.table(htp17long, "./Phenotype_Database/pheno17_htpLong.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
+

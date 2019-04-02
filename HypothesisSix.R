@@ -31,16 +31,22 @@ pheno17 %>%
   geom_line(alpha = 0.25) +
   facet_wrap( ~ID, scales = "free",ncol = 2) + 
   theme_bw() +
-  theme(legend.position = "none") +
-  labs(title = "VI by line over time 2016/2017")
+  labs(title = "VI by line over time 2016/2017") +
+  theme(axis.text = element_text(colour = "black", size = 10),
+        axis.title = element_text(size = 16), 
+        title = element_text(size = 20),
+        legend.position = "none")
 
 pheno18 %>% 
   ggplot(aes(x = Date, y = value, colour = entity_id)) +
   geom_line(alpha = 0.25) +
   facet_wrap( ~ID, scales = "free",ncol = 2) + 
   theme_bw() +
-  theme(legend.position = "none") +
-  labs(title = "VI by line over time 2017/2018")
+  labs(title = "VI by line over time 2017/2018") +
+  theme(axis.text = element_text(colour = "black", size = 10),
+        axis.title = element_text(size = 16), 
+        title = element_text(size = 20),
+        legend.position = "none")
 
 pheno18 %>% 
   filter(Date > "2018-04-1") %>% 
@@ -48,8 +54,11 @@ pheno18 %>%
   geom_line(alpha = 0.25) +
   facet_wrap( ~ID, scales = "free",ncol = 2) + 
   theme_bw() +
-  theme(legend.position = "none") +
-  labs(title = "VI by line over time 2017/2018")
+  labs(title = "VI by line over time 2017/2018") +
+  theme(axis.text = element_text(colour = "black", size = 10),
+        axis.title = element_text(size = 16), 
+        title = element_text(size = 20),
+        legend.position = "none")
 
 #Anova of linear reg
 pheno17$Date<- as.factor(pheno17$Date)
@@ -84,3 +93,9 @@ nested18AfterV<- pheno18 %>%
 write.table(nested18AfterV, 
             "./Phenotype_Database/ANOVA_VIbyDateVariety18_afterVern.txt",
             quote = F, row.names = F, col.names = T, sep = "\t")
+
+nested17 %>% 
+  tidylog::filter(ID !="RedEdge") %>% 
+  tidylog::filter(ID !="NIR") %>% 
+  ggplot(aes(x=p.value, fill=ID)) +
+  geom_histogram()

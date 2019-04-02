@@ -52,8 +52,9 @@ htp17long %>%
         panel.background = element_rect(fill = "white", 
                                         colour = "black"),
         strip.background = element_rect(fill = "white", 
-                                        colour = "black")) +
-  geom_vline(color = "#41ae76", alpha = 0.5,
+                                        colour = "black"),
+        axis.text = element_text(colour = "black")) +
+  geom_vline(alpha = 0.5, colour = "#1d91c0",
              aes(xintercept = hddt17), hddt17) +
   labs(title = "2016/2017 season VI with HDDT")
 
@@ -97,6 +98,7 @@ htp18Long<- htp18 %>%
 htp18Long$Date<- as.Date(htp18Long$Date,"%Y%m%d")
 
 htp18Long %>%
+  tidylog::filter(ID != "height") %>% 
   ggplot(aes(x = Date, y = value, color = plots18)) + 
   geom_point(alpha = 0.5) +
   facet_wrap(~ID, scales = "free", ncol = 2) + 
@@ -111,12 +113,14 @@ htp18Long %>%
         panel.background = element_rect(fill = "white", 
                                         colour = "black"),
         strip.background = element_rect(fill = "white", 
-                                        colour = "black")) +
-  geom_vline(color = "#41ae76", alpha = 0.5,
-             aes(xintercept = hddt18))
+                                        colour = "black"),
+        axis.text = element_text(colour = "black")) +
+  geom_vline(alpha = 0.5, colour = "#1d91c0",
+             aes(xintercept = hddt18), hddt18) 
 
 htp18Long %>%
   filter(Date >= "2018-04-01") %>% 
+  tidylog::filter(ID != "height") %>% 
   ggplot(aes(x = Date, y = value, color = plots18)) + 
   geom_point(alpha = 0.5) +
   facet_wrap(~ID, scales = "free", ncol = 2) + 
@@ -131,8 +135,9 @@ htp18Long %>%
         panel.background = element_rect(fill = "white", 
                                         colour = "black"),
         strip.background = element_rect(fill = "white", 
-                                        colour = "black")) +
-  geom_vline(color = "#41ae76", alpha = 0.5,
-             aes(xintercept = hddt18)) +
+                                        colour = "black"),
+        axis.text = element_text(colour = "black")) +
+  geom_vline(alpha = 0.5, colour = "#1d91c0",
+             aes(xintercept = hddt18), hddt18) + 
   labs(title = "2017/2018 season VI with HDDT")
 
