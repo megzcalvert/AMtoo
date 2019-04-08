@@ -55,8 +55,11 @@ nested17 %>%
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), size = 1) + 
   geom_hline(yintercept = 0, linetype = 2, 
              colour = "darkgrey") +
-  geom_vline(aes(xintercept = hddt17),hddt17, colour = "#1d91c0") +
+  geom_vline(aes(xintercept = hddt17),hddt17, colour = "#74c476",
+             alpha = 0.75) +
   theme_bw() +
+  # scale_colour_manual(values = c("#e41a1c","#377eb8","#4daf4a",
+  #                               "#984ea3","#ff7f00","#525252")) +
   scale_x_date(date_breaks = "1 week", 
                date_labels = "%d%b") +
   labs(title = "Correlation with CI 2017") +
@@ -64,7 +67,7 @@ nested17 %>%
   theme(axis.text = element_text(colour = "black", size = 14),
         axis.title = element_text(size = 16), 
         title = element_text(size = 20),
-        legend.position = "bottom",
+        #legend.position = "bottom",
         legend.text = element_text(size = 14))
 
 nested18 %>% 
@@ -73,14 +76,15 @@ nested18 %>%
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), size = 1) + 
   geom_hline(yintercept = 0, linetype = 2, 
              colour = "darkgrey") +
-  geom_vline(aes(xintercept = hddt18),hddt18, colour = "#1d91c0") +
+  geom_vline(aes(xintercept = hddt18),hddt18, colour = "#74c476",
+             alpha = 0.75) +
   theme_bw() +
   scale_x_date(date_breaks = "1 week", 
-               date_labels = "%d%b") +
+               date_labels = "%m/%d") +
   labs(title = "Correlation with CI 2018") +
   ylab("Pearson correlation co-efficient") +
   theme(axis.text = element_text(colour = "black", size = 14),
         axis.title = element_text(size = 16), 
         title = element_text(size = 20),
-        legend.position = "bottom",
+        #legend.position = "bottom",
         legend.text = element_text(size = 14))

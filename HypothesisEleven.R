@@ -82,15 +82,15 @@ phenoLong<- phenoLong %>%
   tidylog::select(Plot_ID,Variety,block,rep,range,column)
 
 pheno17$Date<- as.Date(pheno17$Date,format = "%Y-%m-%d")
-pheno17$Date<- format(pheno17$Date, "%d%b")
+pheno17$Date<- format(pheno17$Date, "%Y%m%d")
 pheno18$Date<- as.Date(pheno18$Date,format = "%Y-%m-%d")
-pheno18$Date<- format(pheno18$Date, "%d%b")
+pheno18$Date<- format(pheno18$Date, "%Y%m%d")
 
 pheno17<- pheno17 %>% 
   unite("ID",c("ID","Date")) %>% 
   spread(key = ID, value = value) %>% 
   tidylog::select(Plot_ID,Variety,GRYLD,
-                  GNDVI_02Jun:RedEdge_31Mar) %>% 
+                  GNDVI_20170331:RedEdge_20170609) %>% 
   tidylog::inner_join(phenoLong) %>% 
   glimpse() %>% 
   distinct() %>% 
@@ -101,7 +101,7 @@ pheno18<- pheno18 %>%
   unite("ID",c("ID","Date")) %>% 
   spread(key = ID, value = value) %>% 
   tidylog::select(Plot_ID,Variety,GRYLD,
-                  GNDVI_04Apr:RE_29May) %>% 
+                  GNDVI_20171120:RE_20180613) %>% 
   tidylog::inner_join(phenoLong) %>% 
   glimpse() %>% 
   distinct() %>% 
@@ -129,7 +129,7 @@ set.seed(1962)
 
 t17<- asreml(fixed = GRYLD ~ 0 + Variety,
              random = ~ rep + rep:block,
-             data = pheno17)
+             data = pheno18)
 plot(t17)
 blues<- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
 blues$rn<- str_remove(blues$rn,"Variety_")
@@ -137,20 +137,20 @@ dat17<- blues %>%
   rename(GRYLD = effect) %>% 
   glimpse() 
 
-##### Making it a function for all of the VI's
+##### Generating all 2017 VI BLUEs
 
-effectvars <- names(pheno17) %in% c("block", "rep", "Variety", "year", 
+effectvars <- names(pheno18) %in% c("block", "rep", "Variety", "year", 
                                     "column","range", "Plot_ID","GRYLD")
-traits <- colnames(pheno17[ , !effectvars])
+traits <- colnames(pheno18[ , !effectvars])
 traits
-fieldInfo<- pheno17 %>% 
+fieldInfo<- pheno18 %>% 
   tidylog::select(Variety, rep, block, column, range)
 
 for (i in traits) {
   print(paste("Working on trait", i))
   j<- i
   
-  data<- cbind(fieldInfo, pheno17[,paste(i)])
+  data<- cbind(fieldInfo, pheno18[,paste(i)])
   names(data)<- c("Variety","rep","block","column","range","Trait")
   print(colnames(data))
   
@@ -166,27 +166,32 @@ for (i in traits) {
   
 }
 
-beep()
+beep(2)
+
 dat17[1:5,1:15]
 snpChip[1:10,1:10]
 snpMatrix[1:10,1:10]
+
 snpLines<- setDT(
   as.data.frame(colnames(snpChip[,3:ncol(snpChip)])))
 colnames(snpLines)<- "rn"
 dat17<- semi_join(dat17,snpLines, by = "rn")
 colnames(dat17)[colnames(dat17)=="rn"] <- "Taxa"
 
-write.table(dat17,file = "./Phenotype_Database/ASREMLBlup_2017.txt",quote = F,
+write.table(dat17,file = "./Phenotype_Database/ASREMLBlup_2018.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
 
 numberedCols<- paste(1:(ncol(myGD)-1), sep = ",")
 
-colnames(myGD[,2:ncol(myGD)])<- numberedCols
-myGD[1:5,1:5]
-#write.table(myGD,"./R/Gapit/HypothesisEleven/myGD.txt",sep = "\t", quote = F,
-#            col.names = T, row.names = F)
-#write.table(myGM,"./R/Gapit/HypothesisEleven/myGM.txt",sep = "\t", quote = F,
-#            col.names = T, row.names = F)
+myGM<- myGM %>% 
+  tidylog::mutate(V = "V") %>% 
+  unite(Name, c("V","Name"),sep ="") %>% 
+  glimpse
+
+write.table(myGD,"./R/Gapit/HypothesisEleven/myGD.txt",sep = "\t", quote = F,
+            col.names = T, row.names = F)
+write.table(myGM,"./R/Gapit/HypothesisEleven/myGM.txt",sep = "\t", quote = F,
+            col.names = T, row.names = F)
 
 ##### GAPIT Trial ####
 
@@ -221,7 +226,7 @@ setwd("~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/")
 
 #Step 1: Set working directory and import data
 myY <- read.table(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2017.txt", head = TRUE)
+  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2018.txt", head = TRUE)
 myY[1:10,1:10]
 
 myGD <- read.table("./myGD.txt", head = TRUE)
@@ -229,19 +234,21 @@ myGD[1:5,1:5]
 myGM <- read.table("./myGM.txt", head = TRUE)
 myGM[1:5,]
 
+setwd(
+  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/PC1_2018")
+
 #Step 2: Run GAPIT 
 myGAPIT <- GAPIT(
   Y = myY,
   GD = myGD,
   GM = myGM ,
-  PCA.total = 10,
-  Model.selection = TRUE,
-  group.from = 252,
-  group.to = 251
+  PCA.total = 1
 )
 
+beep(1)
+
 ### How many PCs based on model selection
-fileNames<- list.files(path = "./ModelSelection2017",
+fileNames<- list.files(path = "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/ModelSelection2018",
                        full.names = T,
                        pattern = ".BIC.Model.Selection.Results.csv$")
 traitNames<- basename(fileNames) %>%
@@ -271,10 +278,32 @@ bic17max<- bic17 %>%
 bic17max %>%
   ggplot(aes(x=PC)) +
   geom_histogram() +
-  theme_bw()
+  theme_bw() +
+  labs(title = "PC's selected by BIC distribution",
+       subtitle = "2017/2018 Season")
 
-colnames(bic17)
 
+myY <- read.table(
+  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2017.txt", head = TRUE)
+myY[1:10,1:10]
+
+myGD <- read.table("./myGD.txt", head = TRUE)
+myGD[1:5,1:5]
+myGM <- read.table("./myGM.txt", head = TRUE)
+myGM[1:5,]
+
+#Step 2: Run GAPIT 
+myGAPIT <- GAPIT(
+  Y = myY,
+  GD = myGD,
+  GM = myGM ,
+  PCA.total = 0,
+  #Model.selection = TRUE,
+  kinship.cluster = "average",
+  kinship.group = "Mean",
+  group.from = 299,
+  group.to = 299
+)
 
 par(mfcol = c(1,2))
 

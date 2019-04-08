@@ -25,15 +25,15 @@ phenoLong<- phenoLong %>%
   tidylog::select(Plot_ID,Variety,block,rep,range,column)
 
 pheno17$Date<- as.Date(pheno17$Date,format = "%Y-%m-%d")
-pheno17$Date<- format(pheno17$Date, "%d%b")
+pheno17$Date<- format(pheno17$Date, "%Y%m%d")
 pheno18$Date<- as.Date(pheno18$Date,format = "%Y-%m-%d")
-pheno18$Date<- format(pheno18$Date, "%d%b")
+pheno18$Date<- format(pheno18$Date, "%Y%m%d")
 
 pheno17<- pheno17 %>% 
   unite("ID",c("ID","Date")) %>% 
   spread(key = ID, value = value) %>% 
   tidylog::select(Plot_ID,Variety,GRYLD,
-                  GNDVI_02Jun:RedEdge_31Mar) %>% 
+                  GNDVI_20170331:RedEdge_20170609) %>% 
   tidylog::inner_join(phenoLong) %>% 
   glimpse() %>% 
   distinct() %>% 
@@ -44,7 +44,7 @@ pheno18<- pheno18 %>%
   unite("ID",c("ID","Date")) %>% 
   spread(key = ID, value = value) %>% 
   tidylog::select(Plot_ID,Variety,GRYLD,
-                  GNDVI_04Apr:RE_29May) %>% 
+                  GNDVI_20171120:RE_20180613) %>% 
   tidylog::inner_join(phenoLong) %>% 
   glimpse() %>% 
   distinct() %>% 
@@ -72,7 +72,7 @@ pheno18$column<- as.factor(pheno18$column)
 
 asreml.license.status()
 
-t17<- asreml(fixed = GRVI_05Dec ~ 1,
+t17<- asreml(fixed = GRVI_20171120 ~ 1,
              random = ~Variety + rep + rep:block,
              data = pheno18)
 plot(t17)
@@ -146,7 +146,7 @@ calcH2r(pheno17)
 ## 2018
 dev.off()
 
-t17<- asreml(fixed = GNDVI_04May ~ 1,
+t17<- asreml(fixed = GRYLD ~ 1,
              random = ~Variety + rep + rep:block,
              data = pheno18)
 plot(t17)
@@ -211,39 +211,46 @@ calcH2r <- function(dat, fill = NA, ...) {
 
 calcH2r(pheno18)
 
-
 H2_2017<- H2_2017 %>% 
-  separate(traits,c("Trait","date"),sep = "_") 
-H2_2017$date<- as.Date(H2_2017$date, format = "%d%b")
+  separate(traits, c("Trait","Date"), sep = "_")
+H2_2017$Date<- as.Date(H2_2017$Date, format = "%Y%m%d")
+
 H2_2017 %>% 
   tidylog::filter(Trait != "GRYLD") %>% 
-  ggplot(aes(x = date, y = Heritability)) +
+  ggplot(aes(x = Date, y = Heritability)) +
   geom_point() + 
   facet_wrap(~Trait, scales = "free") +
   theme_bw() + 
-  labs(title = "Broad-sense heritability of VI over Date 2016/2017")
+  labs(title = "Broad-sense heritability of VI over Date 2016/2017") +
+  theme(axis.text = element_text(colour = "black", size = 10),
+        axis.title = element_text(size = 16), 
+        title = element_text(size = 18),
+        legend.position = "none",
+        strip.text = element_text(size = 14))
 
 H2_2018<- H2_2018 %>% 
-  separate(traits,c("Trait","date"),sep = "_") 
-  
-H2_2018$date<- as.Date(H2_2018$date, format = "%d%b")
-H2_2018<- H2_2018 %>% 
-  tidylog::filter(date != "2019-12-15") %>% 
-  tidylog::filter(date != "2019-12-05") %>% 
-  tidylog::filter(date != "2019-12-18") %>% 
-  tidylog::filter(date != "2019-11-20") %>% 
-  tidylog::filter(date != "2019-11-27")
+  separate(traits, c("Trait","Date"), sep = "_")
+H2_2018$Date<- as.Date(H2_2018$Date, format = "%Y%m%d")
+
 H2_2018 %>% 
   tidylog::filter(Trait != "GRYLD") %>% 
-  ggplot(aes(x = date, y = Heritability)) +
+  tidylog::filter(Trait != "height") %>% 
+  tidylog::filter(Date > as.Date("20180101", format = "%Y%m%d")) %>% 
+  ggplot(aes(x = Date, y = Heritability)) +
   geom_point() + 
   facet_wrap(~Trait, scales = "free") +
   theme_bw() + 
-  labs(title = "Broad-sense heritability of VI over Date 2017/2018")
+  scale_x_date(date_breaks = "10 days", date_labels = "%b%d") +
+  labs(title = "Broad-sense heritability of VI over Date 2017/2018") +
+  theme(axis.text = element_text(colour = "black", size = 10),
+        axis.title = element_text(size = 16), 
+        title = element_text(size = 18),
+        legend.position = "none",
+        strip.text = element_text(size = 14))
 
 ###### Examine weird residuals #####
 
-t18<- asreml(fixed = GNDVI_05Dec ~ 1,
+t18<- asreml(fixed = GNDVI_20171215 ~ 1,
              random = ~Variety + rep + rep:block,
              data = pheno18)
 plot(t18)
@@ -261,7 +268,8 @@ plotInfo %>%
   ggplot(aes(x = fitted, y = residual, colour = rep)) +
   geom_point() + 
   theme_bw() +
-  labs(x = "fitted", y = "Residual", title = "Residual plots for GNDVI_05Dec")
+  labs(x = "fitted", y = "Residual", 
+       title = "Residual plots for GNDVI_20171215")
 
 coef(t18)$random
 

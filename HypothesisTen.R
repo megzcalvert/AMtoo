@@ -10,6 +10,7 @@ library(asreml)
 library(beepr)
 library(rrBLUP)
 library(Hmisc)
+library(broom)
 
 getwd()
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")
@@ -76,15 +77,15 @@ phenoLong<- phenoLong %>%
   tidylog::select(Plot_ID,Variety,block,rep,range,column)
 
 pheno17$Date<- as.Date(pheno17$Date,format = "%Y-%m-%d")
-pheno17$Date<- format(pheno17$Date, "%d%b")
+pheno17$Date<- format(pheno17$Date, "%Y%m%d")
 pheno18$Date<- as.Date(pheno18$Date,format = "%Y-%m-%d")
-pheno18$Date<- format(pheno18$Date, "%d%b")
+pheno18$Date<- format(pheno18$Date, "%Y%m%d")
 
 pheno17<- pheno17 %>% 
   unite("ID",c("ID","Date")) %>% 
   spread(key = ID, value = value) %>% 
   tidylog::select(Plot_ID,Variety,GRYLD,
-                  GNDVI_02Jun:RedEdge_31Mar) %>% 
+                  GNDVI_20170331:RedEdge_20170609) %>% 
   tidylog::inner_join(phenoLong) %>% 
   glimpse() %>% 
   distinct() %>% 
@@ -95,7 +96,7 @@ pheno18<- pheno18 %>%
   unite("ID",c("ID","Date")) %>% 
   spread(key = ID, value = value) %>% 
   tidylog::select(Plot_ID,Variety,GRYLD,
-                  GNDVI_04Apr:RE_29May) %>% 
+                  GNDVI_20171120:RE_20180613) %>% 
   tidylog::inner_join(phenoLong) %>% 
   glimpse() %>% 
   distinct() %>% 
@@ -182,8 +183,8 @@ snpMatrix<- as.matrix(snpMatrix)
 
 # Predict marker effects
 gryldME<- mixed.solve(dat17$GRYLD, Z=snpMatrix)
-#ndre14MayME<- mixed.solve(dat17$NDRE_14May, Z=snpMatrix)
-#cor.test(gryldME$u,ndre14MayME$u)
+ndre14MayME<- mixed.solve(dat17$NDRE_20170512, Z=snpMatrix)
+tidy(cor.test(gryldME$u,ndre14MayME$u))
 
 traitME<- as.data.frame(gryldME$u)
 colnames(traitME)<- "GRYLD"
