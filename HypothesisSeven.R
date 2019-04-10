@@ -72,9 +72,9 @@ pheno18$column<- as.factor(pheno18$column)
 
 asreml.license.status()
 
-t17<- asreml(fixed = GRVI_20171120 ~ 1,
+t17<- asreml(fixed = GRYLD ~ 1,
              random = ~Variety + rep + rep:block,
-             data = pheno18)
+             data = pheno17)
 plot(t17)
 coef(t17)$random
 fitted(t17)
@@ -221,6 +221,7 @@ H2_2017 %>%
   geom_point() + 
   facet_wrap(~Trait, scales = "free") +
   theme_bw() + 
+  geom_hline(yintercept = 0.8007513, linetype = 2, colour = "blue") +
   labs(title = "Broad-sense heritability of VI over Date 2016/2017") +
   theme(axis.text = element_text(colour = "black", size = 10),
         axis.title = element_text(size = 16), 
@@ -238,6 +239,7 @@ H2_2018 %>%
   tidylog::filter(Date > as.Date("20180101", format = "%Y%m%d")) %>% 
   ggplot(aes(x = Date, y = Heritability)) +
   geom_point() + 
+  geom_hline(yintercept = 5.502152e-01, linetype = 2, colour = "blue") +
   facet_wrap(~Trait, scales = "free") +
   theme_bw() + 
   scale_x_date(date_breaks = "10 days", date_labels = "%b%d") +

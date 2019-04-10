@@ -463,13 +463,38 @@ reg18RE<- htp18Long %>%
   add_column(VI = "RE") %>% 
   unite("VI_date", c("VI","Date"))
 
-VarGryldVI<- bind_rows(reg17GNDVI,reg17GRVI,reg17NDRE,reg17NDVI,reg17NIR,
-                       reg17RE,reg18GNDVI,reg18GRVI,reg18NDRE,reg18NDVI,
-                       reg18NIR,reg17RE) %>% 
+VarGryldVI17<- bind_rows(reg17GNDVI,reg17GRVI,reg17NDRE,reg17NDVI,reg17NIR,
+                       reg17RE) %>% 
   separate(VI_date, c("VI","Date"), sep = "_") %>% 
-  group_by(Date)
+  glimpse()
 
-write.table(VarGryldVI, "./Phenotype_Database/linearRegression_VIbyDate.txt",
+VarGryldVI18<- bind_rows(reg18GNDVI,reg18GRVI,reg18NDRE,reg18NDVI,
+                         reg18NIR,reg18RE) %>% 
+  separate(VI_date, c("VI","Date"), sep = "_") %>% 
+  glimpse()
+
+VarGryldVI17$Date<- as.Date(VarGryldVI17$Date)
+
+VarGryldVI18$Date<- as.Date(VarGryldVI18$Date)
+
+
+VarGryldVI17 %>% 
+  ggplot(aes(x = Date, y = adj.r.squared, colour = p.value)) +
+  geom_point() +
+  facet_wrap(~VI, scales = "free") +
+  scale_color_gradient(low = "#e41a1c", high = "#000000") + 
+  theme_bw()
+
+VarGryldVI18 %>% 
+  ggplot(aes(x = Date, y = adj.r.squared, colour = p.value)) +
+  geom_point() +
+  facet_wrap(~VI, scales = "free") +
+  scale_color_gradient(low = "#e41a1c", high = "#000000") + 
+  theme_bw()
+
+write.table(VarGryldVI17, "./Phenotype_Database/linearRegression_VIbyDate17.txt",
+            sep = "\t", quote = F, row.names = F, col.names = T)
+write.table(VarGryldVI18, "./Phenotype_Database/linearRegression_VIbyDate18.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
 write.table(phenoMatrix17, "./Phenotype_Database/phenoMatrix17.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)

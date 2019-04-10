@@ -10,6 +10,7 @@ library(asreml)
 library(beepr)
 library(rrBLUP)
 library(Hmisc)
+library(MVN)
 
 getwd()
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")
@@ -121,6 +122,47 @@ pheno18$rep<- as.factor(pheno18$rep)
 pheno18$range<- as.factor(pheno18$range)
 pheno18$column<- as.factor(pheno18$column)
 
+##### Normality tests ####
+pheno17NormT<- pheno17 %>% 
+  tidylog::select(-Plot_ID,-Variety,-block,-rep,-range,-column)
+norm17<- mvn(pheno17NormT)
+norm17$univariateNormality
+boxplot.stats(pheno17NormT$GRYLD)$out
+boxplot.stats(pheno17NormT$GNDVI_20170331)$out
+
+pheno17clean<- pheno17 %>% 
+  tidylog::select(Plot_ID,Variety,block,rep,range,column) %>% 
+  bind_cols(pheno17NormT)
+
+remove_outliers <- function(x, na.rm = T, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  caps <- quantile(x, probs = c(.05, .95), na.rm = na.rm)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  #abs(scale(x)) >= 3
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+pheno17clean[,7:ncol(pheno17clean)]<- as.data.frame(
+  lapply(pheno17clean[,7:ncol(pheno17clean)],remove_outliers))
+pheno17NormTclean<- pheno17clean %>% 
+  tidylog::select(-Plot_ID,-Variety,-block,-rep,-range,-column)
+norm17clean<- mvn(pheno17NormTclean)
+norm17clean$univariateNormality
+boxplot.stats(pheno17NormTclean$GRYLD)$out
+boxplot.stats(pheno17NormTclean$GNDVI_20170331)$out
+
+
+pheno18NormT<- pheno18 %>% 
+  tidylog::select(-Plot_ID,-Variety,-block,-rep,-range,-column)
+norm18<- mvn(pheno18NormT)
+norm18$univariateNormality
+
+##### ASREML BLUEs ####
+
+
 asreml.license.status()
 
 ##### Trialing something ####
@@ -129,7 +171,7 @@ set.seed(1962)
 
 t17<- asreml(fixed = GRYLD ~ 0 + Variety,
              random = ~ rep + rep:block,
-             data = pheno18)
+             data = pheno17clean)
 plot(t17)
 blues<- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
 blues$rn<- str_remove(blues$rn,"Variety_")
@@ -139,18 +181,18 @@ dat17<- blues %>%
 
 ##### Generating all 2017 VI BLUEs
 
-effectvars <- names(pheno18) %in% c("block", "rep", "Variety", "year", 
+effectvars <- names(pheno17clean) %in% c("block", "rep", "Variety", "year", 
                                     "column","range", "Plot_ID","GRYLD")
-traits <- colnames(pheno18[ , !effectvars])
+traits <- colnames(pheno17clean[ , !effectvars])
 traits
-fieldInfo<- pheno18 %>% 
+fieldInfo<- pheno17clean %>% 
   tidylog::select(Variety, rep, block, column, range)
 
 for (i in traits) {
   print(paste("Working on trait", i))
   j<- i
   
-  data<- cbind(fieldInfo, pheno18[,paste(i)])
+  data<- cbind(fieldInfo, pheno17clean[,paste(i)])
   names(data)<- c("Variety","rep","block","column","range","Trait")
   print(colnames(data))
   
@@ -178,7 +220,7 @@ colnames(snpLines)<- "rn"
 dat17<- semi_join(dat17,snpLines, by = "rn")
 colnames(dat17)[colnames(dat17)=="rn"] <- "Taxa"
 
-write.table(dat17,file = "./Phenotype_Database/ASREMLBlup_2018.txt",quote = F,
+write.table(dat17,file = "./Phenotype_Database/ASREMLBlup_2017_clean.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
 
 numberedCols<- paste(1:(ncol(myGD)-1), sep = ",")
@@ -226,7 +268,7 @@ setwd("~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/")
 
 #Step 1: Set working directory and import data
 myY <- read.table(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2018.txt", head = TRUE)
+  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2017_clean.txt", head = TRUE)
 myY[1:10,1:10]
 
 myGD <- read.table("./myGD.txt", head = TRUE)
@@ -235,14 +277,14 @@ myGM <- read.table("./myGM.txt", head = TRUE)
 myGM[1:5,]
 
 setwd(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/PC1_2018")
+  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/PC0_2018")
 
 #Step 2: Run GAPIT 
 myGAPIT <- GAPIT(
   Y = myY,
   GD = myGD,
   GM = myGM ,
-  PCA.total = 1
+  PCA.total = 0
 )
 
 beep(1)
