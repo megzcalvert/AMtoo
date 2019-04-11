@@ -11,6 +11,7 @@ library(beepr)
 library(rrBLUP)
 library(Hmisc)
 library(broom)
+library(MVN)
 
 getwd()
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")
@@ -101,6 +102,9 @@ pheno18<- pheno18 %>%
   glimpse() %>% 
   distinct() %>% 
   glimpse()
+
+normalisedPheno17<-mvn(pheno17[,3:51], univariatePlot = "qq", desc = FALSE,
+                       bc = TRUE)
 
 pheno17$Plot_ID<- as.factor(pheno17$Plot_ID)
 pheno17$Variety<- as.factor(pheno17$Variety)

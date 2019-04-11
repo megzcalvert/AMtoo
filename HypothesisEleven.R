@@ -159,7 +159,22 @@ pheno18NormT<- pheno18 %>%
   tidylog::select(-Plot_ID,-Variety,-block,-rep,-range,-column)
 norm18<- mvn(pheno18NormT)
 norm18$univariateNormality
+boxplot.stats(pheno18NormT$GRYLD)$out
+boxplot.stats(pheno18NormT$GNDVI_20171120)$out
 
+pheno18clean<- pheno18 %>% 
+  tidylog::select(Plot_ID,Variety,block,rep,range,column) %>% 
+  bind_cols(pheno18NormT)
+  
+  pheno18clean[,7:ncol(pheno18clean)]<- as.data.frame(
+  lapply(pheno18clean[,7:ncol(pheno18clean)],remove_outliers))
+pheno18NormTclean<- pheno18clean %>% 
+  tidylog::select(-Plot_ID,-Variety,-block,-rep,-range,-column)
+norm18clean<- mvn(pheno18NormTclean)
+norm18clean$univariateNormality
+boxplot.stats(pheno18NormTclean$GRYLD)$out
+boxplot.stats(pheno18NormTclean$GNDVI_20171120)$out
+  
 ##### ASREML BLUEs ####
 
 
@@ -171,7 +186,7 @@ set.seed(1962)
 
 t17<- asreml(fixed = GRYLD ~ 0 + Variety,
              random = ~ rep + rep:block,
-             data = pheno17clean)
+             data = pheno18clean)
 plot(t17)
 blues<- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
 blues$rn<- str_remove(blues$rn,"Variety_")
@@ -181,18 +196,18 @@ dat17<- blues %>%
 
 ##### Generating all 2017 VI BLUEs
 
-effectvars <- names(pheno17clean) %in% c("block", "rep", "Variety", "year", 
+effectvars <- names(pheno18clean) %in% c("block", "rep", "Variety", "year", 
                                     "column","range", "Plot_ID","GRYLD")
-traits <- colnames(pheno17clean[ , !effectvars])
+traits <- colnames(pheno18clean[ , !effectvars])
 traits
-fieldInfo<- pheno17clean %>% 
+fieldInfo<- pheno18clean %>% 
   tidylog::select(Variety, rep, block, column, range)
 
 for (i in traits) {
   print(paste("Working on trait", i))
   j<- i
   
-  data<- cbind(fieldInfo, pheno17clean[,paste(i)])
+  data<- cbind(fieldInfo, pheno18clean[,paste(i)])
   names(data)<- c("Variety","rep","block","column","range","Trait")
   print(colnames(data))
   
@@ -220,7 +235,7 @@ colnames(snpLines)<- "rn"
 dat17<- semi_join(dat17,snpLines, by = "rn")
 colnames(dat17)[colnames(dat17)=="rn"] <- "Taxa"
 
-write.table(dat17,file = "./Phenotype_Database/ASREMLBlup_2017_clean.txt",quote = F,
+write.table(dat17,file = "./Phenotype_Database/ASREMLBlup_2018_clean.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
 
 numberedCols<- paste(1:(ncol(myGD)-1), sep = ",")
@@ -237,16 +252,16 @@ write.table(myGM,"./R/Gapit/HypothesisEleven/myGM.txt",sep = "\t", quote = F,
 
 ##### GAPIT Trial ####
 
-# source("http://www.bioconductor.org/biocLite.R")
-# biocLite("multtest")
-# biocLite("snpStats")
-# 
-# install.packages("gplots")
-# install.packages("LDheatmap")
-# install.packages("genetics")
-# install.packages("ape")
-# install.packages("EMMREML")
-# install.packages("scatterplot3d") 
+source("http://www.bioconductor.org/biocLite.R")
+biocLite("multtest")
+biocLite("snpStats")
+
+install.packages("gplots")
+install.packages("LDheatmap")
+install.packages("genetics")
+install.packages("ape")
+install.packages("EMMREML")
+install.packages("scatterplot3d")
 
 library(multtest)
 library(readr)
@@ -277,20 +292,20 @@ myGM <- read.table("./myGM.txt", head = TRUE)
 myGM[1:5,]
 
 setwd(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/PC0_2018")
+  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/cleanPC1_2017")
 
 #Step 2: Run GAPIT 
 myGAPIT <- GAPIT(
   Y = myY,
   GD = myGD,
   GM = myGM ,
-  PCA.total = 0
+  PCA.total = 1
 )
 
 beep(1)
 
 ### How many PCs based on model selection
-fileNames<- list.files(path = "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/ModelSelection2018",
+fileNames<- list.files(path = "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/cleanModelSelection2018",
                        full.names = T,
                        pattern = ".BIC.Model.Selection.Results.csv$")
 traitNames<- basename(fileNames) %>%
