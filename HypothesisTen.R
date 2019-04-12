@@ -12,6 +12,10 @@ library(rrBLUP)
 library(Hmisc)
 library(broom)
 library(MVN)
+library(MASS)
+library(car)
+library(ape)
+library(ClassDiscovery)
 
 getwd()
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")
@@ -99,12 +103,19 @@ pheno18<- pheno18 %>%
   tidylog::select(Plot_ID,Variety,GRYLD,
                   GNDVI_20171120:RE_20180613) %>% 
   tidylog::inner_join(phenoLong) %>% 
+  tidylog::select(-starts_with("height_")) %>% 
   glimpse() %>% 
   distinct() %>% 
   glimpse()
 
-normalisedPheno17<-mvn(pheno17[,3:51], univariatePlot = "qq", desc = FALSE,
-                       bc = TRUE)
+# normalisedPheno17<-mvn(pheno17[,3:51], univariateTest = "SW", desc = FALSE,
+#                        bc = TRUE, bcType = "rounded")
+# p1<-powerTransform(pheno17$GNDVI_20170331 ~ 1)
+# summary(p1)
+# coef(p1)
+# 
+# transformed<- as.data.frame((pheno17$GNDVI_20170331 ^ (p1$lambda) -1)/p1$lambda)
+# mvn(transformed)
 
 pheno17$Plot_ID<- as.factor(pheno17$Plot_ID)
 pheno17$Variety<- as.factor(pheno17$Variety)
@@ -134,10 +145,9 @@ blues<- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
 blues$rn<- str_remove(blues$rn,"Variety_")
 dat17<- blues %>% 
   rename(GRYLD = effect) %>% 
-  glimpse() #%>% 
- # inner_join(snpMatrix, by = "rn")
+  glimpse() 
 
-##### Making it a function for all of the VI's
+##### Making it a function for all of the VI's 2017
 
 effectvars <- names(pheno17) %in% c("block", "rep", "Variety", "year", 
                                     "column","range", "Plot_ID","GRYLD")
@@ -170,6 +180,49 @@ dat17[1:5,1:15]
 
 beep()
 
+##### Making it a function for all of the VI's 2017
+
+t18<- asreml(fixed = GRYLD ~ 0 + Variety,
+             random = ~ rep + rep:block,
+             data = pheno18)
+plot(t18)
+blues<- setDT(as.data.frame(coef(t18)$fixed), keep.rownames = T)
+blues$rn<- str_remove(blues$rn,"Variety_")
+dat18<- blues %>% 
+  rename(GRYLD = effect) %>% 
+  glimpse() 
+
+effectvars <- names(pheno18) %in% c("block", "rep", "Variety", "year", 
+                                    "column","range", "Plot_ID","GRYLD")
+traits <- colnames(pheno18[ , !effectvars])
+traits
+fieldInfo<- pheno18 %>% 
+  tidylog::select(Variety, rep, block, column, range)
+
+for (i in traits) {
+  print(paste("Working on trait", i))
+  j<- i
+  
+  data<- cbind(fieldInfo, pheno18[,paste(i)])
+  names(data)<- c("Variety","rep","block","column","range","Trait")
+  print(colnames(data))
+  
+  t18<- asreml(fixed = Trait ~ 0 + Variety,
+               random = ~ rep + rep:block,
+               data = data)
+  
+  blues<- setDT(as.data.frame(coef(t18)$fixed), keep.rownames = T)
+  blues$rn<- str_remove(blues$rn,"Variety_")
+  colnames(blues)[colnames(blues)=="effect"] <- paste(i)
+  dat18<- blues %>% 
+    inner_join(dat18)
+  
+}
+
+dat18[1:5,1:15]
+
+beep(2)
+
 
 ###############################################################
 ####                    rrBlup trial                      ####
@@ -187,10 +240,16 @@ snpMatrix<- as.matrix(snpMatrix)
 
 # Predict marker effects
 gryldME<- mixed.solve(dat17$GRYLD, Z=snpMatrix)
-ndre14MayME<- mixed.solve(dat17$NDRE_20170512, Z=snpMatrix)
+ndre14MayME<- mixed.solve(dat17$RE_20180613, Z=snpMatrix)
 tidy(cor.test(gryldME$u,ndre14MayME$u))
 
-traitME<- as.data.frame(gryldME$u)
+gryldME<- mixed.solve(dat18$GRYLD, Z=snpMatrix)
+re20180613ME<- mixed.solve(dat18$RE_20180613, Z=snpMatrix)
+tidy(cor.test(gryldME$u,re20180613ME$u))
+
+##### Determing marker effects for each trait 2017 
+
+traitME_17<- as.data.frame(gryldME$u)
 colnames(traitME)<- "GRYLD"
 
 traits<- dat17 %>% 
@@ -204,10 +263,44 @@ for (i in traits) {
   y
   meRes<- mixed.solve(y=y, Z=snpMatrix)
   print(meRes$Vu)
-  traitME[[i]] <- meRes$u
+  traitME_17[[i]] <- meRes$u
 }
 
-corrME<- rcorr(as.matrix(traitME))
+##### Determing marker effects for each trait 2017 
+
+traitME_18<- as.data.frame(gryldME$u)
+colnames(traitME)<- "GRYLD"
+
+traits<- dat18 %>% 
+  tidylog::select(-rn,-GRYLD) %>% 
+  colnames()
+
+for (i in traits) {
+  
+  print(paste("Working on trait", i))
+  y=dat18[[i]]
+  y
+  meRes<- mixed.solve(y=y, Z=snpMatrix)
+  print(meRes$Vu)
+  traitME_18[[i]] <- meRes$u
+}
+
+
+gMatrix_17<- rcorr(as.matrix(traitME_17))
+gMatrix_18<- rcorr(as.matrix(traitME_18))
+
+distmat_17<- distanceMatrix(as.matrix(traitME_17),
+                                   metric = "absolute pearson")
+distmat_18<- distanceMatrix(as.matrix(traitME_18),
+                            metric = "absolute pearson")
+
+
+hClustering <- hclust(distmat, method = 'complete')
+plot(hClustering, hang = -1)
+princCoordinate<- pcoa(distmat,correction = "cailliez")
+biplot(princCoordinate)
+
+
 
 flattenCorrMatrix <- function(cormat, pmat) {
   ut <- upper.tri(cormat)

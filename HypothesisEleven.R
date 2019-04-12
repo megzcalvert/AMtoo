@@ -283,7 +283,7 @@ setwd("~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/")
 
 #Step 1: Set working directory and import data
 myY <- read.table(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2017_clean.txt", head = TRUE)
+  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2018_clean.txt", head = TRUE)
 myY[1:10,1:10]
 
 myGD <- read.table("./myGD.txt", head = TRUE)
@@ -292,14 +292,15 @@ myGM <- read.table("./myGM.txt", head = TRUE)
 myGM[1:5,]
 
 setwd(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/cleanPC1_2017")
+  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/cleanModelSelection2018")
 
 #Step 2: Run GAPIT 
 myGAPIT <- GAPIT(
   Y = myY,
   GD = myGD,
   GM = myGM ,
-  PCA.total = 1
+  PCA.total = 5,
+  Model.selection = TRUE
 )
 
 beep(1)
