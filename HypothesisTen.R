@@ -296,9 +296,6 @@ for (i in traits) {
 }
 
 
-
-
-
 ##### G Matrix examination ####
 
 gMatrix_17<- rcorr(as.matrix(traitME_17))
@@ -462,26 +459,39 @@ pcoOrd_18 %>%
   theme(axis.text = element_text(size = 10))
 
 ## Hierarchical clustering
+
 hClustering_17 <- hclust(distmat_17, method = 'complete')
-plot(hClustering_17, hang = -1)
+
+colors = c("red", "blue", "green", "black")
+clus4 = cutree(hClustering_17, 4)
+plot(as.phylo(hc), type = "fan", tip.color = colors[clus4],
+     label.offset = 1, cex = 0.7)
+plot(as.phylo(hClustering_17), hang = -1)
 
 hClustering_18 <- hclust(distmat_18, method = 'complete')
 plot(hClustering_18, hang = -1)
 
 ## Converting hclust to dendograms
+colors = c("red", "blue", "green", "black")
+clus4 = cutree(hClustering_17, 4)
+
 hClustDen_17<- as.dendrogram(hClustering_17)
 
 ape::plot.phylo(as.phylo(hClustering_17),
                 label.offset = 0.01,
+                tip.color = colors[clus4],
                 #type = "unrooted",
                 cex = 0.7)
 
 ggdendrogram(hClustering_17, rotate = T)
 
+clus4 = cutree(hClustering_18, 4)
+
 hClustDen_18<- as.dendrogram(hClustering_18)
 
 ape::plot.phylo(as.phylo(hClustering_18),
                 label.offset = 0.01,
+                tip.color = colors[clus4],
                 #type = "unrooted",
                 cex = 0.5)
 
@@ -509,11 +519,11 @@ p
 ## Neighbour-joining
 nj_17<- nj(distmat_17)
 plot.phylo(as.phylo(nj_17),label.offset = 0.01 , cex = 0.5,
-           type = "fan")
+           type = "fan", no.margin = TRUE)
 
 
 nj_18<- nj(distmat_18)
 plot.phylo(as.phylo(nj_18),label.offset = 0.01 , cex = 0.5,
-           type = "fan")
+           type = "fan", no.margin = TRUE)
 
 
