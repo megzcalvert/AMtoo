@@ -113,10 +113,14 @@ pheno18<- pheno18 %>%
   distinct() %>% 
   glimpse()
 
-normalisedPheno17<-mvn(pheno17[,3:51], univariateTest = "SW", desc = FALSE)
+normalisedPheno17<-mvn(pheno17[,3:51], univariateTest = "SW", desc = T)
 normalisedPheno17$univariateNormality
-normalisedPheno18<-mvn(pheno18[,3:93], univariateTest = "SW", desc = FALSE) 
-normalisedPheno17$univariateNormality
+normalisedPheno17$multivariateNormality
+normalisedPheno17$Descriptives
+normalisedPheno18<-mvn(pheno18[,3:93], univariateTest = "SW", desc = T) 
+normalisedPheno18$univariateNormality
+normalisedPheno18$multivariateNormality
+normalisedPheno18$Descriptives
 
 pheno17$Plot_ID<- as.factor(pheno17$Plot_ID)
 pheno17$Variety<- as.factor(pheno17$Variety)
@@ -546,25 +550,41 @@ p
 
 ## Neighbour-joining
 nj_17<- nj(distmat_17)
-plot.phylo(nj_17,label.offset = 0.01, 
-           cex = 0.5, no.margin = TRUE)
+plot.phylo(nj_17, type = "phylogram", use.edge.length = F,
+     node.pos = NULL, show.tip.label = TRUE, show.node.label = FALSE,
+     edge.color = "black", edge.width = 1, edge.lty = 1, font = 1,
+     cex = 0.75, adj = NULL, srt = 0, no.margin = T,
+     root.edge = FALSE, label.offset = 0.25, underscore = FALSE,
+     x.lim = NULL, y.lim = NULL, direction = "rightwards",
+     lab4ut = NULL, tip.color = "black", plot = TRUE,
+     rotate.tree = 0, open.angle = 0, node.depth = 1,
+     align.tip.label = T)
 
 
 nj_18<- nj(distmat_18)
-plot.phylo(as.phylo(nj_18),label.offset = 0.01,
-           cex = 0.5, no.margin = TRUE)
+plot.phylo(nj_18, type = "phylogram", use.edge.length = F,
+           node.pos = NULL, show.tip.label = TRUE, show.node.label = FALSE,
+           edge.color = "black", edge.width = 1, edge.lty = 1, font = 1,
+           cex = 0.5, adj = NULL, srt = 0, no.margin = T,
+           root.edge = FALSE, label.offset = 0.25, underscore = FALSE,
+           x.lim = NULL, y.lim = NULL, direction = "rightwards",
+           lab4ut = NULL, tip.color = "black", plot = TRUE,
+           rotate.tree = 0, open.angle = 0, node.depth = 1,
+           align.tip.label = T)
 
 gplots::heatmap.2(as.matrix(distmat_17),
                   margins =c(8,8),trace = "none",
-                  dendrogram = "row",
-                  density.info = "histogram",
-                  col = "viridis")
+                  dendrogram = "both",
+                  density.info = "density",
+                  col = "viridis",
+                  main = "Hierarchichal Clustering of additive genetic effects 2016/2017 season")
 
 gplots::heatmap.2(as.matrix(distmat_18),
                   margins =c(8,8),trace = "none",
-                  dendrogram = "row",
-                  density.info = "histogram",
-                  col = "viridis")
+                  dendrogram = "both",
+                  density.info = "density",
+                  col = "viridis",
+                  main = "Hierarchichal Clustering of additive genetic effects 2017/2018 season")
 
 ## hierarchical clustering with significance
 # Can take a long time
