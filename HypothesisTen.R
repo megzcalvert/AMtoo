@@ -113,6 +113,18 @@ pheno18<- pheno18 %>%
   distinct() %>% 
   glimpse()
 
+mean(pheno17$GRYLD)
+mean(pheno18$GRYLD)
+
+ggplot(data = pheno17, aes(x=GRYLD)) +
+  geom_density(colour = "red") +
+  geom_vline(xintercept = mean(pheno17$GRYLD),linetype = 2, colour = "red") +
+  geom_density(data = pheno18, aes(x=GRYLD), colour="blue") +
+  geom_vline(xintercept = mean(pheno18$GRYLD),linetype = 2, colour = "blue") +
+  theme_bw() +
+  labs(title = "Distribution of GRYLD over 2016/2017 and 2017/2018",
+       subtitle = "2016/2017-red, 2017/2018-blue")
+
 normalisedPheno17<-mvn(pheno17[,3:51], univariateTest = "SW", desc = T)
 normalisedPheno17$univariateNormality
 normalisedPheno17$multivariateNormality
@@ -266,17 +278,13 @@ snpMatrix18<- snpMatrix %>%
 snpMatrix18<- as.matrix(snpMatrix18)
 
 # Predict marker effects
+
+##### Determing marker effects for each trait 2017 
 gryldME<- mixed.solve(dat17$GRYLD, Z=snpMatrix17)
 ndre14MayME<- mixed.solve(dat17$NDVI_20170512, Z=snpMatrix17)
 tidy(cor.test(gryldME$u,ndre14MayME$u))
-
-gryldME<- mixed.solve(dat18$GRYLD, Z=snpMatrix18)
-re20180613ME<- mixed.solve(dat18$RE_20180613, Z=snpMatrix18)
-tidy(cor.test(gryldME$u,re20180613ME$u))
-
-##### Determing marker effects for each trait 2017 
-
 traitME_17<- as.data.frame(gryldME$u)
+
 colnames(traitME_17)<- "GRYLD"
 
 traits<- dat17 %>% 
@@ -294,6 +302,10 @@ for (i in traits) {
 }
 
 ##### Determing marker effects for each trait 2018 
+
+gryldME<- mixed.solve(dat18$GRYLD, Z=snpMatrix18)
+re20180613ME<- mixed.solve(dat18$RE_20180613, Z=snpMatrix18)
+tidy(cor.test(gryldME$u,re20180613ME$u))
 
 traitME_18<- as.data.frame(gryldME$u)
 colnames(traitME_18)<- "GRYLD"
@@ -315,6 +327,19 @@ for (i in traits) {
 beep(3)
 dev.list()
 graphics.off()
+
+##### Looking at the marker effects distributions
+# Trying something.... 
+ggplot(data = traitME_17, aes(x=GRYLD)) +
+  geom_density() +
+  theme_bw() +
+  labs(title = "Marker Effect distribution 2016/2017")
+
+ggplot(data = traitME_18, aes(x=GRYLD)) +
+  geom_density() +
+  theme_bw() +
+  labs(title = "Marker Effect distribution 2017/2018")
+
 ##### Correlation Matrix examination ####
 
 corrMatrix_17<- rcorr(as.matrix(traitME_17))
@@ -424,10 +449,12 @@ correlationME17 %>%
   left_join(correlationsGryld17, by = c("column"="row")) %>% 
   dplyr::rename(CorToGeno=cor.x,Pvalue=p.x,corToPheno=cor.y) %>% 
   tidylog::select(-p.y) %>% 
+  separate(column,c("Trait","Date"), sep = "_") %>% 
   glimpse() %>% 
-  ggplot(aes(x=CorToGeno, y=corToPheno,colour=column)) +
-  geom_point() +
-  #scale_color_viridis(discrete = T) +
+  ggplot(aes(x=CorToGeno, y=corToPheno,colour=Date,shape=Trait)) +
+  geom_point(alpha=0.75,size=3) +
+  scale_color_manual(values = c("#1b9e77","#d95f02","#7570b3","#e7298a",
+                                "#66a61e","#e6ab02","#a6761d","#666666")) +
   theme_bw()  +
   xlim(-1,1) +
   ylim(-1,1) +
@@ -442,10 +469,14 @@ correlationME18 %>%
   left_join(correlationsGryld18, by = c("column"="row")) %>% 
   dplyr::rename(CorToGeno=cor.x,Pvalue=p.x,corToPheno=cor.y) %>% 
   tidylog::select(-p.y) %>% 
+  separate(column,c("Trait","Date"), sep = "_") %>% 
   glimpse() %>% 
-  ggplot(aes(x=CorToGeno, y=corToPheno,colour=column)) +
-  geom_point() +
-  #scale_color_viridis(discrete = T) +
+  ggplot(aes(x=CorToGeno, y=corToPheno,colour=Date,shape=Trait)) +
+  geom_point(alpha=0.75,size=3) +
+  scale_color_manual(values = c("#a6cee3","#1f78b4","#b2df8a","#33a02c",
+                                "#fb9a99","#e31a1c","#fdbf6f","#ff7f00",
+                                '#cab2d6',"#6a3d9a","#ffff4d","#b15928",
+                                "#9a0036","#555555","#2a2a2a")) +
   theme_bw()  +
   xlim(-1,1) +
   ylim(-1,1) +
@@ -473,27 +504,38 @@ pcoOrd_18<- setDT(as.data.frame(pcoord_18$vectors),keep.rownames = T)
 
 pcoOrd_17<- pcoOrd_17 %>% 
   separate(rn,c("Trait","date"),sep = "_")
+pcoOrd_17[1,2]<- "20170613"
 pcoOrd_17 %>% 
   ggplot(aes(x = `Axis.1`, y = `Axis.2`, colour = date, shape = Trait)) +
   geom_point(size = 3) +
   scale_shape_manual(values = c(0,1,19,2,5,6,7)) +
+  scale_color_manual(values = c("#1b9e77","#d95f02","#7570b3",
+                                "#e7298a","#66a61e","#e6ab02","#a6761d",
+                                '#666666',"#000000")) +
   theme_bw() +
   labs(
     title = 
       "Principal Coordinate analysis of genetic distance matrix",
-       subtitle = "2016/2017 season") +
-  theme(axis.text = element_text(size = 10))
+    subtitle = "2016/2017 season") +
+  theme(axis.text = element_text(size = 10)) +
+  coord_fixed(xlim = c(-0.6,0.6),ylim = c(-0.6,0.6))
 
 pcoOrd_18<- pcoOrd_18 %>% 
   separate(rn,c("Trait","date"),sep = "_")
+pcoOrd_18[1,2]<- "20180615"
 pcoOrd_18 %>% 
   ggplot(aes(x = `Axis.1`, y = `Axis.2`, colour = date, shape = Trait)) +
   geom_point(size = 3) +
   scale_shape_manual(values = c(0,1,19,2,5,6,7)) +
+  scale_color_manual(values = c("#a6cee3","#1f78b4","#b2df8a","#33a02c",
+                                "#fb9a99","#e31a1c","#fdbf6f","#ff7f00",
+                                '#cab2d6',"#6a3d9a","#9999ff","#b15928",
+                                "#9a0036","#888888","#2a2a2a","#000000")) +
   theme_bw() +
   labs(title = "Principal Coordinate analysis of genetic distance matrix",
        subtitle = "2017/2018 season") +
-  theme(axis.text = element_text(size = 10))
+  theme(axis.text = element_text(size = 10)) +
+  coord_fixed(xlim = c(-0.6,0.6),ylim = c(-0.6,0.6))
 
 ## Hierarchical clustering
 
@@ -551,14 +593,14 @@ p
 ## Neighbour-joining
 nj_17<- nj(distmat_17)
 plot.phylo(nj_17, type = "phylogram", use.edge.length = F,
-     node.pos = NULL, show.tip.label = TRUE, show.node.label = FALSE,
-     edge.color = "black", edge.width = 1, edge.lty = 1, font = 1,
-     cex = 0.75, adj = NULL, srt = 0, no.margin = T,
-     root.edge = FALSE, label.offset = 0.25, underscore = FALSE,
-     x.lim = NULL, y.lim = NULL, direction = "rightwards",
-     lab4ut = NULL, tip.color = "black", plot = TRUE,
-     rotate.tree = 0, open.angle = 0, node.depth = 1,
-     align.tip.label = T)
+           node.pos = NULL, show.tip.label = TRUE, show.node.label = FALSE,
+           edge.color = "black", edge.width = 1, edge.lty = 1, font = 1,
+           cex = 0.75, adj = NULL, srt = 0, no.margin = T,
+           root.edge = FALSE, label.offset = 0.25, underscore = FALSE,
+           x.lim = NULL, y.lim = NULL, direction = "rightwards",
+           lab4ut = NULL, tip.color = "black", plot = TRUE,
+           rotate.tree = 0, open.angle = 0, node.depth = 1,
+           align.tip.label = T)
 
 
 nj_18<- nj(distmat_18)
@@ -590,10 +632,10 @@ gplots::heatmap.2(as.matrix(distmat_18),
 # Can take a long time
 
 pvClust_17_ward<- pvclust(as.matrix(dat17[,2:ncol(dat17)]), 
-                     method.hclust="ward.D2", 
-                     method.dist="abscor", 
-                     use.cor="pairwise.complete.obs", 
-                     nboot=100000)
+                          method.hclust="ward.D2", 
+                          method.dist="abscor", 
+                          use.cor="pairwise.complete.obs", 
+                          nboot=100000)
 beep(4)
 
 par(mar=c(0.5,2,2,0.25))
@@ -605,10 +647,10 @@ x <- seplot(pvClust_17_ward, identify=TRUE)
 print(pvClust_17_ward, which=x)
 
 pvClust_17_ave<- pvclust(as.matrix(dat17[,2:ncol(dat17)]), 
-                          method.hclust="average", 
-                          method.dist="abscor", 
-                          use.cor="pairwise.complete.obs", 
-                          nboot=100000)
+                         method.hclust="average", 
+                         method.dist="abscor", 
+                         use.cor="pairwise.complete.obs", 
+                         nboot=100000)
 beep(5)
 
 par(mar=c(0.5,2,2,0.25))
@@ -635,10 +677,10 @@ x <- seplot(pvClust_17_com, identify=TRUE)
 print(pvClust_17_com, which=x)
 
 pvClust_18_ward<- pvclust(as.matrix(dat18[,2:ncol(dat18)]),
-                     method.hclust="ward.D2", 
-                     method.dist="abscor", 
-                     use.cor="pairwise.complete.obs", 
-                     nboot=100000)
+                          method.hclust="ward.D2", 
+                          method.dist="abscor", 
+                          use.cor="pairwise.complete.obs", 
+                          nboot=100000)
 beep(7)
 
 par(mar=c(0.5,2,2,0.25))
