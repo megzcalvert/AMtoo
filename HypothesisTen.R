@@ -113,18 +113,6 @@ pheno18<- pheno18 %>%
   distinct() %>% 
   glimpse()
 
-mean(pheno17$GRYLD)
-mean(pheno18$GRYLD)
-
-ggplot(data = pheno17, aes(x=GRYLD)) +
-  geom_density(colour = "red") +
-  geom_vline(xintercept = mean(pheno17$GRYLD),linetype = 2, colour = "red") +
-  geom_density(data = pheno18, aes(x=GRYLD), colour="blue") +
-  geom_vline(xintercept = mean(pheno18$GRYLD),linetype = 2, colour = "blue") +
-  theme_bw() +
-  labs(title = "Distribution of GRYLD over 2016/2017 and 2017/2018",
-       subtitle = "2016/2017-red, 2017/2018-blue")
-
 normalisedPheno17<-mvn(pheno17[,3:51], univariateTest = "SW", desc = T)
 normalisedPheno17$univariateNormality
 normalisedPheno17$multivariateNormality
@@ -330,15 +318,64 @@ graphics.off()
 
 ##### Looking at the marker effects distributions
 # Trying something.... 
+
+ggplot(data = pheno17, aes(x=GRYLD)) +
+  geom_density(colour = "red") +
+  geom_vline(xintercept = mean(pheno17$GRYLD),linetype = 2, colour = "red") +
+  geom_density(data = pheno18, aes(x=GRYLD), colour="blue") +
+  geom_vline(xintercept = mean(pheno18$GRYLD),linetype = 2, colour = "blue") +
+  theme_bw() +
+  labs(title = "Distribution of GRYLD over 2016/2017 and 2017/2018",
+       subtitle = "2016/2017-red, 2017/2018-blue")
+
 ggplot(data = traitME_17, aes(x=GRYLD)) +
   geom_density() +
   theme_bw() +
-  labs(title = "Marker Effect distribution 2016/2017")
+  labs(title = "Marker Effect distribution for GRYLD2016/2017")
 
 ggplot(data = traitME_18, aes(x=GRYLD)) +
   geom_density() +
   theme_bw() +
-  labs(title = "Marker Effect distribution 2017/2018")
+  labs(title = "Marker Effect distribution for GRYLD 2017/2018")
+
+ggplot(data = traitME_17, aes(x=GRYLD)) +
+  geom_density(colour = "red") +
+  geom_density(data = traitME_18, aes(x=GRYLD), colour = "blue") +
+  geom_vline(xintercept = mean(traitME_17$GRYLD), colour = "red") +
+  geom_vline(xintercept = mean(traitME_18$GRYLD), colour = "blue") +
+  theme_bw() +
+  labs(title = "Marker Effect distribution for GRYLD 2016/2017 and 2017/2018",
+       subtitle = "2016/2017 - red, 2017/2018 - blue")
+
+mean(pheno17$GRYLD)
+mean(pheno18$GRYLD)
+var(pheno17$GRYLD)
+var(pheno18$GRYLD)
+
+mean(traitME_17$GRYLD)
+mean(traitME_18$GRYLD)
+var(traitME_17$GRYLD)
+var(traitME_18$GRYLD)
+
+ggplot() +
+  geom_point(aes(x=mean(pheno17$GRYLD), y = mean(traitME_17$GRYLD)),
+             colour = "red") +
+  geom_point(aes(x=mean(pheno18$GRYLD), y = mean(traitME_18$GRYLD)), 
+             colour = "blue") +
+  theme_bw() +
+  labs(x = "mean GRYLD", y = "mean marker effect",
+       title = "Comparison of mean GRYLD and mean marker effect",
+       subtitle = "2016/2017 - red, 2017/2018 - blue")
+
+ggplot() +
+  geom_point(aes(x=mean(pheno17$GRYLD), y = var(traitME_17$GRYLD)),
+             colour = "red") +
+  geom_point(aes(x=mean(pheno18$GRYLD), y = var(traitME_18$GRYLD)), 
+             colour = "blue") +
+  theme_bw() +
+  labs(x = "mean GRYLD", y = "variance of marker effect",
+       title = "Comparison of mean GRYLD and variance of marker effect",
+       subtitle = "2016/2017 - red, 2017/2018 - blue")
 
 ##### Correlation Matrix examination ####
 
@@ -404,13 +441,11 @@ correlationsGryld17<- correlationsPheno17 %>%
   tidylog::filter(column == "GRYLD") %>% 
   tidylog::select(-column)
 unique(correlationsGryld17$row)
-unique(correlationsGryld17$column) 
 
 correlationsGryld18<- correlationsPheno18 %>% 
   tidylog::filter(column == "GRYLD") %>% 
   tidylog::select(-column)
 unique(correlationsGryld18$row)
-unique(correlationsGryld18$column)
 
 correlationME17 %>% 
   tidylog::filter(row == "GRYLD") %>% 

@@ -186,7 +186,7 @@ set.seed(1962)
 
 t17<- asreml(fixed = GRYLD ~ 0 + Variety,
              random = ~ rep + rep:block,
-             data = pheno18clean)
+             data = pheno17)
 plot(t17)
 blues<- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
 blues$rn<- str_remove(blues$rn,"Variety_")
@@ -196,18 +196,18 @@ dat17<- blues %>%
 
 ##### Generating all 2017 VI BLUEs
 
-effectvars <- names(pheno18clean) %in% c("block", "rep", "Variety", "year", 
+effectvars <- names(pheno17) %in% c("block", "rep", "Variety", "year", 
                                     "column","range", "Plot_ID","GRYLD")
-traits <- colnames(pheno18clean[ , !effectvars])
+traits <- colnames(pheno17[ , !effectvars])
 traits
-fieldInfo<- pheno18clean %>% 
+fieldInfo<- pheno17 %>% 
   tidylog::select(Variety, rep, block, column, range)
 
 for (i in traits) {
   print(paste("Working on trait", i))
   j<- i
   
-  data<- cbind(fieldInfo, pheno18clean[,paste(i)])
+  data<- cbind(fieldInfo, pheno17[,paste(i)])
   names(data)<- c("Variety","rep","block","column","range","Trait")
   print(colnames(data))
   
@@ -235,7 +235,7 @@ colnames(snpLines)<- "rn"
 dat17<- semi_join(dat17,snpLines, by = "rn")
 colnames(dat17)[colnames(dat17)=="rn"] <- "Taxa"
 
-write.table(dat17,file = "./Phenotype_Database/ASREMLBlup_2018_clean.txt",quote = F,
+write.table(dat17,file = "./Phenotype_Database/ASREMLBlup_2018.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
 
 numberedCols<- paste(1:(ncol(myGD)-1), sep = ",")
@@ -283,7 +283,7 @@ setwd("~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/")
 
 #Step 1: Set working directory and import data
 myY <- read.table(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2018_clean.txt", head = TRUE)
+  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2017.txt", head = TRUE)
 myY[1:10,1:10]
 
 myGD <- read.table("./myGD.txt", head = TRUE)
@@ -292,15 +292,14 @@ myGM <- read.table("./myGM.txt", head = TRUE)
 myGM[1:5,]
 
 setwd(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/cleanModelSelection2018")
+  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/PC3_2017")
 
 #Step 2: Run GAPIT 
 myGAPIT <- GAPIT(
   Y = myY,
   GD = myGD,
   GM = myGM ,
-  PCA.total = 5,
-  Model.selection = TRUE
+  PCA.total = 3
 )
 
 beep(1)
