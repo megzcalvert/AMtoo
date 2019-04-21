@@ -9,6 +9,8 @@ library(beepr)
 library(rrBLUP)
 library(Hmisc)
 library(MVN)
+library(RColorBrewer)
+library(reshape2)
 
 
 getwd()
@@ -76,50 +78,93 @@ flattenCorrMatrix <- function(cormat, pmat) {
 chrSum
 snpChip[1:5,1:5]
 str(snpChip)
+snpChip$rs_number<- as.character(snpChip$rs_number)
+chromosomes<- 1:21
 
-chr <- 1
+for (i in chromosomes) {
+  chr <- i
+  print(paste("working on ", chr))
+  
+  pos<- snpChip %>% 
+    tidylog::select(rs_number,chrom,pos) %>% 
+    tidylog::filter(chrom == chr) %>% 
+    glimpse()
+  
+  markers<- snpChip %>% 
+    tidylog::filter(chrom == chr) %>% 
+    tidylog::select(-rs_number,-chrom,-pos) %>% 
+    t() %>% 
+    as.matrix()
+  str(markers)
+  
+  rownames(markers) <- c()
+  colnames(markers) <- pos$rs_number
+  
+  c<- rcorr(markers)
+  fltC<- flattenCorrMatrix(c$r,c$P)
+  str(fltC)
+  fltC$row<- as.character(fltC$row)
+  fltC$column<- as.character(fltC$column)
+  
+  fltC<- fltC %>% 
+    inner_join(pos, by = c("row" = "rs_number")) %>% 
+    dplyr::rename(Chr1 = chrom, Pos1 = pos) %>% 
+    inner_join(pos, by = c("column" = "rs_number")) %>% 
+    dplyr::rename(Chr2 = chrom, Pos2 = pos) %>% 
+    mutate(Dist = abs(Pos1 - Pos2))
+  
+  write.table(fltC,paste("./Genotype_Database/MarkerCorrelations_",chr,".txt"),
+              sep = "\t",quote = F,col.names = T,row.names = F)
+  pdf(paste("./Figures/LD/MarkerCorrelationDensity_",chr,".pdf"))
+  d <- ggplot(data = fltC, aes(x = cor)) +
+    geom_density() +
+    theme_bw() +
+    labs(title = paste("Distribution of correlation between markers"),
+         subtitle = paste("Chromosome ",chr))
+  print(d)
+  pdf(paste("./Figures/LD/MarkerCorrelationOverDistance_",chr,".pdf"))
+  ld<- ggplot(data = fltC, aes(x = Dist, y = abs(cor), colour = p)) +
+    geom_point() +
+    theme_bw() + 
+    geom_smooth() +
+    scale_color_gradient2(low = "#762a83",
+                          mid = "#f7f7f7",
+                          high = "#5aae61",
+                          midpoint = 0.25) +
+    labs(title = "Correlation of markers over physical distance",
+         subtitle = paste("Chromosome ",chr))
+  print(ld)
+  
+  c<- cor(markers)
+  
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(cormat){
+    cormat[lower.tri(cormat)]<- NA
+    return(cormat)
+  }
+  
+  upper_tri<- get_upper_tri(c)
+  melted_cormat <- melt(upper_tri, na.rm = TRUE)
+  
+  # Heatmap
+  pdf(paste("./Figures/LD/MarkerCorrelationBlocks_",chr,".pdf"))
+  ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+    geom_tile(color = "white")+
+    scale_fill_gradient2(low = "#000000", high = "#000000", mid = "#ffffff", 
+                         midpoint = 0, limit = c(-1,1), space = "Lab", 
+                         name="Pearson\nCorrelation") +
+    theme_bw()+ 
+    theme(axis.text = element_blank(),
+          panel.grid = element_blank())+
+    coord_fixed() +
+    labs(title = "Marker Correlations by position",
+         subtitle = paste("Chromosome ",chr))
+  dev.off()
+}
 
-pos<- snpChip %>% 
-  tidylog::select(rs_number,chrom,pos) %>% 
-  tidylog::filter(chrom == chr) %>% 
-  glimpse()
+graphics.off()
 
-markers<- snpChip %>% 
-  tidylog::filter(chrom == chr) %>% 
-  tidylog::select(-rs_number,-chrom,-pos) %>% 
-  t() %>% 
-  as.matrix()
 
-rownames(markers) <- c()
-colnames(markers) <- 1:ncol(markers)
 
-c<- rcorr(markers)
-fltC<- flattenCorrMatrix(c$r,c$P)
-fltC$row<- as.integer(fltC$row)
-fltC$column<- as.integer(fltC$column)
-fltC<- fltC %>% 
-  inner_join(pos, by = c("row" = "rs_number")) %>% 
-  dplyr::rename(Chr1 = chrom, Pos1 = pos) %>% 
-  inner_join(pos, by = c("column" = "rs_number")) %>% 
-  dplyr::rename(Chr2 = chrom, Pos2 = pos) %>% 
-  mutate(Dist = abs(Pos1 - Pos2)) %>% 
-  glimpse()
-fltC %>% 
-  ggplot(aes(x = cor)) +
-  geom_density() +
-  theme_bw() +
-  labs(title = paste("Distribution of correlation between markers"),
-       subtitle = paste("Chromosome ",chr))
-fltC %>% 
-  ggplot(aes(x = Dist, y = abs(cor), colour = p)) +
-  geom_point() +
-  theme_bw() + 
-  geom_smooth() +
-  scale_color_gradient2(low = "#762a83",
-                        mid = "#f7f7f7",
-                        high = "#5aae61",
-                        midpoint = 0.25) +
-  labs(title = "Correlation of markers over physical distance",
-       subtitle = paste("Chromosome ",chr))
 
 
