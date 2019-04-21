@@ -357,6 +357,9 @@ mean(traitME_18$GRYLD)
 var(traitME_17$GRYLD)
 var(traitME_18$GRYLD)
 
+t.test(traitME_17$GRYLD,traitME_18$GRYLD)
+t.test(pheno17$GRYLD,pheno18$GRYLD)
+
 ggplot() +
   geom_point(aes(x=mean(pheno17$GRYLD), y = mean(traitME_17$GRYLD)),
              colour = "red") +

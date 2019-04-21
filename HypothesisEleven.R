@@ -165,8 +165,8 @@ boxplot.stats(pheno18NormT$GNDVI_20171120)$out
 pheno18clean<- pheno18 %>% 
   tidylog::select(Plot_ID,Variety,block,rep,range,column) %>% 
   bind_cols(pheno18NormT)
-  
-  pheno18clean[,7:ncol(pheno18clean)]<- as.data.frame(
+
+pheno18clean[,7:ncol(pheno18clean)]<- as.data.frame(
   lapply(pheno18clean[,7:ncol(pheno18clean)],remove_outliers))
 pheno18NormTclean<- pheno18clean %>% 
   tidylog::select(-Plot_ID,-Variety,-block,-rep,-range,-column)
@@ -174,9 +174,8 @@ norm18clean<- mvn(pheno18NormTclean)
 norm18clean$univariateNormality
 boxplot.stats(pheno18NormTclean$GRYLD)$out
 boxplot.stats(pheno18NormTclean$GNDVI_20171120)$out
-  
-##### ASREML BLUEs ####
 
+##### ASREML BLUEs ####
 
 asreml.license.status()
 
@@ -226,6 +225,51 @@ for (i in traits) {
 beep(2)
 
 dat17[1:5,1:15]
+
+#### All of 2018
+t18<- asreml(fixed = GRYLD ~ 0 + Variety,
+             random = ~ rep + rep:block,
+             data = pheno18)
+plot(t18)
+blues<- setDT(as.data.frame(coef(t18)$fixed), keep.rownames = T)
+blues$rn<- str_remove(blues$rn,"Variety_")
+dat18<- blues %>% 
+  rename(GRYLD = effect) %>% 
+  glimpse() 
+
+##### Generating all 2018 VI BLUEs
+
+effectvars <- names(pheno18) %in% c("block", "rep", "Variety", "year", 
+                                    "column","range", "Plot_ID","GRYLD")
+traits <- colnames(pheno18[ , !effectvars])
+traits
+fieldInfo<- pheno18 %>% 
+  tidylog::select(Variety, rep, block, column, range)
+
+for (i in traits) {
+  print(paste("Working on trait", i))
+  j<- i
+  
+  data<- cbind(fieldInfo, pheno18[,paste(i)])
+  names(data)<- c("Variety","rep","block","column","range","Trait")
+  print(colnames(data))
+  
+  t18<- asreml(fixed = Trait ~ 0 + Variety,
+               random = ~ rep + rep:block,
+               data = data)
+  
+  blues<- setDT(as.data.frame(coef(t18)$fixed), keep.rownames = T)
+  blues$rn<- str_remove(blues$rn,"Variety_")
+  colnames(blues)[colnames(blues)=="effect"] <- paste(i)
+  dat18<- blues %>% 
+    inner_join(dat18)
+  
+}
+
+beep(2)
+
+dat18[1:5,1:15]
+
 snpChip[1:10,1:10]
 snpMatrix[1:10,1:10]
 
@@ -235,7 +279,12 @@ colnames(snpLines)<- "rn"
 dat17<- semi_join(dat17,snpLines, by = "rn")
 colnames(dat17)[colnames(dat17)=="rn"] <- "Taxa"
 
-write.table(dat17,file = "./Phenotype_Database/ASREMLBlup_2018.txt",quote = F,
+dat18<- semi_join(dat18,snpLines, by = "rn")
+colnames(dat18)[colnames(dat18)=="rn"] <- "Taxa"
+
+write.table(dat17,file = "./Phenotype_Database/ASREMLBlup_2017.txt",quote = F,
+            sep = "\t",row.names = F,col.names = T)
+write.table(dat18,file = "./Phenotype_Database/ASREMLBlup_2018.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
 
 numberedCols<- paste(1:(ncol(myGD)-1), sep = ",")
@@ -249,6 +298,108 @@ write.table(myGD,"./R/Gapit/HypothesisEleven/myGD.txt",sep = "\t", quote = F,
             col.names = T, row.names = F)
 write.table(myGM,"./R/Gapit/HypothesisEleven/myGM.txt",sep = "\t", quote = F,
             col.names = T, row.names = F)
+
+##### LD analysis ####
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+  )
+}
+
+LDmatrix<- read.table("./R/Gapit/HypothesisEleven/myGD.txt", header = T)
+LDmatrix[1:10,1:10]
+LDmatrix<- LDmatrix %>% 
+  tidylog::select(-Taxa) %>% 
+  as.matrix() %>% 
+  glimpse()
+
+positionMarkers <- read.table("./R/Gapit/HypothesisEleven/myGM.txt", head = TRUE)
+positionMarkers[1:5,]
+
+ch1Asnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 1)
+ch1Bsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 2)
+ch1Dsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 3)
+ch2Asnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 4)
+ch2Bsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 5)
+ch2Dsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 6) 
+ch3Asnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 7)
+ch3Bsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 8)
+ch3Dsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 9)
+ch4Asnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 10)
+ch4Bsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 11)
+ch4Dsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 12)
+ch5Asnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 13)
+ch5Bsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 14)
+ch5Dsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 15)
+ch6Asnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 16)
+ch6Bsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 17)
+ch6Dsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 18)
+ch7Asnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 19)
+ch7Bsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 20)
+ch7Dsnps<- positionMarkers %>% 
+  tidylog::filter(Chromosome == 21)
+
+snps<- as.vector(sort(ch7Bsnps$Name))
+snps
+
+snpMatrix<- LDmatrix[,snps]
+snpMatrix[1:5,1:5]
+dim(snpMatrix)
+
+corrMatrix<- rcorr(snpMatrix)
+
+ch7B<- flattenCorrMatrix(corrMatrix$r,corrMatrix$P)
+ch7B %>% ggplot(aes(x = cor)) +
+  geom_density() +
+  theme_bw() +
+  labs(main = paste("Correltation between markers ch7B"))
+
+ch7B<- ch7B %>% 
+  inner_join(positionMarkers, by = c("row" = "Name")) %>% 
+  dplyr::rename(Chr1 = Chromosome, Pos1 = Position)
+
+ch7B<- ch7B %>% 
+  inner_join(positionMarkers, by = c("column" = "Name")) %>% 
+  dplyr::rename(Chr2 = Chromosome, Pos2 = Position) %>% 
+  mutate(Dist = Pos2 - Pos1)
+
+ch7B %>%  ggplot(aes(x = abs(Dist), y = abs(cor),
+                     colour = p)) +
+  geom_point(alpha = 0.25) +
+  geom_smooth() +
+  theme_bw() +
+  scale_color_gradient2(low = "#8e0152",
+                        high = "#276419",
+                        mid = "#f7f7f7",
+                        midpoint = 0.25) +
+  labs(x = "Distance separating markers",
+       y = "Correlation coefficient",
+       title = "Correlation between genetic markers",
+       subtitle = "Chromosome 7B") 
 
 ##### GAPIT Trial ####
 
