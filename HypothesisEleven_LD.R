@@ -115,14 +115,19 @@ for (i in chromosomes) {
   
   write.table(fltC,paste("./Genotype_Database/MarkerCorrelations_",chr,".txt"),
               sep = "\t",quote = F,col.names = T,row.names = F)
-  pdf(paste("./Figures/LD/MarkerCorrelationDensity_",chr,".pdf"))
+  
+  png(paste("./Figures/LD/MarkerCorrelationDensity_",chr,".png"),
+      width = 1200, height = 1000, units = "px")
+  #pdf(paste("./Figures/LD/MarkerCorrelationDensity_",chr,".pdf"))
   d <- ggplot(data = fltC, aes(x = cor)) +
     geom_density() +
     theme_bw() +
     labs(title = paste("Distribution of correlation between markers"),
          subtitle = paste("Chromosome ",chr))
   print(d)
-  pdf(paste("./Figures/LD/MarkerCorrelationOverDistance_",chr,".pdf"))
+  png(paste("./Figures/LD/MarkerCorrelationOverDistance_",chr,".png"),
+      width = 1200, height = 1000, units = "px")
+  #pdf(paste("./Figures/LD/MarkerCorrelationOverDistance_",chr,".pdf"))
   ld<- ggplot(data = fltC, aes(x = Dist, y = abs(cor), colour = p)) +
     geom_point() +
     theme_bw() + 
@@ -135,36 +140,56 @@ for (i in chromosomes) {
          subtitle = paste("Chromosome ",chr))
   print(ld)
   
-  c<- cor(markers)
-  
-  # Get upper triangle of the correlation matrix
-  get_upper_tri <- function(cormat){
-    cormat[lower.tri(cormat)]<- NA
-    return(cormat)
-  }
-  
-  upper_tri<- get_upper_tri(c)
-  melted_cormat <- melt(upper_tri, na.rm = TRUE)
-  
-  # Heatmap
-  pdf(paste("./Figures/LD/MarkerCorrelationBlocks_",chr,".pdf"))
-  ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
-    geom_tile(color = "white")+
-    scale_fill_gradient2(low = "#000000", high = "#000000", mid = "#ffffff", 
-                         midpoint = 0, limit = c(-1,1), space = "Lab", 
-                         name="Pearson\nCorrelation") +
-    theme_bw()+ 
-    theme(axis.text = element_blank(),
-          panel.grid = element_blank())+
-    coord_fixed() +
-    labs(title = "Marker Correlations by position",
-         subtitle = paste("Chromosome ",chr))
   dev.off()
 }
 
 graphics.off()
 
+chr<- 21
 
+pos<- snpChip %>% 
+  tidylog::select(rs_number,chrom,pos) %>% 
+  tidylog::filter(chrom == chr) %>% 
+  glimpse()
 
+markers<- snpChip %>% 
+  tidylog::filter(chrom == chr) %>% 
+  tidylog::select(-rs_number,-chrom,-pos) %>% 
+  t() %>% 
+  as.matrix()
+str(markers)
+
+rownames(markers) <- c()
+colnames(markers) <- pos$rs_number
+
+c<- cor(markers)
+
+# Get upper triangle of the correlation matrix
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+
+upper_tri<- get_upper_tri(c)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+
+# Heatmap
+png(paste("./Figures/LD/MarkerCorrelationBlocks_",chr,".png"),
+    width = 1200, height = 1000, units = "px")
+
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "#00441b", high = "#40004b", mid = "#f7f7f7", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation") +
+  theme_bw() + 
+  theme(axis.text = element_blank(),
+        panel.grid = element_blank()) +
+  scale_x_continuous(breaks = seq(1,1500,250) ) +
+  scale_y_continuous(breaks = seq(1,1500,250)) +
+  coord_fixed() +
+  labs(title = "Marker Correlations by position",
+       subtitle = paste("Chromosome ",chr))
+dev.off()
 
 

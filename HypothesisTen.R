@@ -23,7 +23,6 @@ library(RColorBrewer)
 
 getwd()
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")
-dev.off()
 
 snpChip <- read_delim(
   "./Genotype_Database/90KsnpChipHapMap/AMsnpChipImputed.hmp.txt", 
@@ -113,14 +112,14 @@ pheno18<- pheno18 %>%
   distinct() %>% 
   glimpse()
 
-normalisedPheno17<-mvn(pheno17[,3:51], univariateTest = "SW", desc = T)
-normalisedPheno17$univariateNormality
-normalisedPheno17$multivariateNormality
-normalisedPheno17$Descriptives
-normalisedPheno18<-mvn(pheno18[,3:93], univariateTest = "SW", desc = T) 
-normalisedPheno18$univariateNormality
-normalisedPheno18$multivariateNormality
-normalisedPheno18$Descriptives
+# normalisedPheno17<-mvn(pheno17[,3:51], univariateTest = "SW", desc = T)
+# normalisedPheno17$univariateNormality
+# normalisedPheno17$multivariateNormality
+# normalisedPheno17$Descriptives
+# normalisedPheno18<-mvn(pheno18[,3:93], univariateTest = "SW", desc = T) 
+# normalisedPheno18$univariateNormality
+# normalisedPheno18$multivariateNormality
+# normalisedPheno18$Descriptives
 
 pheno17$Plot_ID<- as.factor(pheno17$Plot_ID)
 pheno17$Variety<- as.factor(pheno17$Variety)
@@ -241,6 +240,66 @@ dat18[1:5,1:15]
 beep(2)
 
 par(mar=c(1,1,1,1))
+
+
+##### Select in 2016/2017 and see what happens in 2017/2018 ####
+# Using NDVI_20170512 for the selection
+dat17 %>% 
+  ggplot(aes(x = NDVI_20170512)) +
+  geom_density() +
+  geom_vline(xintercept = mean(dat17$NDVI_20170512), linetype = 2) +
+  theme_bw()
+
+NDVI0512_top<- dat17 %>% 
+  dplyr::arrange(desc(NDVI_20170512)) %>% 
+  tidylog::select(rn,GRYLD,NDVI_20170512)
+0.05*nrow(dat17)
+NDVI0512_top<- NDVI0512_top[1:round(0.05*nrow(dat17)),]
+
+dat17 %>% 
+  ggplot(aes(x = NDVI_20170512)) +
+  geom_density() +
+  geom_vline(xintercept = mean(dat17$NDVI_20170512), linetype = 2) +
+  geom_vline(xintercept = mean(NDVI0512_top$NDVI_20170512), colour = "blue",
+             linetype = 2) +
+  geom_vline(xintercept = min(NDVI0512_top$NDVI_20170512), colour = "blue") +
+  theme_bw() +
+  labs(title = "Distribution of NDVI_20170512", 
+       subtitle = "All lines - black, top 5% of NDVI_20170512 - blue")
+
+dat17 %>% 
+  ggplot(aes(x = GRYLD)) +
+  geom_density() +
+  geom_density(data = NDVI0512_top,aes(x = GRYLD), colour = "blue") +
+  geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2) +
+  geom_vline(xintercept = mean(NDVI0512_top$GRYLD), linetype = 2, 
+             colour = "blue") +
+  geom_vline(xintercept = min(NDVI0512_top$GRYLD), colour = "blue") +
+  geom_vline(xintercept = max(NDVI0512_top$GRYLD), colour = "blue") +
+  theme_bw() +
+  labs(title = "Distribution of GRYLD in 2016/2017", 
+       subtitle = "All lines - black, lines selected from NDVI_20170512 - blue")
+
+ndviSelect<- NDVI0512_top %>% 
+  left_join(dat18, by = "rn") %>% 
+  tidylog::select(rn,GRYLD.x,NDVI_20170512,GRYLD.y) %>% 
+  glimpse
+
+dat18 %>% 
+  ggplot(aes(x = GRYLD)) +
+  geom_density() +
+  geom_density(data = ndviSelect,aes(x = GRYLD.y), colour = "blue") +
+  geom_vline(xintercept = mean(dat18$GRYLD), linetype = 2) +
+  geom_vline(xintercept = mean(ndviSelect$GRYLD.y), linetype = 2, 
+             colour = "blue") +
+  geom_vline(xintercept = mean(ndviSelect$GRYLD.x), linetype = 2, 
+             colour = "#737373") +
+  theme_bw() +
+  labs(title = "Distribution of GRYLD in 2017/2018", 
+       subtitle = "All lines - black, lines selected from NDVI_20170512 - blue, mean from 2016/2017 - grey")
+mean(ndviSelect$GRYLD.x)
+mean(ndviSelect$GRYLD.y)
+t.test(dat18$GRYLD,ndviSelect$GRYLD.y)
 
 ###############################################################
 ####                    rrBlup trial                      ####
@@ -574,6 +633,39 @@ pcoOrd_18 %>%
        subtitle = "2017/2018 season") +
   theme(axis.text = element_text(size = 10)) +
   coord_fixed(xlim = c(-0.6,0.6),ylim = c(-0.6,0.6))
+
+group1_18<- pcoOrd_18 %>% 
+  filter(Axis.1 > 0.04 & Axis.2 > -0.19 & Axis.2 < 0.25) %>% 
+  dplyr::select(Trait,date) %>% 
+  unite("trait", c("Trait","date"), sep = "_")
+
+group2_18<- pcoOrd_18 %>% 
+  filter(Axis.1 < 0.04 & Axis.2 > 0) %>% 
+  dplyr::select(Trait,date) %>% 
+  unite("trait", c("Trait","date"), sep = "_")
+
+group3_18<- pcoOrd_18 %>% 
+  filter(Axis.1 < 0.1 & Axis.2 < 0) %>% 
+  dplyr::select(Trait,date) %>% 
+  unite("trait", c("Trait","date"), sep = "_")
+
+group1_18[group1_18 == "GRYLD_20180615"] = "GRYLD"
+
+group1ME_18<- traitME_18 %>% 
+  dplyr::select(group1_18$trait) %>% 
+  as.matrix()
+group2ME_18<- traitME_18 %>% 
+  dplyr::select(group2_18$trait) %>% 
+  as.matrix()
+group3ME_18<- traitME_18 %>% 
+  dplyr::select(group3_18$trait) %>% 
+  as.matrix()
+
+group1Cor_18<- cor(group1ME_18)
+group2Cor_18<- cor(group2ME_18)
+group3Cor_18<- cor(group3ME_18)
+
+#mantel.test(group1Cor_18, group2Cor_18, graph = T)
 
 ## Hierarchical clustering
 
