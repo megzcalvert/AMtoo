@@ -145,7 +145,7 @@ for (i in chromosomes) {
 
 graphics.off()
 
-chr<- 21
+chr<- 1
 
 pos<- snpChip %>% 
   tidylog::select(rs_number,chrom,pos) %>% 
@@ -173,9 +173,20 @@ get_upper_tri <- function(cormat){
 upper_tri<- get_upper_tri(c)
 melted_cormat <- melt(upper_tri, na.rm = TRUE)
 
+str(melted_cormat)
+
+# melted_cormat$Var1<- as.character(melted_cormat$Var1)
+# melted_cormat$Var2<- as.character(melted_cormat$Var2)
+# melted_cormat<- melted_cormat %>% 
+#   inner_join(pos, by = c("Var1" = "rs_number")) %>% 
+#   dplyr::rename(Chr1 = chrom, Pos1 = pos) %>% 
+#   inner_join(pos, by = c("Var2" = "rs_number")) %>% 
+#   dplyr::rename(Chr2 = chrom, Pos2 = pos) %>% 
+#   glimpse()
+
 # Heatmap
-png(paste("./Figures/LD/MarkerCorrelationBlocks_",chr,".png"),
-    width = 1200, height = 1000, units = "px")
+#png(paste("./Figures/LD/MarkerCorrelationBlocks_",chr,".png"),
+#    width = 1200, height = 1000, units = "px")
 
 ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
   geom_tile(color = "white") +
@@ -185,11 +196,10 @@ ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
   theme_bw() + 
   theme(axis.text = element_blank(),
         panel.grid = element_blank()) +
-  scale_x_continuous(breaks = seq(1,1500,250) ) +
-  scale_y_continuous(breaks = seq(1,1500,250)) +
   coord_fixed() +
   labs(title = "Marker Correlations by position",
        subtitle = paste("Chromosome ",chr))
-dev.off()
+
+#dev.off()
 
 

@@ -141,11 +141,32 @@ asreml.license.status()
 
 set.seed(1962)
 
+pheno17<- pheno17 %>% 
+  semi_join(snpMatrix, by = c("Variety" = "rn"))
+
+snpMatrix17<- snpMatrix %>% 
+  semi_join(pheno17,by = c("rn" = "Variety")) 
+
+snpLines<- snpMatrix17$rn
+snpMatrix17<- snpMatrix17 %>% 
+  tidylog::select(-rn)
+relMat<- A.mat(snpMatrix17)
+colnames(relMat)<- snpLines
+rownames(relMat)<- snpLines
+relMat[1:5,1:5]
+str(relMat)
+relMat<- ginv(relMat)
+relMat[1:5,1:5]
+str(relMat)
+rownames(relMat)<- snpLines
+colnames(relMat)<- snpLines
+
 par(mar=c(1,1,1,1))
 
-t17<- asreml(fixed = GRYLD ~ 0 + Variety,
-             random = ~ rep + rep:block,
+t17<- asreml(fixed = GRYLD ~ 1 + Variety,
+             random = ~ rep + rep:block, #+ vm(Variety,relMat,singG="PSD")
              data = pheno17)
+summary(t17)
 plot(t17)
 blues<- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
 blues$rn<- str_remove(blues$rn,"Variety_")
@@ -250,19 +271,20 @@ dat17 %>%
   geom_vline(xintercept = mean(dat17$NDVI_20170512), linetype = 2) +
   theme_bw()
 
-NDVI0512_top<- dat17 %>% 
-  dplyr::arrange(desc(NDVI_20170512)) %>% 
-  tidylog::select(rn,GRYLD,NDVI_20170512)
+ndvi0512_top<- dat17 %>% 
+  dplyr::arrange(desc(NDVI_20170512)) %>% #use desc() if you want highest to lowest
+  tidylog::select(rn,GRYLD,NDVI_20170512) %>% 
+  glimpse()
 0.05*nrow(dat17)
-NDVI0512_top<- NDVI0512_top[1:round(0.05*nrow(dat17)),]
+ndvi0512_top<- ndvi0512_top[1:round(0.05*nrow(dat17)),]
 
 dat17 %>% 
   ggplot(aes(x = NDVI_20170512)) +
   geom_density() +
   geom_vline(xintercept = mean(dat17$NDVI_20170512), linetype = 2) +
-  geom_vline(xintercept = mean(NDVI0512_top$NDVI_20170512), colour = "blue",
+  geom_vline(xintercept = mean(ndvi0512_top$NDVI_20170512), colour = "blue",
              linetype = 2) +
-  geom_vline(xintercept = min(NDVI0512_top$NDVI_20170512), colour = "blue") +
+  geom_vline(xintercept = min(ndvi0512_top$NDVI_20170512), colour = "blue") +
   theme_bw() +
   labs(title = "Distribution of NDVI_20170512", 
        subtitle = "All lines - black, top 5% of NDVI_20170512 - blue")
@@ -270,17 +292,17 @@ dat17 %>%
 dat17 %>% 
   ggplot(aes(x = GRYLD)) +
   geom_density() +
-  geom_density(data = NDVI0512_top,aes(x = GRYLD), colour = "blue") +
+  geom_density(data = ndvi0512_top,aes(x = GRYLD), colour = "blue") +
   geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2) +
-  geom_vline(xintercept = mean(NDVI0512_top$GRYLD), linetype = 2, 
+  geom_vline(xintercept = mean(ndvi0512_top$GRYLD), linetype = 2, 
              colour = "blue") +
-  geom_vline(xintercept = min(NDVI0512_top$GRYLD), colour = "blue") +
-  geom_vline(xintercept = max(NDVI0512_top$GRYLD), colour = "blue") +
+  #geom_vline(xintercept = min(RE0512_top$GRYLD), colour = "blue") +
+  #geom_vline(xintercept = max(RE0512_top$GRYLD), colour = "blue") +
   theme_bw() +
   labs(title = "Distribution of GRYLD in 2016/2017", 
        subtitle = "All lines - black, lines selected from NDVI_20170512 - blue")
 
-ndviSelect<- NDVI0512_top %>% 
+ndviSelect<- ndvi0512_top %>% 
   left_join(dat18, by = "rn") %>% 
   tidylog::select(rn,GRYLD.x,NDVI_20170512,GRYLD.y) %>% 
   glimpse
@@ -300,6 +322,67 @@ dat18 %>%
 mean(ndviSelect$GRYLD.x)
 mean(ndviSelect$GRYLD.y)
 t.test(dat18$GRYLD,ndviSelect$GRYLD.y)
+
+# Check RedEdge because it's opposite
+dat17 %>% 
+  ggplot(aes(x = RedEdge_20170512)) +
+  geom_density() +
+  geom_vline(xintercept = mean(dat17$RedEdge_20170512), linetype = 2) +
+  theme_bw()
+
+RE0512_top<- dat17 %>% 
+  dplyr::arrange(RedEdge_20170512) %>% #use desc() if you want highest to lowest
+  tidylog::select(rn,GRYLD,RedEdge_20170512) %>% 
+  glimpse()
+0.05*nrow(dat17)
+RE0512_top<- RE0512_top[1:round(0.05*nrow(dat17)),]
+
+dat17 %>% 
+  ggplot(aes(x = RedEdge_20170512)) +
+  geom_density() +
+  geom_vline(xintercept = mean(dat17$RedEdge_20170512), linetype = 2) +
+  geom_vline(xintercept = mean(RE0512_top$RedEdge_20170512), colour = "blue",
+             linetype = 2) +
+  geom_vline(xintercept = max(RE0512_top$RedEdge_20170512), colour = "blue") +
+  theme_bw() +
+  labs(title = "Distribution of RedEdge_20170512", 
+       subtitle = "All lines - black, lowest 5% of RedEdge_20170512 - blue")
+
+dat17 %>% 
+  ggplot(aes(x = GRYLD)) +
+  geom_density() +
+  geom_density(data = RE0512_top,aes(x = GRYLD), colour = "blue") +
+  geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2) +
+  geom_vline(xintercept = mean(RE0512_top$GRYLD), linetype = 2, 
+             colour = "blue") +
+  #geom_vline(xintercept = min(RE0512_top$GRYLD), colour = "blue") +
+  #geom_vline(xintercept = max(RE0512_top$GRYLD), colour = "blue") +
+  theme_bw() +
+  labs(title = "Distribution of GRYLD in 2016/2017", 
+       subtitle = "All lines - black, lines selected from RedEdge_20170512 - blue")
+
+reSelect<- RE0512_top %>% 
+  left_join(dat18, by = "rn") %>% 
+  tidylog::select(rn,GRYLD.x,RedEdge_20170512,GRYLD.y) %>% 
+  glimpse
+
+dat18 %>% 
+  ggplot(aes(x = GRYLD)) +
+  geom_density() +
+  geom_density(data = reSelect,aes(x = GRYLD.y), colour = "blue") +
+  geom_vline(xintercept = mean(dat18$GRYLD), linetype = 2) +
+  geom_vline(xintercept = mean(reSelect$GRYLD.y), linetype = 2, 
+             colour = "blue") +
+  geom_vline(xintercept = mean(reSelect$GRYLD.x), linetype = 2, 
+             colour = "#737373") +
+  theme_bw() +
+  labs(title = "Distribution of GRYLD in 2017/2018", 
+       subtitle = "All lines - black, lines selected from RedEdge_20170512 - blue, mean from 2016/2017 - grey")
+mean(reSelect$GRYLD.x)
+mean(reSelect$GRYLD.y)
+t.test(dat18$GRYLD,reSelect$GRYLD.y)
+t.test(reSelect$GRYLD.y,ndviSelect$GRYLD.y)
+t.test(reSelect$GRYLD.x,ndviSelect$GRYLD.x)
 
 ###############################################################
 ####                    rrBlup trial                      ####
@@ -438,6 +521,7 @@ ggplot() +
   labs(x = "mean GRYLD", y = "variance of marker effect",
        title = "Comparison of mean GRYLD and variance of marker effect",
        subtitle = "2016/2017 - red, 2017/2018 - blue")
+
 
 ##### Correlation Matrix examination ####
 

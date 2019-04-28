@@ -68,6 +68,7 @@ pheno18$range<- as.factor(pheno18$range)
 pheno18$column<- as.factor(pheno18$column)
 
 #2017 trial
+
 # Without the auto-reggression correlation
 
 asreml.license.status()
