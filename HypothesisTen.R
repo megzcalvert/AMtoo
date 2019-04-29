@@ -80,6 +80,10 @@ phenoLong<- fread("./Phenotype_Database/Pheno_Long1718.txt")
 glimpse(pheno17)
 glimpse(pheno18)
 glimpse(phenoLong)
+#pheno17$GRYLD<- as.numeric(pheno17$GRYLD)
+
+mean(pheno17$GRYLD)
+Matrix::mean(pheno18$GRYLD)
 
 phenoLong<- phenoLong %>% 
   dplyr::rename(Plot_ID = entity_id) %>% 
@@ -150,20 +154,21 @@ snpMatrix17<- snpMatrix %>%
 snpLines<- snpMatrix17$rn
 snpMatrix17<- snpMatrix17 %>% 
   tidylog::select(-rn)
-relMat<- A.mat(snpMatrix17)
-colnames(relMat)<- snpLines
-rownames(relMat)<- snpLines
-relMat[1:5,1:5]
-str(relMat)
-relMat<- ginv(relMat)
-relMat[1:5,1:5]
-str(relMat)
-rownames(relMat)<- snpLines
-colnames(relMat)<- snpLines
+# relMat<- A.mat(snpMatrix17)
+# colnames(relMat)<- snpLines
+# rownames(relMat)<- snpLines
+# relMat[1:5,1:5]
+# str(relMat)
+# relMat<- ginv(relMat)
+# relMat[1:5,1:5]
+# str(relMat)
+# rownames(relMat)<- snpLines
+# colnames(relMat)<- snpLines
 
 par(mar=c(1,1,1,1))
+mean(pheno17$GRYLD)
 
-t17<- asreml(fixed = GRYLD ~ 1 + Variety,
+t17<- asreml(fixed = GRYLD ~ 0 + Variety,
              random = ~ rep + rep:block, #+ vm(Variety,relMat,singG="PSD")
              data = pheno17)
 summary(t17)
@@ -206,9 +211,10 @@ for (i in traits) {
   
 }
 
-dat17[1:5,1:15]
+#dat17[1:5,1:15]
 
 dev.off()
+graphics.off()
 
 beep()
 
@@ -275,6 +281,7 @@ ndvi0512_top<- dat17 %>%
   dplyr::arrange(desc(NDVI_20170512)) %>% #use desc() if you want highest to lowest
   tidylog::select(rn,GRYLD,NDVI_20170512) %>% 
   glimpse()
+
 0.05*nrow(dat17)
 ndvi0512_top<- ndvi0512_top[1:round(0.05*nrow(dat17)),]
 
@@ -314,14 +321,18 @@ dat18 %>%
   geom_vline(xintercept = mean(dat18$GRYLD), linetype = 2) +
   geom_vline(xintercept = mean(ndviSelect$GRYLD.y), linetype = 2, 
              colour = "blue") +
-  geom_vline(xintercept = mean(ndviSelect$GRYLD.x), linetype = 2, 
+  geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2, 
              colour = "#737373") +
   theme_bw() +
   labs(title = "Distribution of GRYLD in 2017/2018", 
        subtitle = "All lines - black, lines selected from NDVI_20170512 - blue, mean from 2016/2017 - grey")
 mean(ndviSelect$GRYLD.x)
 mean(ndviSelect$GRYLD.y)
+mean(dat17$GRYLD)
+mean(dat18$GRYLD)
+
 t.test(dat18$GRYLD,ndviSelect$GRYLD.y)
+t.test(dat18$GRYLD,dat17$GRYLD)
 
 # Check RedEdge because it's opposite
 dat17 %>% 
@@ -373,7 +384,7 @@ dat18 %>%
   geom_vline(xintercept = mean(dat18$GRYLD), linetype = 2) +
   geom_vline(xintercept = mean(reSelect$GRYLD.y), linetype = 2, 
              colour = "blue") +
-  geom_vline(xintercept = mean(reSelect$GRYLD.x), linetype = 2, 
+  geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2, 
              colour = "#737373") +
   theme_bw() +
   labs(title = "Distribution of GRYLD in 2017/2018", 
@@ -522,6 +533,8 @@ ggplot() +
        title = "Comparison of mean GRYLD and variance of marker effect",
        subtitle = "2016/2017 - red, 2017/2018 - blue")
 
+# Correlation between ME for GRYLD in different years
+tidy(rcorr(traitME_17$GRYLD,traitME_18$GRYLD))
 
 ##### Correlation Matrix examination ####
 

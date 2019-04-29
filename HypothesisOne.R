@@ -117,12 +117,9 @@ pheno_long<- pheno_long %>%
 finalNames<- tabyl(pheno_long$Variety)
 
 str(pheno_long)
-knitr::kable(tabyl(pheno_long$trait_id), 
-             caption = "Final number of observations per traits")
-knitr::kable(tabyl(pheno_long$rep), 
-             caption = "Final number of observations per rep")
-knitr::kable(tabyl(pheno_long$year), 
-             caption = "Final number of observations per year")
+tabyl(pheno_long$trait_id)
+tabyl(pheno_long$rep)
+tabyl(pheno_long$year)
 
 ### Conversion to Wide format
 

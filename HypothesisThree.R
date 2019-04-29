@@ -483,14 +483,18 @@ VarGryldVI17 %>%
   geom_point() +
   facet_wrap(~VI, scales = "free") +
   scale_color_gradient(low = "#e41a1c", high = "#000000") + 
-  theme_bw()
+  theme_bw() +
+  labs(title = bquote(R^2~' for linear regression models explaining GRYLD'),
+       subtitle = "2016/2017 season")
 
 VarGryldVI18 %>% 
   ggplot(aes(x = Date, y = adj.r.squared, colour = p.value)) +
   geom_point() +
   facet_wrap(~VI, scales = "free") +
   scale_color_gradient(low = "#e41a1c", high = "#000000") + 
-  theme_bw()
+  theme_bw() +
+  labs(title = bquote(R^2~' for linear regression models explaining GRYLD'),
+       subtitle = "2017/2018 season")
 
 write.table(VarGryldVI17, "./Phenotype_Database/linearRegression_VIbyDate17.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
