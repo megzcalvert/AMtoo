@@ -380,12 +380,16 @@ traits
 #png(filename = "./R/rrBlup/HypothesisEleven/Plot_2017.png")
 for (i in traits) {
   print(paste("working on ", i))
+  
+  dat<- dat17 %>% 
+    tidylog::select("Taxa", paste(i))
+  
   png(filename = 
-        paste0("./R/rrBlup/HypothesisEleven/",i,"_2017_3PC.png"))
-  res<- GWAS(pheno = dat17[,c("Taxa",paste(i))], 
+        paste0("./R/rrBlup/HypothesisEleven/PC3_2017/",i,"_2017_3PC.png"))
+  res<- GWAS(pheno = dat, 
              geno = snpRR, n.PC = 3)
   dev.off()
-  write.table(res,file = paste0("~/Dropbox/Research_Poland_Lab/AM Panel/R/rrBlup/HypothesisEleven/",
+  write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC3_2017/",
                                 i,"_2017_3PC.txt"), quote = F, sep = "\t", 
               row.names = F,col.names = T)
 }
@@ -394,15 +398,19 @@ effectvars <- names(dat18) %in% c("Taxa")
 traits <- colnames(dat18[ , !effectvars])
 traits
 
-#png(filename = "./R/rrBlup/HypothesisEleven/Plot_2017.png")
+
 for (i in traits) {
   print(paste("working on ", i))
+  
+  dat<- dat18 %>% 
+    tidylog::select("Taxa", paste(i))
+  
   png(filename = 
-        paste0("./R/rrBlup/HypothesisEleven/",i,"_2018_3PC.png"))
-  res<- GWAS(pheno = dat18[,c("Taxa",paste(i))], 
+        paste0("./R/rrBlup/HypothesisEleven/PC3_2018/",i,"_2018_3PC.png"))
+  res<- GWAS(pheno = dat, 
              geno = snpRR, n.PC = 3)
   dev.off()
-  write.table(res,file = paste0("~/Dropbox/Research_Poland_Lab/AM Panel/R/rrBlup/HypothesisEleven/",
+  write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC3_2018/",
                                 i,"_2018_3PC.txt"), quote = F, sep = "\t", 
               row.names = F,col.names = T)
 }
