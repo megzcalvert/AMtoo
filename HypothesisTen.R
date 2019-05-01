@@ -150,26 +150,29 @@ pheno17<- pheno17 %>%
 
 snpMatrix17<- snpMatrix %>% 
   semi_join(pheno17,by = c("rn" = "Variety")) 
+snpMatrix17[1:5,1:5]
 
 snpLines<- snpMatrix17$rn
 snpMatrix17<- snpMatrix17 %>% 
   tidylog::select(-rn)
-# relMat<- A.mat(snpMatrix17)
-# colnames(relMat)<- snpLines
-# rownames(relMat)<- snpLines
-# relMat[1:5,1:5]
-# str(relMat)
-# relMat<- ginv(relMat)
-# relMat[1:5,1:5]
-# str(relMat)
-# rownames(relMat)<- snpLines
-# colnames(relMat)<- snpLines
+relMat<- A.mat(snpMatrix17)
+colnames(relMat)<- snpLines
+rownames(relMat)<- snpLines
+relMat[1:5,1:5]
+str(relMat)
+relMat<- ginv(relMat)
+relMat[1:5,1:5]
+str(relMat)
+rownames(relMat)<- snpLines
+colnames(relMat)<- snpLines
 
 par(mar=c(1,1,1,1))
 mean(pheno17$GRYLD)
 
 t17<- asreml(fixed = GRYLD ~ 0 + Variety,
-             random = ~ rep + rep:block, #+ vm(Variety,relMat,singG="PSD")
+             random = ~ rep + rep:block,#+ vm(Variety,relMat,singG="PSD")
+             #mef = list(relMat = snpMatrix17),
+             #na.method(y = "include",x = "include"),
              data = pheno17)
 summary(t17)
 plot(t17)
