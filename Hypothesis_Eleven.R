@@ -678,13 +678,12 @@ don_gap4_18 <- gap4_18F %>%
 
 ggplot(don_rrB3_17, aes(x=BPcum)) +
   # Show all points
-  geom_point(aes(y=-log10(don_rrB3_18$GRYLD)), 
-             colour = "#006d2c",
-             alpha=0.8, size=1) +
-  geom_point(aes(y = -log10(don_gap3_18$GRYLD)),
-             colour = "blue",
-             alpha = 0.8, size = 1) +
-  #scale_color_manual(values = rep(c("grey", "skyblue","blue"), 22 )) +
+  geom_point(aes(y=-log10(don_rrB3_18$RE_20180606)), 
+             colour = "#4d9221",
+             alpha=0.5, size=1) +
+  geom_point(aes(y = -log10(don_gap3_18$RE_20180606)),
+             colour = "#c51b7d",
+             alpha = 0.5, size = 1) +
   # Significance Threshold
   geom_hline(yintercept = -log10(0.05/nrow(don_rrB3_17)), linetype = 2) +
   # custom X axis:
@@ -695,9 +694,46 @@ ggplot(don_rrB3_17, aes(x=BPcum)) +
   theme( 
     legend.position="none",
     panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank()
+    panel.grid.minor.x = element_blank(),
+    axis.text = element_text(colour = "black", size = 14),
+    axis.title = element_text(colour = "black", size = 16),
+    plot.title = element_text(size = 18),
+    plot.subtitle = element_text(size = 16)
   ) +
-  labs(title = "GWAS results GRYLD 2018",
-       subtitle = "rrBLUP results - green, GAPIT results - blue, Bonferroni corection alpha = 0.05",
+  labs(title = "GWAS results RE_20180606",
+       subtitle = "rrBLUP results - green, GAPIT results - pink, Bonferroni corection alpha = 0.05",
        x = "Chromosome",
        y = "-log10(P)")
+
+ggplot(don_rrB3_18, aes(x=BPcum, colour = as.factor(don_rrB3_18$chrom))) +
+  # Show all points
+  geom_point(aes(y=-log10(GRYLD)),
+             alpha=0.5, size=1) +
+  scale_color_manual(values = rep(c("#2ca25f", "#8856a7","#43a2ca"), 22 )) +
+  # Significance Threshold
+  geom_hline(yintercept = -log10(0.05/nrow(don_rrB3_18)), linetype = 2) +
+  # custom X axis:
+  scale_x_continuous( label = c("1A","1B","1D",
+                                "2A","2B","2D",
+                                "3A","3B","3D",
+                                "4A","4B","4D",
+                                "5A","5B","5D",
+                                "6A","6B","6D",
+                                "7A","7B","7D"), 
+                      breaks= axisdf$center ) +
+  scale_y_continuous(expand = c(0, 0.05) ) +# remove space between plot area and x axis
+  # Custom the theme:
+  theme_bw() +
+  theme( 
+    legend.position="none",
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    axis.text = element_text(colour = "black", size = 14),
+    axis.title = element_text(colour = "black", size = 16),
+    plot.title = element_text(size = 18),
+    plot.subtitle = element_text(size = 16)
+  ) +
+  labs(title = "GWAS results GRYLD 2018",
+       subtitle = "rrBLUP Bonferroni Threshold alpha = 0.05",
+       x = "Chromosome",
+       y = "-log10(P)") 
