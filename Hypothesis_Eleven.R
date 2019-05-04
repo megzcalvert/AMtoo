@@ -707,7 +707,7 @@ ggplot(don_rrB3_17, aes(x=BPcum)) +
 
 ggplot(don_rrB3_18, aes(x=BPcum, colour = as.factor(don_rrB3_18$chrom))) +
   # Show all points
-  geom_point(aes(y=-log10(GRYLD)),
+  geom_point(aes(y=-log10(GNDVI_20180613)),
              alpha=0.5, size=1) +
   scale_color_manual(values = rep(c("#2ca25f", "#8856a7","#43a2ca"), 22 )) +
   # Significance Threshold
@@ -733,7 +733,7 @@ ggplot(don_rrB3_18, aes(x=BPcum, colour = as.factor(don_rrB3_18$chrom))) +
     plot.title = element_text(size = 18),
     plot.subtitle = element_text(size = 16)
   ) +
-  labs(title = "GWAS results GRYLD 2018",
+  labs(title = "GWAS results GNDVI_20180613",
        subtitle = "rrBLUP Bonferroni Threshold alpha = 0.05",
        x = "Chromosome",
        y = "-log10(P)") 

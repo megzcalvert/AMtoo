@@ -128,7 +128,7 @@ for (i in chromosomes) {
   png(paste("./Figures/LD/MarkerCorrelationOverDistance_",chr,".png"),
       width = 1200, height = 1000, units = "px")
   #pdf(paste("./Figures/LD/MarkerCorrelationOverDistance_",chr,".pdf"))
-  ld<- ggplot(data = fltC, aes(x = Dist, y = abs(cor), colour = p)) +
+  ld<- ggplot(data = fltC, aes(x = Dist, y = cor^2, colour = p)) +
     geom_point() +
     theme_bw() + 
     geom_smooth() +
@@ -188,7 +188,7 @@ str(melted_cormat)
 #png(paste("./Figures/LD/MarkerCorrelationBlocks_",chr,".png"),
 #    width = 1200, height = 1000, units = "px")
 
-ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value^2))+
   geom_tile(color = "white") +
   scale_fill_gradient2(low = "#00441b", high = "#40004b", mid = "#f7f7f7", 
                        midpoint = 0, limit = c(-1,1), space = "Lab", 
