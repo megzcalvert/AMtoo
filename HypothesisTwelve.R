@@ -57,7 +57,8 @@ snpChip[snpChip == "."] = NA
 
 snpChip<- snpChip[ ,c(1,4,5,13:311)]
 
-write.table(snpChip, file="./Genotype_Database/SelectedImputedBeagleNumeric.txt",
+write.table(snpChip, 
+            file="./Genotype_Database/SelectedImputedBeagleNumeric.txt",
             col.names=TRUE, row.names=FALSE, sep="\t", quote=FALSE)
 
 snpChip = fread(file="./Genotype_Database/SelectedImputedBeagleNumeric.txt", 
@@ -265,8 +266,8 @@ snpMatrix18<- as.matrix(snpMatrix18)
 ##### Defining the training and test populations ####
 #define the training and test populations
 #training-80% validation-20%
-train17= as.matrix(sample(1:nrow(dat17), (0.8 * nrow(dat17))))
-test17<-setdiff(1:96,train17)
+train17= as.matrix(sample(1:nrow(dat17), (0.6 * nrow(dat17))))
+test17<-setdiff(1:nrow(dat17),train17)
 Pheno_train17=dat17[train17,]
 m_train17=snpMatrix17[train17,]
 Pheno_valid17=dat17[test17,]
@@ -282,7 +283,7 @@ pred_yield_valid =  m_valid17 %*% e
 pred_yield=(pred_yield_valid[,1]) + yield_answer$beta
 pred_yield
 yield_valid = Pheno_valid17[,"GRYLD"]
-YLD_accuracy <-rcorr(pred_yield_valid, yield_valid )
+YLD_accuracy <-cor(pred_yield_valid, yield_valid )
 YLD_accuracy
 
 ## VI
@@ -294,7 +295,7 @@ pred_ndvi0512_valid =  m_valid17 %*% e
 pred_ndvi0512=(pred_ndvi0512_valid[,1]) + ndvi0512_answer$beta
 pred_ndvi0512
 ndvi0512_valid = Pheno_valid17[,"NDVI_20170512"]
-NDVI_20170512_accuracy <-cor(pred_yield_valid, yield_valid )
+NDVI_20170512_accuracy <-cor(pred_ndvi0512_valid, ndvi0512_valid )
 NDVI_20170512_accuracy
 
 re0512=(Pheno_train17[,"RedEdge_20170512"])
@@ -305,7 +306,127 @@ pred_re0512_valid =  m_valid17 %*% e
 pred_re0512=(pred_re0512_valid[,1]) + re0512_answer$beta
 pred_re0512
 re0512_valid = Pheno_valid17[,"RedEdge_20170512"]
-RedEdge_20170512_accuracy <-cor(pred_yield_valid, yield_valid )
+RedEdge_20170512_accuracy <-cor(pred_re0512_valid, re0512_valid )
 RedEdge_20170512_accuracy
 
 ##### Cross-Validation ####
+
+effectvars <- names(dat17) %in% c("rn")
+traits <- colnames(dat17[ , !effectvars])
+traits
+cycles=500
+accuracy = matrix(nrow=cycles, ncol=49)
+colnames(accuracy)<- traits
+
+for(r in 1:cycles) {
+  print(paste("Rep cycle: ",r))
+  train= as.matrix(sample(1:nrow(dat17), (0.8 * nrow(dat17))))
+  test<-setdiff(1:nrow(dat17),train)
+  Pheno_train=dat17[train,]
+  m_train=snpMatrix17[train,]
+  Pheno_valid=dat17[test,]
+  m_valid=snpMatrix17[test,]
+  
+  for (i in traits) {
+    print(paste(i))
+    trait=(Pheno_train[,paste(i)])
+    trait_answer<-mixed.solve(trait, Z=m_train, SE = F)
+    TRT = trait_answer$u
+    e = as.matrix(TRT)
+    pred_trait_valid =  m_valid %*% e
+    pred_trait = (pred_trait_valid[,1]) + trait_answer$beta
+    print(pred_trait)
+    trait_valid = Pheno_valid[,paste(i)]
+    accuracy[r,paste(i)] <-cor(pred_trait_valid, trait_valid, use="complete" )
+  }
+
+}
+
+write.table(accuracy, "./HypothesisTwelve_accuracy17.txt", quote = F, 
+            sep = "\t",row.names = F,col.names = T)
+accuracy<- as.data.frame(accuracy[1:129,])
+mean(accuracy$GRYLD, na.rm = T)
+sd(accuracy$GRYLD, na.rm = T)
+
+
+
+## 2018
+train18= as.matrix(sample(1:nrow(dat18), (0.8 * nrow(dat18))))
+test18<-setdiff(1:nrow(dat18),train18)
+Pheno_train18=dat18[train18,]
+m_train18=snpMatrix18[train18,]
+Pheno_valid18=dat17[test18,]
+m_valid18=snpMatrix17[test18,]
+
+##### Predicting Phenotypes ####
+## GRYLD
+yield=(Pheno_train18[,"GRYLD"])
+yield_answer<-mixed.solve(yield, Z = m_train18, SE = TRUE)
+YLD = yield_answer$u
+e = as.matrix(YLD)
+pred_yield_valid =  m_valid18 %*% e
+pred_yield=(pred_yield_valid[,1]) + yield_answer$beta
+pred_yield
+yield_valid = Pheno_valid18[,"GRYLD"]
+YLD_accuracy <-cor(pred_yield_valid, yield_valid )
+YLD_accuracy
+
+##### Cross-Validation ####
+
+effectvars <- names(dat18) %in% c("rn")
+traits <- colnames(dat18[ , !effectvars])
+traits
+cycles=500
+accuracy = matrix(nrow=cycles, ncol=length(traits))
+colnames(accuracy)<- traits
+
+for(r in 1:cycles) {
+  print(paste("Rep cycle: ",r))
+  train= as.matrix(sample(1:nrow(dat17), (0.8 * nrow(dat17))))
+  test<-setdiff(1:nrow(dat17),train)
+  Pheno_train=dat18[train,]
+  m_train=snpMatrix18[train,]
+  Pheno_valid=dat18[test,]
+  m_valid=snpMatrix18[test,]
+  
+  for (i in traits) {
+    print(paste(i))
+    trait=(Pheno_train[,paste(i)])
+    trait_answer<-mixed.solve(trait, Z=m_train, SE = F)
+    TRT = trait_answer$u
+    e = as.matrix(TRT)
+    pred_trait_valid =  m_valid %*% e
+    pred_trait = (pred_trait_valid[,1]) + trait_answer$beta
+    print(pred_trait)
+    trait_valid = Pheno_valid[,paste(i)]
+    accuracy[r,paste(i)] <-cor(pred_trait_valid, trait_valid, use="complete" )
+  }
+  
+}
+
+write.table(accuracy, "./GenomicSelection_80_500_accuracy18.txt", quote = F,
+            sep = "\t",row.names = F,col.names = T)
+
+##### Examining results ####
+getwd()
+
+fileNames<- list.files(path = "./R/rrBlup/HypothesisTwelve",
+                       full.names = T,
+                       pattern = "_accuracy17.txt$")
+traitNames<- basename(fileNames) %>%
+  str_remove_all("_accuracy17.txt")
+
+load.file<- function (filename) {
+  d<- fread(file = filename,header = TRUE,check.names = F,data.table = F)
+  d
+}
+
+data<- lapply(fileNames, load.file)
+
+names(data)<- traitNames
+
+data<- map_df(data, function(x) data.frame(t(colMeans(x))))
+rownames(data)<- traitNames
+
+
+
