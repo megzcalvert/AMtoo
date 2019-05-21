@@ -228,7 +228,11 @@ H2_2017 %>%
         axis.title = element_text(size = 16), 
         title = element_text(size = 18),
         legend.position = "none",
-        strip.text = element_text(size = 14))
+        strip.text = element_text(size = 14)) +
+  coord_cartesian(ylim = c(0,1))
+
+write.table(H2_2017,"./Phenotype_Database/Hyp7_heritability17.txt", quote = F,
+            sep = "\t", col.names = T, row.names = F)
 
 H2_2018<- H2_2018 %>% 
   separate(traits, c("Trait","Date"), sep = "_")
@@ -249,8 +253,11 @@ H2_2018 %>%
         axis.title = element_text(size = 16), 
         title = element_text(size = 18),
         legend.position = "none",
-        strip.text = element_text(size = 14))
+        strip.text = element_text(size = 14)) +
+  coord_cartesian(ylim = c(0,1))
 
+write.table(H2_2018,"./Phenotype_Database/Hyp7_heritability18.txt", quote = F,
+            sep = "\t", col.names = T, row.names = F)
 ###### Examine weird residuals #####
 
 t18<- asreml(fixed = GNDVI_20171215 ~ 1,

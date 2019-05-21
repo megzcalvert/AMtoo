@@ -336,7 +336,7 @@ ggplot(pheno17,aes(x = hddt17, y = phenotype_value)) +
        x = "HDDT",
        title = "GRYLD vs HDDT 2016/2017") +
   annotate("text", x = as.Date("2017-05-13"), y = 6.5, 
-           label = "italic(R) ^ 2 == -0.468",
+           label = "italic(r) == -0.468",
            parse = TRUE, size = 8)
 
 ggplot(pheno18,aes(x = hddt18, y = phenotype_value)) +
@@ -352,7 +352,7 @@ ggplot(pheno18,aes(x = hddt18, y = phenotype_value)) +
        x = "HDDT",
        title = "GRYLD vs HDDT 2017/2018") +
   annotate("text", x = as.Date("2018-05-19"), y = 5, 
-           label = "italic(R) ^ 2 == 0.0008",
+           label = "italic(r) == 0.0008",
            parse = TRUE, size = 8)
 
 tidy(cor.test(pheno17$numHddt17,pheno17$phenotype_value))

@@ -75,201 +75,8 @@ pheno17<- fread("./Phenotype_Database/pheno17_htpLong.txt")
 pheno18<- fread("./Phenotype_Database/pheno18_htpLong.txt")
 phenoLong<- fread("./Phenotype_Database/Pheno_Long1718.txt")
 
-glimpse(pheno17)
-glimpse(pheno18)
-glimpse(phenoLong)
-
-phenoLong<- phenoLong %>% 
-  dplyr::rename(Plot_ID = entity_id) %>% 
-  tidylog::select(Plot_ID,Variety,block,rep,range,column)
-
-pheno17$Date<- as.Date(pheno17$Date,format = "%Y-%m-%d")
-pheno17$Date<- format(pheno17$Date, "%Y%m%d")
-pheno18$Date<- as.Date(pheno18$Date,format = "%Y-%m-%d")
-pheno18$Date<- format(pheno18$Date, "%Y%m%d")
-
-pheno17<- pheno17 %>% 
-  unite("ID",c("ID","Date")) %>% 
-  spread(key = ID, value = value) %>% 
-  tidylog::select(Plot_ID,Variety,GRYLD,
-                  GNDVI_20170331:RedEdge_20170609) %>% 
-  tidylog::inner_join(phenoLong) %>% 
-  glimpse() %>% 
-  distinct() %>% 
-  glimpse()
-
-pheno18<- pheno18 %>% 
-  dplyr::rename(Plot_ID = entity_id)  %>% 
-  unite("ID",c("ID","Date")) %>% 
-  spread(key = ID, value = value) %>% 
-  tidylog::select(Plot_ID,Variety,GRYLD,
-                  GNDVI_20171120:RE_20180613) %>% 
-  tidylog::inner_join(phenoLong) %>% 
-  glimpse() %>% 
-  distinct() %>% 
-  glimpse()
-
-pheno17$Plot_ID<- as.factor(pheno17$Plot_ID)
-pheno17$Variety<- as.factor(pheno17$Variety)
-pheno17$block<- as.factor(pheno17$block)
-pheno17$rep<- as.factor(pheno17$rep)
-pheno17$range<- as.factor(pheno17$range)
-pheno17$column<- as.factor(pheno17$column)
-
-pheno18$Plot_ID<- as.factor(pheno18$Plot_ID)
-pheno18$Variety<- as.factor(pheno18$Variety)
-pheno18$block<- as.factor(pheno18$block)
-pheno18$rep<- as.factor(pheno18$rep)
-pheno18$range<- as.factor(pheno18$range)
-pheno18$column<- as.factor(pheno18$column)
-
-##### Normality tests ####
-# pheno17NormT<- pheno17 %>% 
-#   tidylog::select(-Plot_ID,-Variety,-block,-rep,-range,-column)
-# norm17<- mvn(pheno17NormT)
-# norm17$univariateNormality
-# boxplot.stats(pheno17NormT$GRYLD)$out
-# boxplot.stats(pheno17NormT$GNDVI_20170331)$out
-# 
-# pheno17clean<- pheno17 %>% 
-#   tidylog::select(Plot_ID,Variety,block,rep,range,column) %>% 
-#   bind_cols(pheno17NormT)
-# 
-# remove_outliers <- function(x, na.rm = T, ...) {
-#   qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
-#   caps <- quantile(x, probs = c(.05, .95), na.rm = na.rm)
-#   H <- 1.5 * IQR(x, na.rm = na.rm)
-#   y <- x
-#   #abs(scale(x)) >= 3
-#   y[x < (qnt[1] - H)] <- NA
-#   y[x > (qnt[2] + H)] <- NA
-#   y
-# }
-# 
-# pheno17clean[,7:ncol(pheno17clean)]<- as.data.frame(
-#   lapply(pheno17clean[,7:ncol(pheno17clean)],remove_outliers))
-# pheno17NormTclean<- pheno17clean %>% 
-#   tidylog::select(-Plot_ID,-Variety,-block,-rep,-range,-column)
-# norm17clean<- mvn(pheno17NormTclean)
-# norm17clean$univariateNormality
-# boxplot.stats(pheno17NormTclean$GRYLD)$out
-# boxplot.stats(pheno17NormTclean$GNDVI_20170331)$out
-# 
-# 
-# pheno18NormT<- pheno18 %>% 
-#   tidylog::select(-Plot_ID,-Variety,-block,-rep,-range,-column)
-# norm18<- mvn(pheno18NormT)
-# norm18$univariateNormality
-# boxplot.stats(pheno18NormT$GRYLD)$out
-# boxplot.stats(pheno18NormT$GNDVI_20171120)$out
-# 
-# pheno18clean<- pheno18 %>% 
-#   tidylog::select(Plot_ID,Variety,block,rep,range,column) %>% 
-#   bind_cols(pheno18NormT)
-# 
-# pheno18clean[,7:ncol(pheno18clean)]<- as.data.frame(
-#   lapply(pheno18clean[,7:ncol(pheno18clean)],remove_outliers))
-# pheno18NormTclean<- pheno18clean %>% 
-#   tidylog::select(-Plot_ID,-Variety,-block,-rep,-range,-column)
-# norm18clean<- mvn(pheno18NormTclean)
-# norm18clean$univariateNormality
-# boxplot.stats(pheno18NormTclean$GRYLD)$out
-# boxplot.stats(pheno18NormTclean$GNDVI_20171120)$out
-
-##### ASREML BLUEs ####
-
-asreml.license.status()
-
-##### Trialing something ####
-
-set.seed(1962)
-
-t17<- asreml(fixed = GRYLD ~ 0 + Variety,
-             random = ~ rep + rep:block,
-             data = pheno17)
-plot(t17)
-blues<- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
-blues$rn<- str_remove(blues$rn,"Variety_")
-dat17<- blues %>% 
-  rename(GRYLD = effect) %>% 
-  glimpse() 
-
-##### Generating all 2017 VI BLUEs
-
-effectvars <- names(pheno17) %in% c("block", "rep", "Variety", "year", 
-                                    "column","range", "Plot_ID","GRYLD")
-traits <- colnames(pheno17[ , !effectvars])
-traits
-fieldInfo<- pheno17 %>% 
-  tidylog::select(Variety, rep, block, column, range)
-
-for (i in traits) {
-  print(paste("Working on trait", i))
-  j<- i
-  
-  data<- cbind(fieldInfo, pheno17[,paste(i)])
-  names(data)<- c("Variety","rep","block","column","range","Trait")
-  print(colnames(data))
-  
-  t17<- asreml(fixed = Trait ~ 0 + Variety,
-               random = ~ rep + rep:block,
-               data = data)
-  
-  blues<- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
-  blues$rn<- str_remove(blues$rn,"Variety_")
-  colnames(blues)[colnames(blues)=="effect"] <- paste(i)
-  dat17<- blues %>% 
-    inner_join(dat17)
-  
-}
-
-beep(2)
-
-dat17[1:5,1:15]
-
-#### All of 2018
-t18<- asreml(fixed = GRYLD ~ 0 + Variety,
-             random = ~ rep + rep:block,
-             data = pheno18)
-plot(t18)
-blues<- setDT(as.data.frame(coef(t18)$fixed), keep.rownames = T)
-blues$rn<- str_remove(blues$rn,"Variety_")
-dat18<- blues %>% 
-  rename(GRYLD = effect) %>% 
-  glimpse() 
-
-##### Generating all 2018 VI BLUEs
-
-effectvars <- names(pheno18) %in% c("block", "rep", "Variety", "year", 
-                                    "column","range", "Plot_ID","GRYLD")
-traits <- colnames(pheno18[ , !effectvars])
-traits
-fieldInfo<- pheno18 %>% 
-  tidylog::select(Variety, rep, block, column, range)
-
-for (i in traits) {
-  print(paste("Working on trait", i))
-  j<- i
-  
-  data<- cbind(fieldInfo, pheno18[,paste(i)])
-  names(data)<- c("Variety","rep","block","column","range","Trait")
-  print(colnames(data))
-  
-  t18<- asreml(fixed = Trait ~ 0 + Variety,
-               random = ~ rep + rep:block,
-               data = data)
-  
-  blues<- setDT(as.data.frame(coef(t18)$fixed), keep.rownames = T)
-  blues$rn<- str_remove(blues$rn,"Variety_")
-  colnames(blues)[colnames(blues)=="effect"] <- paste(i)
-  dat18<- blues %>% 
-    inner_join(dat18)
-  
-}
-
-beep(2)
-
-dat18[1:5,1:15]
+dat17<- fread("./Phenotype_Database/Hyp10BLUEs_17.txt")
+dat18<- fread("./Phenotype_Database/Hyp10BLUEs_18.txt")
 
 snpChip[1:10,1:10]
 snpMatrix[1:10,1:10]
@@ -283,9 +90,9 @@ colnames(dat17)[colnames(dat17)=="rn"] <- "Taxa"
 dat18<- semi_join(dat18,snpLines, by = "rn")
 colnames(dat18)[colnames(dat18)=="rn"] <- "Taxa"
 
-write.table(dat17,file = "./Phenotype_Database/ASREMLBlup_2017.txt",quote = F,
+write.table(dat17,file = "./Phenotype_Database/Hyp11Blue_2017.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
-write.table(dat18,file = "./Phenotype_Database/ASREMLBlup_2018.txt",quote = F,
+write.table(dat18,file = "./Phenotype_Database/Hyp11Blue_2018.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
 
 numberedCols<- paste(1:(ncol(myGD)-1), sep = ",")
@@ -390,7 +197,8 @@ for (i in traits) {
         paste0("./R/rrBlup/HypothesisEleven/PC4_2017/",i,"_2017_4PC.png"))
   
   res<- GWAS(pheno = dat, 
-             geno = snpRR, n.PC = 3)
+             geno = snpRR, n.PC = 4,
+             P3D = F)
   dev.off()
   
   write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC4_2017/",
@@ -417,7 +225,8 @@ for (i in traits) {
   png(filename = 
         paste0("./R/rrBlup/HypothesisEleven/PC4_2018/",i,"_2018_4PC.png"))
   res<- GWAS(pheno = dat, 
-             geno = snpRR, n.PC = 3)
+             geno = snpRR, n.PC = 3,
+             P3D = F)
   dev.off()
   write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC4_2018/",
                                 i,"_2018_4PC.txt"), quote = F, sep = "\t", 

@@ -73,16 +73,22 @@ program<- lineInfo[,c("Name","Program")]
 Scores<- as.data.frame(pcaMethods::scores(pcaAM)) 
 Scores<- setDT(Scores, keep.rownames = TRUE)
 Scores<- left_join(Scores, program, by = c("rn" = "Name"))
+Scores$Program[is.na(Scores$Program)] = "NA"
+Scores$Program<- as.factor(Scores$Program)
 
 pca.plot <- function(x, p, q, ...) {
   
   plots<-ggplot(data = x, aes_string(x = p, y = q)) +
-    geom_point(position = "jitter",aes(colour = factor(Program))) +
+    geom_point(position = "jitter",aes(colour = Program)) +
     theme_bw() +
     labs(title = paste0("PCA Plot ", p, " and ", q), 
          x = paste(p, "R2 = ",(round(sumPCA[1,paste0(p)],3))*100,"%"), 
          y = paste(q, "R2 = ",(round(sumPCA[1,paste0(q)],3))*100,"%")) +
-    theme(legend.title=element_blank())
+    scale_color_manual(values = c("#e6194B", "#3cb44b", "#a9a9a9", "#4363d8", 
+                                  "#f58231","#000000", "#42d4f4", "#f032e6", 
+                                  "#fabebe", 
+                                  "#469990", "#e6beff", "#9A6324", 
+                                  "#800000", "#000075"))
   print(plots)
   
 }
@@ -103,4 +109,14 @@ p <- plot_ly(Scores, x = ~PC1, y = ~PC2, z = ~PC3,
                       zaxis = list(title = 'PC3 R2 = 3.7%')))
 p
 
+ggplot(data = Scores, aes_string(x = "PC2", y = "PC3")) +
+  geom_point(position = "jitter",aes(colour = Program)) +
+  theme_bw() +
+  labs(title = "PCA Plot PC2 and PC3", 
+       x = expression(paste("PC2 ", "R"^{2}, "= 4.5%")), 
+       y =  expression(paste("PC3 ", "R"^{2}, "= 3.7%"))) +
+  scale_color_manual(values = c("#e6194B", "#3cb44b", "#767676", "#4363d8", 
+                                "#f58231","#000000", "#42d4f4", "#f032e6", 
+                                "#fabebe", "#469990", "#e6beff", "#9A6324", 
+                                "#800000", "#000075"))
 

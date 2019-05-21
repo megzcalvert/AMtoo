@@ -145,6 +145,13 @@ for (i in chromosomes) {
 
 graphics.off()
 
+##### Heatmap type block things #####
+# Get upper triangle of the correlation matrix
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+
 chr<- 1
 
 pos<- snpChip %>% 
@@ -163,43 +170,35 @@ rownames(markers) <- c()
 colnames(markers) <- pos$rs_number
 
 c<- cor(markers)
-
-# Get upper triangle of the correlation matrix
-get_upper_tri <- function(cormat){
-  cormat[lower.tri(cormat)]<- NA
-  return(cormat)
-}
-
 upper_tri<- get_upper_tri(c)
 melted_cormat <- melt(upper_tri, na.rm = TRUE)
 
 str(melted_cormat)
 
-# melted_cormat$Var1<- as.character(melted_cormat$Var1)
-# melted_cormat$Var2<- as.character(melted_cormat$Var2)
-# melted_cormat<- melted_cormat %>% 
-#   inner_join(pos, by = c("Var1" = "rs_number")) %>% 
-#   dplyr::rename(Chr1 = chrom, Pos1 = pos) %>% 
-#   inner_join(pos, by = c("Var2" = "rs_number")) %>% 
-#   dplyr::rename(Chr2 = chrom, Pos2 = pos) %>% 
-#   glimpse()
-
-# Heatmap
-#png(paste("./Figures/LD/MarkerCorrelationBlocks_",chr,".png"),
-#    width = 1200, height = 1000, units = "px")
+png(paste0("./Figures/LD/MarkerCorrelationBlocks_",chr,".png"),
+    width = 1200, height = 1000, units = "px")
 
 ggplot(data = melted_cormat, aes(Var2, Var1, fill = value^2))+
-  geom_tile(color = "white") +
-  scale_fill_gradient2(low = "#00441b", high = "#40004b", mid = "#f7f7f7", 
-                       midpoint = 0, limit = c(-1,1), space = "Lab", 
-                       name="Pearson\nCorrelation") +
+  geom_tile(color = "white",width = 1, height = 1) +
+  #geom_point(size = 0.25) +
+  scale_fill_gradient(low = "#f7f7f7", high = "#40004b", 
+                      limit = c(0,1), space = "Lab", 
+                      name="Pearson\nCorrelation") +
   theme_bw() + 
   theme(axis.text = element_blank(),
         panel.grid = element_blank()) +
-  coord_fixed() +
+  #coord_cartesian(xlim = c(0,594102056),ylim = c(0,594102056)) +
+  #coord_fixed() +
   labs(title = "Marker Correlations by position",
        subtitle = paste("Chromosome ",chr))
 
-#dev.off()
+dev.off()
 
-
+melted_cormat$Var1<- as.character(melted_cormat$Var1)
+melted_cormat$Var2<- as.character(melted_cormat$Var2)
+melted_cormat<- melted_cormat %>%
+  inner_join(pos, by = c("Var1" = "rs_number")) %>%
+  dplyr::rename(Chr1 = chrom, Pos1 = pos) %>%
+  inner_join(pos, by = c("Var2" = "rs_number")) %>%
+  dplyr::rename(Chr2 = chrom, Pos2 = pos) %>%
+  glimpse()
