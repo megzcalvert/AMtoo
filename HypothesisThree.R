@@ -16,9 +16,10 @@ library(psych)
 getwd()
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel")
 
-pheno<- fread("./Phenotype_Database/Pheno_Long1718.txt")
+pheno<- fread("./Phenotype_Database/Pheno_Long171819.txt")
 
 phenoGryld<- pheno %>% 
+  filter(!str_detect(entity_id, "19RKY7")) %>% 
   filter(trait_id == "GRYLD") %>% 
   filter(phenotype_value > 0) %>% #checking for strange
   filter(phenotype_value < 10) %>% #checking for strange
@@ -31,11 +32,14 @@ phenoGryld17<- phenoGryld %>%
 phenoGryld18<- phenoGryld %>% 
   filter(year == "18")
 
+phenoGryld19<- phenoGryld %>% 
+  filter(year == "19")
+
 ##### 2017 HTP VI data load ####
 path <- "./Phenotype_Database/2017_Ashland_AM3_traits_UAS/2017_ASH_AM_vis.xlsx"
 htp17<- path %>% 
   excel_sheets() %>% 
-  set_names() %>% 
+  purrr::set_names() %>% 
   map(read_excel, path = path) 
 
 htp17long<- map2_df(htp17, names(htp17), ~ mutate(.x, ID = .y)) %>%
@@ -56,9 +60,9 @@ htp17Wide<- htp17long %>%
 
 htpPheno<- c("GNDVI","GRVI","height","NDRE","NDVI","Nir","RE")
 
-htpFileLoad<- function(htp, f, ...) {
+htpFileLoad<- function(htp, f, path, ...) {
   for (i in htp) {
-    fileNames<- list.files(path = "./Phenotype_Database/2018_Ashland_AM3_traits_UAS",
+    fileNames<- list.files(path = path,
                            full.names = T,
                            pattern = paste0("_",i))
     
@@ -73,19 +77,19 @@ htpFileLoad<- function(htp, f, ...) {
     names(data)<- traitNames
     data<- plyr::ldply(data, data.frame, .id = "Phenotype")
     print(colnames(data))
-    t <- mutate(dcast(data,  
-                      Plot_ID ~ Phenotype, 
-                      value.var = paste0(colnames(data)[3]), 
-                      fun.aggregate = NULL, 
-                      na.rm = TRUE))
+    data<- data[,1:3]
+    names(data) <- c("Phenotype","entity_id","phenotype_value")
+    t <- spread(data = data, key = "Phenotype", value = "phenotype_value")
     head(t)
-    f<- left_join(f, t, by = c("entity_id" = "Plot_ID"))
+    f<- left_join(f, t)
     
   }
   return(f)
 }
 
-htp18Wide<- htpFileLoad(htpPheno,phenoGryld18)
+htp18Wide<- htpFileLoad(htpPheno,phenoGryld18, 
+                        path = 
+                          "./Phenotype_Database/2018_Ashland_AM3_traits_UAS")
 
 htp18Long<- htp18Wide %>% 
   gather(key = Trait, value = value, `20171120_GNDVI`:`20180613_RE`) %>% 
@@ -94,7 +98,45 @@ htp18Long$Date<- as.Date(htp18Long$Date,"%Y%m%d")
 
 str(htp18Long)
 
+##### 2019 HTP data load ####
+htpPheno<- c("GNDVI","NDRE","NDVI","Nir","RE")
+htp19Wide<- htpFileLoad(htpPheno,phenoGryld18, 
+                        path = 
+                          "./Phenotype_Database/2019_Ashland_AM3_traits_UAS")
+
+htp19Long<- htp19Wide %>% 
+  gather(key = Trait, value = value, `20190103_GNDVI`:`20190624_RE`) %>% 
+  separate(Trait, c("Date","ID"), sep = "_")
+htp19Long$Date<- as.Date(htp19Long$Date,"%Y%m%d")
+
 #### Scatterplot of VI vs GRYLD ####
+
+correlationPlots<- function(dat, htp, path, xaxis, value, year, ...){
+  plotList = list()
+  for (i in htp) {
+    d<- dat %>% 
+      filter(ID == paste(i)) 
+    thisPlot <- ggplot(data = d, 
+                       mapping = aes_string(x = xaxis,
+                                            y = value)) +
+      geom_point(size = 1) +
+      geom_smooth(method = "lm") +
+      facet_wrap(~Date, scales = "free") +
+      labs(x = xaxis, y = paste(i), title = paste0(i," vs ",xaxis," ",year)) +
+      theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+            axis.title = element_text(colour = "black", size = rel(2.25)),
+            title = element_text(size = 20),
+            strip.text = element_text(size = 16)) 
+    
+    thisPlot
+    plotList[[i]] = thisPlot
+    ggsave(paste0(i,"_",year,".png"),thisPlot, path = path, width = 24, 
+           height = 20,
+           units = "cm")
+    print(i)
+  }
+  return(plotList)
+}
 
 #GNDVI
 htp17long %>% 
@@ -103,7 +145,7 @@ htp17long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "GNDVI", title = "GNDVI vs GRYLD 2017") +
+  labs(ylab = "GNDVI", title = "GNDVI vs GRYLD 2016/2017") +
   theme_bw() +
   theme(axis.text = element_text(colour = "black", size = 14),
         axis.title = element_text(colour = "black", size = 18),
@@ -116,12 +158,26 @@ htp18Long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "GNDVI", title = "GNDVI vs GRYLD 2018") +
+  labs(ylab = "GNDVI", title = "GNDVI vs GRYLD 2017/2018") +
   theme_bw() +
   theme(axis.text = element_text(colour = "black", size = 14),
         axis.title = element_text(colour = "black", size = 18),
         title = element_text(size = 20),
         strip.text = element_text(size = 16))
+
+htp19Long %>% 
+  filter(ID == "GNDVI") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "GNDVI", title = "GNDVI vs GRYLD 2018/2019") +
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
+
 #GRVI
 htp17long %>% 
   filter(ID == "GRVI") %>% 
@@ -149,6 +205,19 @@ htp18Long %>%
         title = element_text(size = 20),
         strip.text = element_text(size = 16))
 
+htp19Long %>% 
+  filter(ID == "GRVI") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "GRVI", title = "GRVI vs GRYLD season 2018/2019") +
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
+
 #NDVI
 htp17long %>% 
   filter(ID == "NDVI") %>% 
@@ -156,7 +225,7 @@ htp17long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "NDVI", title = "NDVI vs GRYLD 2017") +
+  labs(ylab = "NDVI", title = "NDVI vs GRYLD 2016/2017") +
   theme_bw() +
   theme(axis.text = element_text(colour = "black", size = 14),
         axis.title = element_text(colour = "black", size = 18),
@@ -169,7 +238,20 @@ htp18Long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "NDVI", title = "NDVI vs GRYLD 2018") +
+  labs(ylab = "NDVI", title = "NDVI vs GRYLD 2017/2018") +
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
+
+htp19Long %>% 
+  filter(ID == "NDVI") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "NDVI", title = "NDVI vs GRYLD 2018/2019") +
   theme_bw() +
   theme(axis.text = element_text(colour = "black", size = 14),
         axis.title = element_text(colour = "black", size = 18),
@@ -183,7 +265,7 @@ htp17long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "NDRE", title = "NDRE vs GRYLD 2017") +
+  labs(ylab = "NDRE", title = "NDRE vs GRYLD 2016/2017") +
   theme_bw() +
   theme(axis.text = element_text(colour = "black", size = 14),
         axis.title = element_text(colour = "black", size = 18),
@@ -196,7 +278,20 @@ htp18Long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "NDRE", title = "NDRE vs GRYLD 2018") +
+  labs(ylab = "NDRE", title = "NDRE vs GRYLD 2017/2018") +
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
+
+htp19Long %>% 
+  filter(ID == "NDRE") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "NDRE", title = "NDRE vs GRYLD 2018/2019") +
   theme_bw() +
   theme(axis.text = element_text(colour = "black", size = 14),
         axis.title = element_text(colour = "black", size = 18),
@@ -210,7 +305,7 @@ htp17long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "NIR", title = "NIR vs GRYLD 2017") +
+  labs(ylab = "NIR", title = "NIR vs GRYLD 2016/2017") +
   theme_bw() +
   theme(axis.text = element_text(colour = "black", size = 14),
         axis.title = element_text(colour = "black", size = 18),
@@ -223,12 +318,26 @@ htp18Long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "NIR", title = "NIR vs GRYLD 2018") +
+  labs(ylab = "NIR", title = "NIR vs GRYLD 2017/2018") +
   theme_bw() +
   theme(axis.text = element_text(colour = "black", size = 14),
         axis.title = element_text(colour = "black", size = 18),
         title = element_text(size = 20),
         strip.text = element_text(size = 16))
+
+htp19Long %>% 
+  filter(ID == "Nir") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "NIR", title = "NIR vs GRYLD 2018/2019") +
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
+
 #Rededge
 htp17long %>% 
   filter(ID == "RedEdge") %>% 
@@ -236,7 +345,7 @@ htp17long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "RedEdge", title = "RedEdge vs GRYLD 2017") +
+  labs(ylab = "RedEdge", title = "RedEdge vs GRYLD 2016/2017") +
   theme_bw() +
   theme(axis.text = element_text(colour = "black", size = 14),
         axis.title = element_text(colour = "black", size = 18),
@@ -249,7 +358,20 @@ htp18Long %>%
   geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   facet_wrap(~Date, scales = "free") +
-  labs(ylab = "RedEdge", title = "RedEdge vs GRYLD 2018") +
+  labs(ylab = "RedEdge", title = "RedEdge vs GRYLD 2017/2018") +
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 18),
+        title = element_text(size = 20),
+        strip.text = element_text(size = 16))
+
+htp19Long %>% 
+  filter(ID == "RE") %>% 
+  ggplot(aes(x = GRYLD, y = value)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Date, scales = "free") +
+  labs(ylab = "RedEdge", title = "RedEdge vs GRYLD 2018/2019") +
   theme_bw() +
   theme(axis.text = element_text(colour = "black", size = 14),
         axis.title = element_text(colour = "black", size = 18),
@@ -268,6 +390,12 @@ phenoMatrix18<- htp18Wide %>%
   tidylog::select(-entity_id,-Variety,-year)
 
 corMat18<- corr.test(as.matrix(phenoMatrix18), method = "pearson",
+                     adjust = "holm")
+
+phenoMatrix19<- htp19Wide %>% 
+  tidylog::select(-entity_id,-Variety,-year)
+
+corMat19<- corr.test(as.matrix(phenoMatrix19), method = "pearson",
                      adjust = "holm")
 
 # ++++++++++++++++++++++++++++
@@ -295,6 +423,11 @@ viGryld18cor<- flatCor18 %>%
   filter(row == "GRYLD")
 Gryld18corCI<- corMat18$ci
 
+flatCor19<- flattenCorrMatrix(corMat19$r,corMat19$p)
+viGryld19cor<- flatCor19 %>% 
+  filter(row == "GRYLD")
+Gryld19corCI<- corMat19$ci
+
 #### Proportion of variance in GRYLD explained by VI by year ####
 
 htp17long<- as_tibble(htp17long)
@@ -314,7 +447,7 @@ reg17GNDVI<- htp17long %>%
   tidylog::filter(term != "(Intercept)") %>% 
   add_column(VI = "GNDVI") %>% 
   unite("VI_date", c("VI","Date"))
-  
+
 reg17GRVI<- htp17long %>% 
   tidylog::filter(ID == "GRVI") %>% 
   tidylog::select(-Variety,-Plot_ID,-ID) %>% 
@@ -463,8 +596,91 @@ reg18RE<- htp18Long %>%
   add_column(VI = "RE") %>% 
   unite("VI_date", c("VI","Date"))
 
+htp19Long<- as_tibble(htp19Long)
+#check analysis
+fit<- lm(htp19Wide$GRYLD ~ htp19Wide$`20190103_GNDVI`)
+summary(fit)
+
+reg19GNDVI<- htp19Long %>% 
+  tidylog::filter(ID == "GNDVI") %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>%  
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
+  unnest(tidied) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
+  add_column(VI = "GNDVI") %>% 
+  unite("VI_date", c("VI","Date"))
+
+reg19GRVI<- htp19Long %>% 
+  tidylog::filter(ID == "GRVI") %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
+  unnest(tidied) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
+  add_column(VI = "GRVI") %>% 
+  unite("VI_date", c("VI","Date"))
+
+reg19NDVI<- htp19Long %>% 
+  tidylog::filter(ID == "NDVI") %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
+  unnest(tidied) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
+  add_column(VI = "NDVI") %>% 
+  unite("VI_date", c("VI","Date"))
+
+reg19NDRE<- htp19Long %>% 
+  tidylog::filter(ID == "NDRE") %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
+  unnest(tidied) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
+  add_column(VI = "NDRE") %>% 
+  unite("VI_date", c("VI","Date"))
+
+reg19NIR<- htp19Long %>% 
+  tidylog::filter(ID == "Nir") %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>%  
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
+  unnest(tidied) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
+  add_column(VI = "NIR") %>% 
+  unite("VI_date", c("VI","Date"))
+
+reg19RE<- htp19Long %>% 
+  tidylog::filter(ID == "RE") %>% 
+  tidylog::select(-Variety,-entity_id,-ID) %>% 
+  nest(-Date) %>% 
+  mutate(test = map(data, ~lm(.x$GRYLD ~ .x$value)),
+         glanced = map(test, glance),
+         tidied = map(test,tidy)) %>% 
+  unnest(glanced) %>% 
+  unnest(tidied) %>% 
+  tidylog::filter(term != "(Intercept)") %>% 
+  add_column(VI = "RE") %>% 
+  unite("VI_date", c("VI","Date"))
+
 VarGryldVI17<- bind_rows(reg17GNDVI,reg17GRVI,reg17NDRE,reg17NDVI,reg17NIR,
-                       reg17RE) %>% 
+                         reg17RE) %>% 
   separate(VI_date, c("VI","Date"), sep = "_") %>% 
   glimpse()
 
@@ -473,10 +689,16 @@ VarGryldVI18<- bind_rows(reg18GNDVI,reg18GRVI,reg18NDRE,reg18NDVI,
   separate(VI_date, c("VI","Date"), sep = "_") %>% 
   glimpse()
 
+VarGryldVI19<- bind_rows(reg19GNDVI,reg19GRVI,reg19NDRE,reg19NDVI,
+                         reg19NIR,reg19RE) %>% 
+  separate(VI_date, c("VI","Date"), sep = "_") %>% 
+  glimpse()
+
 VarGryldVI17$Date<- as.Date(VarGryldVI17$Date)
 
 VarGryldVI18$Date<- as.Date(VarGryldVI18$Date)
 
+VarGryldVI19$Date<- as.Date(VarGryldVI19$Date)
 
 VarGryldVI17 %>% 
   ggplot(aes(x = Date, y = adj.r.squared, colour = p.value)) +
@@ -484,6 +706,7 @@ VarGryldVI17 %>%
   facet_wrap(~VI, scales = "free") +
   scale_color_gradient(low = "#e41a1c", high = "#000000") + 
   theme_bw() +
+  theme(axis.text = element_text(colour = "black")) +
   labs(title = bquote(R^2~' for linear regression models explaining GRYLD'),
        subtitle = "2016/2017 season")
 
@@ -493,19 +716,36 @@ VarGryldVI18 %>%
   facet_wrap(~VI, scales = "free") +
   scale_color_gradient(low = "#e41a1c", high = "#000000") + 
   theme_bw() +
+  theme(axis.text = element_text(colour = "black")) +
   labs(title = bquote(R^2~' for linear regression models explaining GRYLD'),
        subtitle = "2017/2018 season")
+
+VarGryldVI19 %>% 
+  ggplot(aes(x = Date, y = adj.r.squared, colour = p.value)) +
+  geom_point() +
+  facet_wrap(~VI, scales = "free") +
+  scale_color_gradient(low = "#e41a1c", high = "#000000") + 
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black")) +
+  labs(title = bquote(R^2~' for linear regression models explaining GRYLD'),
+       subtitle = "2018/2019 season")
 
 write.table(VarGryldVI17, "./Phenotype_Database/linearRegression_VIbyDate17.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
 write.table(VarGryldVI18, "./Phenotype_Database/linearRegression_VIbyDate18.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
+write.table(VarGryldVI19, "./Phenotype_Database/linearRegression_VIbyDate19.txt",
+            sep = "\t", quote = F, row.names = F, col.names = T)
 write.table(phenoMatrix17, "./Phenotype_Database/phenoMatrix17.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
 write.table(phenoMatrix18, "./Phenotype_Database/phenoMatrix18.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
+write.table(phenoMatrix19, "./Phenotype_Database/phenoMatrix19.txt",
+            sep = "\t", quote = F, row.names = F, col.names = T)
 write.table(htp18Long, "./Phenotype_Database/pheno18_htpLong.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
 write.table(htp17long, "./Phenotype_Database/pheno17_htpLong.txt",
+            sep = "\t", quote = F, row.names = F, col.names = T)
+write.table(htp19Long, "./Phenotype_Database/pheno19_htpLong.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
 

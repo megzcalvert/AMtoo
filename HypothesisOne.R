@@ -11,7 +11,7 @@ library(car)
 library(tidylog)
 library(broom)
 library(gvlma)
-library(MASS)
+
 
 # Connect to database
 wheatgenetics = dbConnect(MySQL( ),
@@ -36,7 +36,8 @@ plot.column
 FROM wheatgenetics.phenotype LEFT JOIN wheatgenetics.plot 
 ON plot.plot_id = phenotype.entity_id
 WHERE wheatgenetics.phenotype.entity_id LIKE '18ASH30%' OR
-wheatgenetics.phenotype.entity_id LIKE '17ASH1%';"
+wheatgenetics.phenotype.entity_id LIKE '17ASH1%' OR
+wheatgenetics.phenotype.entity_id LIKE '19RKY%';"
 
 #run the query to get plot information
 
@@ -46,7 +47,7 @@ pheno <- dbGetQuery(wheatgenetics, pheno_query)
 getwd( ) #get working directory set if needed
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel")
 
-saveRDS(pheno, "./Phenotype_Database/Pheno1718.RDS") 
+saveRDS(pheno, "./Phenotype_Database/Pheno171819.RDS") 
 
 dbDisconnect(wheatgenetics) #disconnect from database
 
@@ -60,7 +61,7 @@ getwd()
 sessionInfo() # useful infos **reproducible research**
 
 #Read in original data
-pheno_long<- readRDS("./Phenotype_Database/Pheno1718.RDS")
+pheno_long<- readRDS("./Phenotype_Database/Pheno171819.RDS")
 
 str(pheno_long) # structure
 head(pheno_long, 10)
@@ -93,8 +94,8 @@ ff = function(x, patterns, replacements = patterns, fill = NA, ...)
 
 #Adding a year column based on the entity_id
 pheno_long$year<- ff(pheno_long$entity_id, 
-                     c("17ASH","18ASH"), 
-                     c("17","18"),
+                     c("17ASH","18ASH","19RKY"), 
+                     c("17","18","19"),
                      "NA", ignore.case = TRUE)
 
 modNames<- tabyl(pheno_long$Variety)
@@ -286,13 +287,13 @@ write.table(plotDates17, "./Phenotype_Database/HDDT2017.txt",
 write.table(plotDates18, "./Phenotype_Database/HDDT2018.txt",
             col.names = T, row.names = F, sep = "\t",quote = F)
 write.table(pheno_long, 
-            file="./Phenotype_Database/Pheno_Long1718.txt",
+            file="./Phenotype_Database/Pheno_Long171819.txt",
             col.names=TRUE, row.names=FALSE, sep="\t", quote=FALSE)
 
 rm(hddt17,hddt18,head.dates,iniNames,modNames,n,pheno_long,pheno_pcthead,
    sample,test,vis.logistic,i,plots,plots17,plots18,getPred,runLogReg,test.plot)
 
-pheno_long<- fread("./Phenotype_Database/Pheno_Long1718.txt", header = T)
+pheno_long<- fread("./Phenotype_Database/Pheno_Long171819.txt", header = T)
 plotDates17<- fread("./Phenotype_Database/HDDT2017.txt")
 plotDates18<-fread("./Phenotype_Database/HDDT2018.txt")
 
@@ -317,6 +318,22 @@ pheno18<- pheno_long %>%
             by = c("entity_id" = "plots18")) %>%
   tidylog::select(entity_id,phenotype_value,hddt18,numHddt18)
 pheno18$hddt18<- as.Date(pheno18$hddt18)
+
+pheno19<- pheno_long %>%
+  filter(year == "19") %>%
+  filter(trait_id == "GRYLD" |
+           trait_id == "HDDT") %>%
+  dplyr::arrange(entity_id) %>%
+  mutate(phenotype_date = as.Date(phenotype_date))
+
+pheno19hddt<- pheno19 %>% 
+  filter(trait_id == "HDDT") %>% 
+  tidylog::select(-phenotype_value)
+max(pheno19hddt$phenotype_date)
+min(pheno19hddt$phenotype_date)
+
+pheno19<- pheno_long %>% 
+  filter(!str_detect(entity_id, "19RKY7"))
 
 str(pheno17)
 

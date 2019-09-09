@@ -14,10 +14,12 @@ setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")
 
 pheno17<- fread("./Phenotype_Database/pheno17_htpLong.txt")
 pheno18<- fread("./Phenotype_Database/pheno18_htpLong.txt")
-phenoLong<- fread("./Phenotype_Database/Pheno_Long1718.txt")
+pheno19<- fread("./Phenotype_Database/pheno19_htpLong.txt")
+phenoLong<- fread("./Phenotype_Database/Pheno_Long171819.txt")
 
 glimpse(pheno17)
 glimpse(pheno18)
+glimpse(pheno19)
 glimpse(phenoLong)
 
 phenoLong<- phenoLong %>% 
@@ -28,6 +30,8 @@ pheno17$Date<- as.Date(pheno17$Date,format = "%Y-%m-%d")
 pheno17$Date<- format(pheno17$Date, "%Y%m%d")
 pheno18$Date<- as.Date(pheno18$Date,format = "%Y-%m-%d")
 pheno18$Date<- format(pheno18$Date, "%Y%m%d")
+pheno19$Date<- as.Date(pheno19$Date,format = "%Y-%m-%d")
+pheno19$Date<- format(pheno19$Date, "%Y%m%d")
 
 pheno17<- pheno17 %>% 
   unite("ID",c("ID","Date")) %>% 
@@ -50,6 +54,17 @@ pheno18<- pheno18 %>%
   distinct() %>% 
   glimpse()
 
+pheno19<- pheno19 %>% 
+  dplyr::rename(Plot_ID = entity_id)  %>% 
+  unite("ID",c("ID","Date")) %>% 
+  spread(key = ID, value = value) %>% 
+  tidylog::select(Plot_ID,Variety,GRYLD,
+                  GNDVI_20190103:RE_20190624) %>% 
+  tidylog::inner_join(phenoLong) %>% 
+  glimpse() %>% 
+  distinct() %>% 
+  glimpse()
+
 ###############################################################################
 ####                  ASREML to calculate heritability                  ####
 
@@ -66,6 +81,13 @@ pheno18$block<- as.factor(pheno18$block)
 pheno18$rep<- as.factor(pheno18$rep)
 pheno18$range<- as.factor(pheno18$range)
 pheno18$column<- as.factor(pheno18$column)
+
+pheno19$Plot_ID<- as.factor(pheno19$Plot_ID)
+pheno19$Variety<- as.factor(pheno19$Variety)
+pheno19$block<- as.factor(pheno19$block)
+pheno19$rep<- as.factor(pheno19$rep)
+pheno19$range<- as.factor(pheno19$range)
+pheno19$column<- as.factor(pheno19$column)
 
 #2017 trial
 
@@ -121,6 +143,7 @@ for (i in ntraits) {
 }
 
 dev.off()
+
 # lme4 comparison 2017
 calcH2r <- function(dat, fill = NA, ...) {
   
@@ -212,6 +235,75 @@ calcH2r <- function(dat, fill = NA, ...) {
 
 calcH2r(pheno18)
 
+## 2019
+dev.off()
+
+t19<- asreml(fixed = GRYLD ~ 1,
+             random = ~Variety + rep + rep:block,
+             data = pheno19)
+plot(t19)
+
+h<- as.data.frame(summary(t19)$varcomp)
+h
+
+h2<-as.data.frame(h[3,1] / (h[3,1] + (h[4,1]/2)))
+h2
+
+## 2019 all
+effectvars <- names(pheno19) %in% c("block", "rep", "Variety", "year", "column", 
+                                    "range", "Plot_ID")
+traits <- colnames(pheno19[ , !effectvars])
+H2_2019<- data.frame(traits)
+H2_2019$Heritability<- NA
+fieldInfo<- pheno19 %>% 
+  tidylog::select(Variety, rep, block, column, range)
+ntraits<- 1:nrow(H2_2019)
+
+for (i in ntraits) {
+  print(paste("Working on trait", H2_2019[i,1]))
+  j<- H2_2019[i,1]
+  print(paste("Creating Data Frame", j))
+  data<- cbind(fieldInfo, pheno19[,paste(j)])
+  names(data)<- c("Variety","rep","block","column","range","Trait")
+  
+  t19<- asreml(fixed = Trait ~ 1,
+               random = ~Variety + rep + rep:block,
+               data = data)
+  pdf(paste0("./Figures/AsremlPlots/ASREML_repBlock19_",H2_2019[i,1],".pdf"))
+  plot(t19)
+  dev.off()
+  h<- as.data.frame(summary(t19)$varcomp)
+  print(h)
+  
+  h2<- (h[3,1] / (h[3,1] + (h[4,1]/2)))
+  h2
+  H2_2019[i,2]<- h2
+}
+
+# lme4 comparison 2019
+calcH2r <- function(dat, fill = NA, ...) {
+  
+  r=length(table(dat$rep))
+  
+  effectvars <- names(dat) %in% c("block", "rep", "Variety", "year", "column", 
+                                  "range", "Plot_ID")
+  
+  t <- colnames(dat[ , !effectvars])
+  
+  for (i in t) {
+    
+    print(paste("Working on trait", i))
+    h = as.data.frame(VarCorr(
+      lmer(paste0(i, "~ (1|Variety) + (1|rep) + (1|rep:block)"), data = dat)))
+    H2= h[1,4] / (h[1,4] + (h[4,4] / r)) 
+    print(H2)
+  }
+  
+}
+
+calcH2r(pheno19)
+
+
 H2_2017<- H2_2017 %>% 
   separate(traits, c("Trait","Date"), sep = "_")
 H2_2017$Date<- as.Date(H2_2017$Date, format = "%Y%m%d")
@@ -258,6 +350,32 @@ H2_2018 %>%
 
 write.table(H2_2018,"./Phenotype_Database/Hyp7_heritability18.txt", quote = F,
             sep = "\t", col.names = T, row.names = F)
+
+H2_2019<- H2_2019 %>% 
+  separate(traits, c("Trait","Date"), sep = "_")
+H2_2019$Date<- as.Date(H2_2019$Date, format = "%Y%m%d")
+
+H2_2019 %>% 
+  tidylog::filter(Trait != "GRYLD") %>% 
+  tidylog::filter(Trait != "height") %>% 
+  tidylog::filter(Date > as.Date("20190301", format = "%Y%m%d")) %>% 
+  ggplot(aes(x = Date, y = Heritability)) +
+  geom_point() + 
+  geom_hline(yintercept = 0.7247998, linetype = 2, colour = "blue") +
+  facet_wrap(~Trait, scales = "free") +
+  theme_bw() + 
+  scale_x_date(date_breaks = "10 days", date_labels = "%b%d") +
+  labs(title = "Broad-sense heritability of VI over Date 2018/2019") +
+  theme(axis.text = element_text(colour = "black", size = 10),
+        axis.title = element_text(size = 16), 
+        title = element_text(size = 18),
+        legend.position = "none",
+        strip.text = element_text(size = 14)) +
+  coord_cartesian(ylim = c(0,1))
+
+write.table(H2_2019,"./Phenotype_Database/Hyp7_heritability19.txt", quote = F,
+            sep = "\t", col.names = T, row.names = F)
+
 ###### Examine weird residuals #####
 
 t18<- asreml(fixed = GNDVI_20171215 ~ 1,
@@ -285,3 +403,4 @@ coef(t18)$random
 
 h2<-as.data.frame(h[3,1] / (h[3,1] + (h[4,1]/2)))
 h2
+

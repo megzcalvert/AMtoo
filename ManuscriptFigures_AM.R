@@ -1,7 +1,7 @@
 library(tidyverse)
 library(data.table)
-library(myprettyreport)
-library(patchwork)
+#library(myprettyreport)
+#library(patchwork)
 library(sysfonts)
 library(ggpubr)
 library(cowplot)
@@ -26,7 +26,7 @@ font_families()
 
 #######Heritability plots for HTP
 her17<- fread(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/2017heritability.txt")
+  "./Phenotype_Database/Hyp7_heritability17.txt")
 
 head(her17)
 #Separate trait into date and HTP
@@ -40,7 +40,7 @@ her17$Date<- as.Date(her17$Date, format = "%Y%m%d")
 her17$Trait[her17$Trait == "RedEdge"] <- "RE"
 
 her18<- fread(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/2018heritability.txt")
+  "./Phenotype_Database/Hyp7_heritability18.txt")
 
 head(her18)
 

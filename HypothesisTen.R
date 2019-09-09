@@ -76,10 +76,12 @@ snpMatrix[1:10,1:10]
 
 pheno17<- fread("./Phenotype_Database/pheno17_htpLong.txt")
 pheno18<- fread("./Phenotype_Database/pheno18_htpLong.txt")
-phenoLong<- fread("./Phenotype_Database/Pheno_Long1718.txt")
+pheno19<- fread("./Phenotype_Database/pheno19_htpLong.txt")
+phenoLong<- fread("./Phenotype_Database/Pheno_Long171819.txt")
 
 glimpse(pheno17)
 glimpse(pheno18)
+glimpse(pheno19)
 glimpse(phenoLong)
 #pheno17$GRYLD<- as.numeric(pheno17$GRYLD)
 
@@ -94,6 +96,8 @@ pheno17$Date<- as.Date(pheno17$Date,format = "%Y-%m-%d")
 pheno17$Date<- format(pheno17$Date, "%Y%m%d")
 pheno18$Date<- as.Date(pheno18$Date,format = "%Y-%m-%d")
 pheno18$Date<- format(pheno18$Date, "%Y%m%d")
+pheno19$Date<- as.Date(pheno19$Date,format = "%Y-%m-%d")
+pheno19$Date<- format(pheno19$Date, "%Y%m%d")
 
 pheno17<- pheno17 %>% 
   unite("ID",c("ID","Date")) %>% 
@@ -111,6 +115,18 @@ pheno18<- pheno18 %>%
   spread(key = ID, value = value) %>% 
   tidylog::select(Plot_ID,Variety,GRYLD,
                   GNDVI_20171120:RE_20180613) %>% 
+  tidylog::inner_join(phenoLong) %>% 
+  tidylog::select(-starts_with("height_")) %>% 
+  glimpse() %>% 
+  distinct() %>% 
+  glimpse()
+
+pheno19<- pheno19 %>% 
+  dplyr::rename(Plot_ID = entity_id)  %>% 
+  unite("ID",c("ID","Date")) %>% 
+  spread(key = ID, value = value) %>% 
+  tidylog::select(Plot_ID,Variety,GRYLD,
+                  GNDVI_20190103:RE_20190624) %>% 
   tidylog::inner_join(phenoLong) %>% 
   tidylog::select(-starts_with("height_")) %>% 
   glimpse() %>% 
@@ -139,6 +155,13 @@ pheno18$block<- as.factor(pheno18$block)
 pheno18$rep<- as.factor(pheno18$rep)
 pheno18$range<- as.factor(pheno18$range)
 pheno18$column<- as.factor(pheno18$column)
+
+pheno19$Plot_ID<- as.factor(pheno19$Plot_ID)
+pheno19$Variety<- as.factor(pheno19$Variety)
+pheno19$block<- as.factor(pheno19$block)
+pheno19$rep<- as.factor(pheno19$rep)
+pheno19$range<- as.factor(pheno19$range)
+pheno19$column<- as.factor(pheno19$column)
 
 asreml.license.status()
 
@@ -270,20 +293,71 @@ dat18[1:5,1:15]
 
 beep(2)
 
+##### Making it a function for all of the VI's 2019
+
+par(mar=c(1,1,1,1))
+
+t19<- asreml(fixed = GRYLD ~ 0 + Variety,
+             random = ~ rep + rep:block,
+             data = pheno19)
+plot(t19)
+blues<- setDT(as.data.frame(coef(t19)$fixed), keep.rownames = T)
+blues$rn<- str_remove(blues$rn,"Variety_")
+dat19<- blues %>% 
+  rename(GRYLD = effect) %>% 
+  glimpse() 
+
+effectvars <- names(pheno19) %in% c("block", "rep", "Variety", "year", 
+                                    "column","range", "Plot_ID","GRYLD")
+traits <- colnames(pheno19[ , !effectvars])
+traits
+fieldInfo<- pheno19 %>% 
+  tidylog::select(Variety, rep, block, column, range)
+
+for (i in traits) {
+  print(paste("Working on trait", i))
+  j<- i
+  
+  data<- cbind(fieldInfo, pheno19[,paste(i)])
+  names(data)<- c("Variety","rep","block","column","range","Trait")
+  print(colnames(data))
+  
+  t19<- asreml(fixed = Trait ~ 0 + Variety,
+               random = ~ rep + rep:block,
+               data = data)
+  pdf(paste0("./Figures/AsremlPlots/ASREML_Blues18_",
+             i,".pdf"))
+  plot(t19)
+  
+  blues<- setDT(as.data.frame(coef(t19)$fixed), keep.rownames = T)
+  blues$rn<- str_remove(blues$rn,"Variety_")
+  colnames(blues)[colnames(blues)=="effect"] <- paste(i)
+  dat19<- blues %>% 
+    inner_join(dat19)
+  dev.off()
+}
+
+dat19[1:5,1:15]
+
+beep(2)
+
 par(mar=c(1,1,1,1))
 
 write.table(dat17,"./Phenotype_Database/Hyp10BLUEs_17.txt", quote = F,
             sep = "\t", row.names = FALSE,col.names = T)
 write.table(dat18,"./Phenotype_Database/Hyp10BLUEs_18.txt", quote = F,
             sep = "\t", row.names = FALSE,col.names = T)
+write.table(dat19,"./Phenotype_Database/Hyp10BLUEs_19.txt", quote = F,
+            sep = "\t", row.names = FALSE,col.names = T)
 dat17<- fread("./Phenotype_Database/Hyp10BLUEs_17.txt", header = T)
 dat18<- fread("./Phenotype_Database/Hyp10BLUEs_18.txt", header = T)
+dat19<- fread("./Phenotype_Database/Hyp10BLUEs_19.txt", header = T)
 
 ##### Select in 2016/2017 and see what happens in 2017/2018 ####
 # Using NDVI_20170512 for the selection
 dat17 %>% 
   ggplot(aes(x = NDVI_20170512)) +
-  geom_density() +
+  geom_histogram(colour = "black", fill = "white") +
   geom_vline(xintercept = mean(dat17$NDVI_20170512), linetype = 2) +
   theme_bw()
 
@@ -297,25 +371,27 @@ ndvi0512_top<- ndvi0512_top[1:round(0.05*nrow(dat17)),]
 
 dat17 %>% 
   ggplot(aes(x = NDVI_20170512)) +
-  geom_density() +
+  geom_histogram(colour = "black", fill = "white") +
   geom_vline(xintercept = mean(dat17$NDVI_20170512), linetype = 2) +
   geom_vline(xintercept = mean(ndvi0512_top$NDVI_20170512), colour = "blue",
              linetype = 2) +
   geom_vline(xintercept = min(ndvi0512_top$NDVI_20170512), colour = "blue") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black")) +
   labs(title = "Distribution of NDVI_20170512", 
        subtitle = "All lines - black, top 5% of NDVI_20170512 - blue")
 
 dat17 %>% 
   ggplot(aes(x = GRYLD)) +
-  geom_density() +
-  geom_density(data = ndvi0512_top,aes(x = GRYLD), colour = "blue") +
+  geom_histogram(colour = "black", fill = "white") +
+  geom_histogram(data = ndvi0512_top,aes(x = GRYLD), colour = "blue") +
   geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2) +
   geom_vline(xintercept = mean(ndvi0512_top$GRYLD), linetype = 2, 
              colour = "blue") +
   #geom_vline(xintercept = min(RE0512_top$GRYLD), colour = "blue") +
   #geom_vline(xintercept = max(RE0512_top$GRYLD), colour = "blue") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black")) +
   labs(title = "Distribution of GRYLD in 2016/2017", 
        subtitle = "All lines - black, lines selected from NDVI_20170512 - blue")
 
@@ -326,8 +402,8 @@ ndviSelect<- ndvi0512_top %>%
 
 dat18 %>% 
   ggplot(aes(x = GRYLD)) +
-  geom_density() +
-  geom_density(data = ndviSelect,aes(x = GRYLD.y), colour = "blue") +
+  geom_histogram(colour = "black", fill = "white") +
+  geom_histogram(data = ndviSelect,aes(x = GRYLD.y), colour = "blue") +
   geom_vline(xintercept = mean(dat18$GRYLD), linetype = 2) +
   geom_vline(xintercept = mean(ndviSelect$GRYLD.y), linetype = 2, 
              colour = "blue") +
@@ -336,6 +412,7 @@ dat18 %>%
   theme_bw() +
   labs(title = "Distribution of GRYLD in 2017/2018", 
        subtitle = "All lines - black, lines selected from NDVI_20170512 - blue, mean from 2016/2017 - grey")
+
 mean(ndviSelect$GRYLD.x)
 mean(ndviSelect$GRYLD.y)
 mean(dat17$GRYLD)
@@ -347,7 +424,7 @@ t.test(dat18$GRYLD,dat17$GRYLD)
 # Check RedEdge because it's opposite
 dat17 %>% 
   ggplot(aes(x = RedEdge_20170512)) +
-  geom_density() +
+  geom_histogram(colour = "black", fill = "white") +
   geom_vline(xintercept = mean(dat17$RedEdge_20170512), linetype = 2) +
   theme_bw()
 
@@ -360,25 +437,27 @@ RE0512_top<- RE0512_top[1:round(0.05*nrow(dat17)),]
 
 dat17 %>% 
   ggplot(aes(x = RedEdge_20170512)) +
-  geom_density() +
+  geom_histogram(colour = "black", fill = "white") +
   geom_vline(xintercept = mean(dat17$RedEdge_20170512), linetype = 2) +
   geom_vline(xintercept = mean(RE0512_top$RedEdge_20170512), colour = "blue",
              linetype = 2) +
   geom_vline(xintercept = max(RE0512_top$RedEdge_20170512), colour = "blue") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black")) +
   labs(title = "Distribution of RedEdge_20170512", 
        subtitle = "All lines - black, lowest 5% of RedEdge_20170512 - blue")
 
 dat17 %>% 
   ggplot(aes(x = GRYLD)) +
-  geom_density() +
-  geom_density(data = RE0512_top,aes(x = GRYLD), colour = "blue") +
+  geom_histogram(colour = "black", fill = "white") +
+  geom_histogram(data = RE0512_top,aes(x = GRYLD), colour = "blue") +
   geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2) +
   geom_vline(xintercept = mean(RE0512_top$GRYLD), linetype = 2, 
              colour = "blue") +
   #geom_vline(xintercept = min(RE0512_top$GRYLD), colour = "blue") +
   #geom_vline(xintercept = max(RE0512_top$GRYLD), colour = "blue") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black")) +
   labs(title = "Distribution of GRYLD in 2016/2017", 
        subtitle = "All lines - black, lines selected from RedEdge_20170512 - blue")
 
@@ -389,16 +468,18 @@ reSelect<- RE0512_top %>%
 
 dat18 %>% 
   ggplot(aes(x = GRYLD)) +
-  geom_density() +
-  geom_density(data = reSelect,aes(x = GRYLD.y), colour = "blue") +
+  geom_histogram(colour = "black", fill = "white") +
+  geom_histogram(data = reSelect,aes(x = GRYLD.y), colour = "blue") +
   geom_vline(xintercept = mean(dat18$GRYLD), linetype = 2) +
   geom_vline(xintercept = mean(reSelect$GRYLD.y), linetype = 2, 
              colour = "blue") +
   geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2, 
              colour = "#737373") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black")) +
   labs(title = "Distribution of GRYLD in 2017/2018", 
        subtitle = "All lines - black, lines selected from RedEdge_20170512 - blue, mean from 2016/2017 - grey")
+
 mean(reSelect$GRYLD.x)
 mean(reSelect$GRYLD.y)
 t.test(dat18$GRYLD,reSelect$GRYLD.y)
@@ -427,6 +508,15 @@ snpMatrix18<- snpMatrix %>%
   tidylog::select(-rn)
 
 snpMatrix18<- as.matrix(snpMatrix18)
+
+dat19<- dat19 %>% 
+  semi_join(snpMatrix, by = "rn")
+
+snpMatrix19<- snpMatrix %>% 
+  semi_join(dat19,by = "rn") %>% 
+  tidylog::select(-rn)
+
+snpMatrix19<- as.matrix(snpMatrix19)
 
 # Predict marker effects
 
@@ -479,90 +569,163 @@ beep(3)
 dev.list()
 graphics.off()
 
+##### Determing marker effects for each trait 2019
+
+gryldME<- mixed.solve(dat19$GRYLD, Z=snpMatrix19)
+re20190624ME<- mixed.solve(dat19$RE_20190624, Z=snpMatrix19)
+tidy(cor.test(gryldME$u,re20190624ME$u))
+
+traitME_19<- as.data.frame(gryldME$u)
+colnames(traitME_19)<- "GRYLD"
+
+traits<- dat19 %>% 
+  tidylog::select(-rn,-GRYLD) %>% 
+  colnames()
+
+for (i in traits) {
+  
+  print(paste("Working on trait", i))
+  y=dat19[[i]]
+  y
+  meRes<- mixed.solve(y=y, Z=snpMatrix19)
+  print(meRes$Vu)
+  traitME_19[[i]] <- meRes$u
+}
+
+beep(3)
+dev.list()
+graphics.off()
+
 ##### Looking at the marker effects distributions
 # Trying something.... 
 
 ggplot(data = pheno17, aes(x=GRYLD)) +
-  geom_density(colour = "red") +
-  geom_vline(xintercept = mean(pheno17$GRYLD),linetype = 2, colour = "red") +
-  geom_density(data = pheno18, aes(x=GRYLD), colour="blue") +
-  geom_vline(xintercept = mean(pheno18$GRYLD),linetype = 2, colour = "blue") +
+  geom_density(colour = "#008856") +
+  geom_vline(xintercept = mean(pheno17$GRYLD),linetype = 2, 
+             colour = "#008856") +
+  geom_density(data = pheno18, aes(x=GRYLD), colour="#0067a5") +
+  geom_vline(xintercept = mean(pheno18$GRYLD),linetype = 2, 
+             colour = "#0067a5") +
+  geom_density(data = pheno19, aes(x=GRYLD), colour="#604e97") +
+  geom_vline(xintercept = mean(pheno19$GRYLD),linetype = 2, 
+             colour = "#604e97") +
   theme_bw() +
-  labs(title = "Distribution of GRYLD over 2016/2017 and 2017/2018",
-       subtitle = "2016/2017-red, 2017/2018-blue")
+  theme(axis.text = element_text(colour = "black")) +
+  labs(title = "Distribution of GRYLD over 2016/2017, 2017/2018 and 2018/2019",
+       subtitle = "2016/2017-green, 2017/2018-blue, 2018/2019-violet")
 
 ggplot(data = dat17, aes(x=GRYLD)) +
-  geom_density(colour = "red") +
-  geom_vline(xintercept = mean(dat17$GRYLD),linetype = 2, colour = "red") +
-  geom_density(data = dat18, aes(x=GRYLD), colour="blue") +
-  geom_vline(xintercept = mean(dat18$GRYLD),linetype = 2, colour = "blue") +
+  geom_density(colour = "#008856") +
+  geom_vline(xintercept = mean(dat17$GRYLD),linetype = 2, colour = "#008856") +
+  geom_density(data = dat18, aes(x=GRYLD), colour="#0067a5") +
+  geom_vline(xintercept = mean(dat18$GRYLD),linetype = 2, colour = "#0067a5") +
+  geom_density(data = dat19, aes(x=GRYLD), colour = "#604e97") +
+  geom_vline(xintercept = mean(dat19$GRYLD),linetype = 2, colour = "#604e97") +
   theme_bw() +
-  labs(title = "Distribution of GRYLD BLUEs over 2016/2017 and 2017/2018",
-       subtitle = "2016/2017-red, 2017/2018-blue")
+  theme(axis.text = element_text(colour = "black")) +
+  labs(title = "Distribution of GRYLD BLUEs over 2016/2017, 2017/2018 and 2018/2019",
+       subtitle = "2016/2017-green, 2017/2018-blue, 2018/2019-violet")
 
 ggplot(data = traitME_17, aes(x=GRYLD)) +
-  geom_density() +
+  geom_histogram(colour = "black", fill = "white") +
   theme_bw() +
   labs(title = "Marker Effect distribution for GRYLD2016/2017")
 
 ggplot(data = traitME_18, aes(x=GRYLD)) +
-  geom_density() +
+  geom_histogram(colour = "black", fill = "white") +
   theme_bw() +
   labs(title = "Marker Effect distribution for GRYLD 2017/2018")
 
-ggplot(data = traitME_17, aes(x=GRYLD)) +
-  geom_density(colour = "red") +
-  geom_density(data = traitME_18, aes(x=GRYLD), colour = "blue") +
-  geom_vline(xintercept = mean(traitME_17$GRYLD), colour = "red") +
-  geom_vline(xintercept = mean(traitME_18$GRYLD), colour = "blue") +
+ggplot(data = traitME_19, aes(x=GRYLD)) +
+  geom_histogram(colour = "black", fill = "white") +
   theme_bw() +
-  labs(title = "Marker Effect distribution for GRYLD 2016/2017 and 2017/2018",
-       subtitle = "2016/2017 - red, 2017/2018 - blue")
+  labs(title = "Marker Effect distribution for GRYLD 2018/2019")
+
+ggplot(data = traitME_17, aes(x=GRYLD)) +
+  geom_histogram(colour = "#008856", fill = NA) +
+  geom_histogram(data = traitME_18, aes(x=GRYLD), colour = "#0067a5", 
+                 fill = NA) +
+  geom_vline(xintercept = mean(traitME_17$GRYLD), colour = "#008856") +
+  geom_vline(xintercept = mean(traitME_18$GRYLD), colour = "#0067a5") +
+  geom_histogram(data = traitME_19, aes(x=GRYLD), colour = "#604e97", 
+                 fill = NA) +
+  geom_vline(xintercept = mean(traitME_19$GRYLD), colour = "#604e97") +
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black")) +
+  theme(axis.text = element_text(colour = "black")) +
+  labs(title = "Marker Effect distribution for GRYLD 2016/2017, 2017/2018 and 2018/2019",
+       subtitle = "2016/2017-green, 2017/2018-blue, 2018/2019-violet",
+       y = "Frequency")
+
+write.table(traitME_17, "./Genotype_Database/traitMarkerEffects17.txt", 
+            quote = F, sep = "\t", row.names = F, col.names = T)
+write.table(traitME_18, "./Genotype_Database/traitMarkerEffects18.txt", 
+            quote = F, sep = "\t", row.names = F, col.names = T)
+write.table(traitME_19, "./Genotype_Database/traitMarkerEffects19.txt", 
+            quote = F, sep = "\t", row.names = F, col.names = T)
 
 mean(pheno17$GRYLD)
 mean(pheno18$GRYLD)
+mean(pheno19$GRYLD)
 var(pheno17$GRYLD)
 var(pheno18$GRYLD)
+var(pheno19$GRYLD)
 
 mean(dat17$GRYLD)
 mean(dat18$GRYLD)
+mean(dat19$GRYLD)
 var(dat17$GRYLD)
 var(dat18$GRYLD)
+var(dat19$GRYLD)
 
 mean(traitME_17$GRYLD)
 mean(traitME_18$GRYLD)
+mean(traitME_19$GRYLD)
 var(traitME_17$GRYLD)
 var(traitME_18$GRYLD)
+var(traitME_19$GRYLD)
 
 t.test(traitME_17$GRYLD,traitME_18$GRYLD)
+t.test(traitME_17$GRYLD,traitME_19$GRYLD)
+t.test(traitME_18$GRYLD,traitME_19$GRYLD)
 t.test(pheno17$GRYLD,pheno18$GRYLD)
+t.test(pheno17$GRYLD,pheno19$GRYLD)
+t.test(pheno18$GRYLD,pheno19$GRYLD)
 t.test(dat17$GRYLD,dat18$GRYLD)
+t.test(dat17$GRYLD,dat19$GRYLD)
+t.test(dat18$GRYLD,dat19$GRYLD)
 
 ggplot() +
   geom_point(aes(x=mean(pheno17$GRYLD), y = mean(traitME_17$GRYLD)),
-             colour = "red") +
+             colour = "#008856") +
   geom_point(aes(x=mean(pheno18$GRYLD), y = mean(traitME_18$GRYLD)), 
-             colour = "blue") +
+             colour = "#0067a5") +
+  geom_point(aes(x=mean(pheno19$GRYLD), y = mean(traitME_19$GRYLD)), 
+             colour = "#604e97") +
   theme_bw() +
   labs(x = "mean GRYLD", y = "mean marker effect",
        title = "Comparison of mean GRYLD and mean marker effect",
-       subtitle = "2016/2017 - red, 2017/2018 - blue")
+       subtitle = "2016/2017-green, 2017/2018-blue, 2018/2019-violet")
 
 ggplot() +
   geom_point(aes(x=mean(pheno17$GRYLD), y = var(traitME_17$GRYLD)),
-             colour = "red") +
+             colour = "#008856") +
   geom_point(aes(x=mean(pheno18$GRYLD), y = var(traitME_18$GRYLD)), 
-             colour = "blue") +
+             colour = "#0067a5") +
+  geom_point(aes(x=mean(pheno19$GRYLD), y = var(traitME_19$GRYLD)), 
+             colour = "#604e97") +
   theme_bw() +
   labs(x = "mean GRYLD", y = "variance of marker effect",
        title = "Comparison of mean GRYLD and variance of marker effect",
-       subtitle = "2016/2017 - red, 2017/2018 - blue")
+       subtitle = "2016/2017-green, 2017/2018-blue, 2018/2019-violet")
 
 # Correlation between ME for GRYLD in different years
 tidy(rcorr(traitME_17$GRYLD,traitME_18$GRYLD))
+tidy(rcorr(traitME_17$GRYLD,traitME_19$GRYLD))
+tidy(rcorr(traitME_18$GRYLD,traitME_19$GRYLD))
 
-gryldME<- as.matrix(cbind(traitME_17$GRYLD,traitME_18$GRYLD))
-colnames(gryldME)<- c("gryld17","gryld18")
+gryldME<- as.matrix(cbind(traitME_17$GRYLD,traitME_18$GRYLD,traitME_19$GRYLD))
+colnames(gryldME)<- c("gryld17","gryld18","gryld19")
 
 gryldME_chr1<- gryldME[1:1149, ]
 gryldME_chr2<- gryldME[1150:2028, ]
@@ -586,7 +749,9 @@ gryldME_chr19<- gryldME[12628:13526, ]
 gryldME_chr20<- gryldME[13527:14221, ]
 gryldME_chr21<- gryldME[14222:14523, ]
 
-outCor<- rollapply(gryldME_chr1, 10, by = 2, function(x) c(cor(x)), by.column = F )
+outCor<- rollapply(gryldME_chr1, 10, by = 2, 
+                   function(x) c(cor(x)), by.column = F )
+
 outCor<- as.data.frame(outCor)
 outCor<- outCor %>% 
   tidylog::select(-V1,-V3,-V4) %>% 
@@ -599,12 +764,14 @@ outCor %>%
   geom_smooth() +
   theme_bw() +
   labs(title = "Sliding window correlation of GRYLD marker effects",
-       subtitle = "Chr1A window = 10, slide = 2")
+       subtitle = "Chr1A window = 10, slide = 2") +
+  coord_cartesian(ylim = c(-1,1))
 
 ##### Correlation Matrix examination ####
 
 corrMatrix_17<- rcorr(as.matrix(traitME_17))
 corrMatrix_18<- rcorr(as.matrix(traitME_18))
+corrMatrix_19<- rcorr(as.matrix(traitME_19))
 
 ##### Distribution of Correlation Matrix 
 
@@ -622,6 +789,8 @@ correlationME17<- flattenCorrMatrix(corrMatrix_17$r,
                                     corrMatrix_17$P)
 correlationME18<- flattenCorrMatrix(corrMatrix_18$r,
                                     corrMatrix_18$P)
+correlationME19<- flattenCorrMatrix(corrMatrix_19$r,
+                                    corrMatrix_19$P)
 
 phenoCorrMatrix_17<- dat17 %>% 
   tidylog::select(-rn)
@@ -637,28 +806,28 @@ phenoCorrMatrix_18<- rcorr(as.matrix(phenoCorrMatrix_18))
 correlationsPheno18<- flattenCorrMatrix(phenoCorrMatrix_18$r,
                                         phenoCorrMatrix_18$P)
 
-## Distribution of all correlations for VI and GRYLD ME
-correlationME17 %>% 
-  ggplot(aes(x=cor)) +
-  geom_histogram(binwidth = 0.05,
-                 fill = "white",colour="black") +
-  theme_bw() +
-  labs(title = 
-         "Distribution of the correlations between marker effects",
-       subtitle = 
-         "All VI and GRYLD, generated by rrBLUP 2016/2017 Season") +
-  xlim(-1,1)
+phenoCorrMatrix_19<- dat19 %>% 
+  tidylog::select(-rn)
+phenoCorrMatrix_19<- rcorr(as.matrix(phenoCorrMatrix_19))
 
-correlationME18 %>% 
-  ggplot(aes(x=cor)) +
-  geom_histogram(binwidth = 0.05,
-                 fill = "white",colour="black") +
+correlationsPheno19<- flattenCorrMatrix(phenoCorrMatrix_19$r,
+                                        phenoCorrMatrix_19$P)
+
+## Distribution of all correlations for VI and GRYLD ME
+correlationMarkerEffects<- ggplot() +
+  geom_histogram(data = correlationME17, aes(x = cor), binwidth = 0.05,
+                 fill = "white",colour="#008856") +
+  geom_histogram(data = correlationME18, aes(x = cor), binwidth = 0.05, 
+                 fill = "white",colour = "#0067a5") +
+  geom_histogram(data = correlationME19, aes(x = cor), binwidth = 0.05, 
+                 fill = "white",colour = "#604e97") +
   theme_bw() +
   labs(title = 
          "Distribution of the correlations between marker effects",
        subtitle = 
-         "All VI and GRYLD, generated by rrBLUP 2017/2018 Season") +
+         "All VI and GRYLD, generated by rrBLUP 2016/2017-green, 2017/2018-blue, 2018/2019-violet") +
   xlim(-1,1)
+correlationMarkerEffects
 
 ## Distribution for only those related to GRYLD
 correlationsGryld17<- correlationsPheno17 %>% 
@@ -670,6 +839,11 @@ correlationsGryld18<- correlationsPheno18 %>%
   tidylog::filter(column == "GRYLD") %>% 
   tidylog::select(-column)
 unique(correlationsGryld18$row)
+
+correlationsGryld19<- correlationsPheno19 %>% 
+  tidylog::filter(column == "GRYLD") %>% 
+  tidylog::select(-column)
+unique(correlationsGryld19$row)
 
 correlationME17 %>% 
   tidylog::filter(row == "GRYLD") %>% 
@@ -703,6 +877,22 @@ correlationME18 %>%
       "GRYLD correlations with VI, generated by rrBLUP 2017/2018 Season") +
   xlim(-1,1)
 
+correlationME19 %>% 
+  tidylog::filter(row == "GRYLD") %>% 
+  left_join(correlationsGryld19, by = c("column"="row")) %>% 
+  dplyr::rename(CorToGeno=cor.x,Pvalue=p.x,corToPheno=cor.y) %>% 
+  tidylog::select(-p.y) %>% 
+  glimpse() %>% 
+  ggplot(aes(x=CorToGeno)) +
+  geom_histogram(binwidth = 0.025, colour = "black", fill="white") +
+  theme_bw() +
+  labs(
+    title = 
+      "Distribution of the correlations between marker effects",
+    subtitle = 
+      "GRYLD correlations with VI, generated by rrBLUP 2018/2019 Season") +
+  xlim(-1,1)
+
 correlationME17 %>% 
   tidylog::filter(row == "GRYLD") %>% 
   left_join(correlationsGryld17, by = c("column"="row")) %>% 
@@ -711,13 +901,26 @@ correlationME17 %>%
   separate(column,c("Trait","Date"), sep = "_") %>% 
   glimpse() %>% 
   ggplot(aes(x=CorToGeno, y=corToPheno,colour=Date,shape=Trait)) +
-  geom_point(alpha=0.75,size=3) +
-  scale_color_manual(values = c("#26294a",
-                                "#017351","#03c383","#aad962",
-                                "#fbbf45","#ef6a32","#ed0345",
-                                "#a12a5e","710162","110141")) +
-  scale_shape_manual(values = c(5,6,1,0,8,13)) +
+  geom_point(size = 5) +
+  geom_abline(intercept = 0, slope = 1, linetype = 2) +
+  scale_color_manual(values = c("#f3c300","#875692","#f38400","#a1caf1",  
+                                "#be0032","#848482","#008856",
+                                "#e68fac","#0067a5","#f99379","#604e97",
+                                "#f6a600","#b3446c","#dcd300","#882d17", 
+                                "#8db600","#654522","#e25822","#2b3d26" )) +
+  scale_shape_manual(values = c(0,1,2,8,11,9)) +
   theme_bw()  +
+  theme(axis.text = element_text(colour = "black", size = rel(1.5)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        aspect.ratio = 1:1,
+        plot.title = element_text(colour = "black", size = rel(2.5)),
+        plot.subtitle = element_text(colour = "black", size = rel(2)),
+        legend.key.size = unit(2,"lines"),
+        legend.margin = margin(t = 0, r = 0.75,
+                               b = 0, l = 0.75,
+                               unit = "cm"),
+        legend.text = element_text(size = rel(1.5)),
+        legend.title = element_text(size = rel(2)),) +
   xlim(-1,1) +
   ylim(-1,1) +
   labs(
@@ -736,13 +939,26 @@ correlationME18 %>%
   separate(column,c("Trait","Date"), sep = "_") %>% 
   glimpse() %>% 
   ggplot(aes(x=CorToGeno, y=corToPheno,colour=Date,shape=Trait)) +
-  geom_point(alpha=0.75,size=3) +
-  scale_color_manual(values = c("#a6cee3","#1a1334","#26294a","#01545a",
-                                "#017351","#03c383","#aad962","#fbbf45",
-                                '#ef6a32',"#ed0345","#a12a5e","#710162",
-                                "#110141","#555555","#252525")) +
-  scale_shape_manual(values = c(5,6,1,0,8,13)) +
+  geom_point(size=5) +
+  geom_abline(intercept = 0, slope = 1, linetype = 2) +
+  scale_color_manual(values = c("#f3c300","#875692","#f38400","#a1caf1",  
+                                "#be0032","#848482","#008856",
+                                "#e68fac","#0067a5","#604e97",
+                                "#f6a600","#b3446c","#dcd300","#882d17", 
+                                "#8db600","#654522","#e25822","#2b3d26" )) +
+  scale_shape_manual(values = c(0,1,2,8,11,9)) +
   theme_bw()  +
+  theme(axis.text = element_text(colour = "black", size = rel(1.5)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        aspect.ratio = 1:1,
+        plot.title = element_text(colour = "black", size = rel(2.5)),
+        plot.subtitle = element_text(colour = "black", size = rel(2)),
+        legend.key.size = unit(2,"lines"),
+        legend.margin = margin(t = 0, r = 0.75,
+                               b = 0, l = 0.75,
+                               unit = "cm"),
+        legend.text = element_text(size = rel(1.5)),
+        legend.title = element_text(size = rel(2)),) +
   xlim(-1,1) +
   ylim(-1,1) +
   labs(
@@ -753,55 +969,110 @@ correlationME18 %>%
     x = "Correlation to GRYLD marker effects matrix",
     y = "Correlation to GRYLD phenotypic measurements")
 
+correlationME19 %>% 
+  tidylog::filter(row == "GRYLD") %>% 
+  left_join(correlationsGryld19, by = c("column"="row")) %>% 
+  dplyr::rename(CorToGeno=cor.x,Pvalue=p.x,corToPheno=cor.y) %>% 
+  tidylog::select(-p.y) %>% 
+  separate(column,c("Trait","Date"), sep = "_") %>% 
+  glimpse() %>% 
+  ggplot(aes(x=CorToGeno, y=corToPheno,colour=Date,shape=Trait)) +
+  geom_point(size=5) +
+  geom_abline(intercept = 0, slope = 1, linetype = 2) +
+  scale_color_manual(values = c("#f3c300","#875692","#f38400","#a1caf1",  
+                                "#be0032","#848482","#008856",
+                                "#e68fac","#0067a5","#604e97",
+                                "#f6a600","#b3446c","#dcd300","#882d17", 
+                                "#8db600","#654522","#e25822","#2b3d26" )) +
+  scale_shape_manual(values = c(0,1,2,8,11,9)) +
+  theme_bw()  +
+  theme(axis.text = element_text(colour = "black", size = rel(1.5)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        aspect.ratio = 1:1,
+        plot.title = element_text(colour = "black", size = rel(2.5)),
+        plot.subtitle = element_text(colour = "black", size = rel(2)),
+        legend.key.size = unit(2,"lines"),
+        legend.margin = margin(t = 0, r = 0.75,
+                               b = 0, l = 0.75,
+                               unit = "cm"),
+        legend.text = element_text(size = rel(1.5)),
+        legend.title = element_text(size = rel(2)),) +
+  xlim(-1,1) +
+  ylim(-1,1) +
+  labs(
+    title = 
+      "Correlation between Marker Effects correlations and Phenotypic measurements correlations",
+    subtitle = 
+      "GRYLD correlations with VI, generated by rrBLUP 2018/2019 Season",
+    x = "Correlation to GRYLD marker effects matrix",
+    y = "Correlation to GRYLD phenotypic measurements")
+
 ##### Converting Correlation matrix to a distance matrix ####
 
 distmat_17<- distanceMatrix(as.matrix(traitME_17),
                             metric = "absolute pearson")
 distmat_18<- distanceMatrix(as.matrix(traitME_18),
                             metric = "absolute pearson")
+distmat_19<- distanceMatrix(as.matrix(traitME_19),
+                            metric = "absolute pearson")
 
 pcoord_17<- pcoa(distmat_17)
 pcoord_18<- pcoa(distmat_18)
+pcoord_19<- pcoa(distmat_19)
 biplot.pcoa(pcoord_17)
 biplot.pcoa(pcoord_18)
+biplot.pcoa(pcoord_19)
 
 ## Making better biplot
 pcoOrd_17<- setDT(as.data.frame(pcoord_17$vectors),keep.rownames = T)
 pcoOrd_18<- setDT(as.data.frame(pcoord_18$vectors),keep.rownames = T)
+pcoOrd_19<- setDT(as.data.frame(pcoord_19$vectors),keep.rownames = T)
 
 pcoOrd_17<- pcoOrd_17 %>% 
   separate(rn,c("Trait","date"),sep = "_")
 pcoOrd_17[1,2]<- "20170613"
+
+write.table(pcoOrd_17,"./Genotype_Database/PCOanalysisGeneticDistance_17.txt",
+            quote = F, sep = "\t",row.names = F, col.names = T)
+
 pcoOrd_17 %>% 
   ggplot(aes(x = `Axis.1`, y = `Axis.2`, colour = date, shape = Trait)) +
   geom_point(size = 3) +
   scale_shape_manual(values = c(0,1,19,2,5,6,7)) +
-  scale_color_manual(values = c("#1b9e77","#d95f02","#7570b3",
-                                "#e7298a","#66a61e","#e6ab02","#a6761d",
-                                '#666666',"#000000")) +
+  scale_color_manual(values = c("#875692","#f38400",  
+                                "#be0032","#008856",
+                                "#0067a5","#604e97",
+                                "#f6a600","#b3446c","#222222")) +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = 10),
+        aspect.ratio = 1:1) +
   labs(
     title = 
       "Principal Coordinate analysis of genetic distance matrix",
     subtitle = "2016/2017 season") +
-  theme(axis.text = element_text(size = 10)) +
   coord_fixed(xlim = c(-0.6,0.6),ylim = c(-0.6,0.6))
 
 pcoOrd_18<- pcoOrd_18 %>% 
   separate(rn,c("Trait","date"),sep = "_")
 pcoOrd_18[1,2]<- "20180615"
+
+write.table(pcoOrd_18,"./Genotype_Database/PCOanalysisGeneticDistance_18.txt",
+            quote = F, sep = "\t",row.names = F, col.names = T)
+
 pcoOrd_18 %>% 
   ggplot(aes(x = `Axis.1`, y = `Axis.2`, colour = date, shape = Trait)) +
   geom_point(size = 3) +
   scale_shape_manual(values = c(0,1,19,2,5,6,7)) +
-  scale_color_manual(values = c("#a6cee3","#1f78b4","#b2df8a","#33a02c",
-                                "#fb9a99","#e31a1c","#fdbf6f","#ff7f00",
-                                '#cab2d6',"#6a3d9a","#9999ff","#b15928",
-                                "#9a0036","#888888","#2a2a2a","#000000")) +
+  scale_color_manual(values = c("#f3c300","#875692","#f38400","#a1caf1",  
+                                "#be0032","#848482","#008856",
+                                "#e68fac","#0067a5","#604e97",
+                                "#f6a600","#b3446c","#dcd300","#882d17", 
+                                "#8db600","#654522","#e25822","#2b3d26" )) +
   theme_bw() +
   labs(title = "Principal Coordinate analysis of genetic distance matrix",
        subtitle = "2017/2018 season") +
-  theme(axis.text = element_text(size = 10)) +
+  theme(axis.text = element_text(size = 10, colour = "black"),
+        aspect.ratio = 1:1) +
   coord_fixed(xlim = c(-0.6,0.6),ylim = c(-0.6,0.6))
 
 group1_18<- pcoOrd_18 %>% 
@@ -835,6 +1106,29 @@ group1Cor_18<- cor(group1ME_18)
 group2Cor_18<- cor(group2ME_18)
 group3Cor_18<- cor(group3ME_18)
 
+pcoOrd_19<- pcoOrd_19 %>% 
+  separate(rn,c("Trait","date"),sep = "_")
+pcoOrd_19[1,2]<- "20190702"
+
+write.table(pcoOrd_19,"./Genotype_Database/PCOanalysisGeneticDistance_19.txt",
+            quote = F, sep = "\t",row.names = F, col.names = T)
+
+pcoOrd_19 %>% 
+  ggplot(aes(x = `Axis.1`, y = `Axis.2`, colour = date, shape = Trait)) +
+  geom_point(size = 3) +
+  scale_shape_manual(values = c(0,19,2,5,6,7)) +
+  scale_color_manual(values = c("#f3c300","#875692","#f38400","#a1caf1",  
+                                "#be0032","#848482","#008856",
+                                "#e68fac","#0067a5","#604e97",
+                                "#f6a600","#b3446c","#dcd300","#882d17", 
+                                "#8db600","#654522","#e25822","#2b3d26" )) +
+  theme_bw() +
+  labs(title = "Principal Coordinate analysis of genetic distance matrix",
+       subtitle = "2018/2019 season") +
+  theme(axis.text = element_text(size = 10, colour = "black"),
+        aspect.ratio = 1:1) +
+  coord_fixed(xlim = c(-0.6,0.6),ylim = c(-0.6,0.6))
+
 #mantel.test(group1Cor_18, group2Cor_18, graph = T)
 
 ## Hierarchical clustering
@@ -844,6 +1138,9 @@ plot(hClustering_17, hang = -1, no.margin = T)
 
 hClustering_18 <- hclust(distmat_18, method = 'ward.D2')
 plot(hClustering_18, hang = -1, no.margin = T)
+
+hClustering_19 <- hclust(distmat_19, method = 'ward.D2')
+plot(hClustering_19, hang = -1, no.margin = T)
 
 colors = c("#762a83",
            "#1b7837",
@@ -858,7 +1155,11 @@ plot(as.phylo(hClustering_17), tip.color = colors[clus17],
      label.offset = 0.01, cex = 0.7, no.margin = T)
 
 clus18 = cutree(hClustering_18, 5)
-plot(as.phylo(hClustering_17), tip.color = colors[clus18],
+plot(as.phylo(hClustering_18), tip.color = colors[clus18],
+     label.offset = 0.01, cex = 0.7, no.margin = T)
+
+clus19 = cutree(hClustering_19, 5)
+plot(as.phylo(hClustering_19), tip.color = colors[clus19],
      label.offset = 0.01, cex = 0.7, no.margin = T)
 
 ## Converting hclust to dendograms
@@ -871,8 +1172,13 @@ hClustDen_18<- as.dendrogram(hClustering_18)
 
 ggdendrogram(hClustering_18, rotate = T)
 
+hClustDen_19<- as.dendrogram(hClustering_19)
+
+ggdendrogram(hClustering_19, rotate = T)
+
 hclustDenData_17<- dendro_data(hClustDen_17)
 hclustDenData_18<- dendro_data(hClustDen_18)
+hclustDenData_19<- dendro_data(hClustDen_19)
 
 p <- ggplot(hclustDenData_17$segments) + 
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend)) +
@@ -885,6 +1191,14 @@ p
 p <- ggplot(hclustDenData_18$segments) + 
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend)) +
   geom_text(data = hclustDenData_18$labels, aes(x, y, label = label),
+            hjust = 1, angle = 90, size = 2) +
+  ylim(-0.5, 1) +
+  theme_bw()
+p
+
+p <- ggplot(hclustDenData_19$segments) + 
+  geom_segment(aes(x = x, y = y, xend = xend, yend = yend)) +
+  geom_text(data = hclustDenData_19$labels, aes(x, y, label = label),
             hjust = 1, angle = 90, size = 2) +
   ylim(-0.5, 1) +
   theme_bw()
@@ -914,6 +1228,17 @@ plot.phylo(nj_18, type = "phylogram", use.edge.length = F,
            rotate.tree = 0, open.angle = 0, node.depth = 1,
            align.tip.label = T)
 
+nj_19<- nj(distmat_19)
+plot.phylo(nj_19, type = "phylogram", use.edge.length = F,
+           node.pos = NULL, show.tip.label = TRUE, show.node.label = FALSE,
+           edge.color = "black", edge.width = 1, edge.lty = 1, font = 1,
+           cex = 0.5, adj = NULL, srt = 0, no.margin = T,
+           root.edge = FALSE, label.offset = 0.25, underscore = FALSE,
+           x.lim = NULL, y.lim = NULL, direction = "rightwards",
+           lab4ut = NULL, tip.color = "black", plot = TRUE,
+           rotate.tree = 0, open.angle = 0, node.depth = 1,
+           align.tip.label = T)
+
 gplots::heatmap.2(as.matrix(distmat_17),
                   margins =c(8,8),trace = "none",
                   dendrogram = "both",
@@ -927,6 +1252,13 @@ gplots::heatmap.2(as.matrix(distmat_18),
                   density.info = "density",
                   col = "viridis",
                   main = "Hierarchichal Clustering of additive genetic effects 2017/2018 season")
+
+gplots::heatmap.2(as.matrix(distmat_19),
+                  margins =c(8,8),trace = "none",
+                  dendrogram = "both",
+                  density.info = "density",
+                  col = "viridis",
+                  main = "Hierarchichal Clustering of additive genetic effects 2018/2019 season")
 
 ## hierarchical clustering with significance
 # Can take a long time

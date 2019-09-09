@@ -67,15 +67,16 @@ colnames(myGD)[colnames(myGD)=="rn"] <- "Taxa"
 myGM<- snpChip[,1:3]
 colnames(myGM)<- c("Name", "Chromosome","Position")
 
-
 ##### Phenotypes ####
 
 pheno17<- fread("./Phenotype_Database/pheno17_htpLong.txt")
 pheno18<- fread("./Phenotype_Database/pheno18_htpLong.txt")
-phenoLong<- fread("./Phenotype_Database/Pheno_Long1718.txt")
+pheno19<- fread("./Phenotype_Database/pheno19_htpLong.txt")
+phenoLong<- fread("./Phenotype_Database/Pheno_Long171819.txt")
 
 glimpse(pheno17)
 glimpse(pheno18)
+glimpse(pheno19)
 glimpse(phenoLong)
 
 phenoLong<- phenoLong %>% 
@@ -86,6 +87,8 @@ pheno17$Date<- as.Date(pheno17$Date,format = "%Y-%m-%d")
 pheno17$Date<- format(pheno17$Date, "%Y%m%d")
 pheno18$Date<- as.Date(pheno18$Date,format = "%Y-%m-%d")
 pheno18$Date<- format(pheno18$Date, "%Y%m%d")
+pheno19$Date<- as.Date(pheno19$Date,format = "%Y-%m-%d")
+pheno19$Date<- format(pheno19$Date, "%Y%m%d")
 
 pheno17<- pheno17 %>% 
   unite("ID",c("ID","Date")) %>% 
@@ -108,6 +111,17 @@ pheno18<- pheno18 %>%
   distinct() %>% 
   glimpse()
 
+pheno19<- pheno19 %>% 
+  dplyr::rename(Plot_ID = entity_id)  %>% 
+  unite("ID",c("ID","Date")) %>% 
+  spread(key = ID, value = value) %>% 
+  tidylog::select(Plot_ID,Variety,GRYLD,
+                  GNDVI_20190103:RE_20190624) %>% 
+  tidylog::inner_join(phenoLong) %>% 
+  glimpse() %>% 
+  distinct() %>% 
+  glimpse()
+
 pheno17$Plot_ID<- as.factor(pheno17$Plot_ID)
 pheno17$Variety<- as.factor(pheno17$Variety)
 pheno17$block<- as.factor(pheno17$block)
@@ -121,6 +135,13 @@ pheno18$block<- as.factor(pheno18$block)
 pheno18$rep<- as.factor(pheno18$rep)
 pheno18$range<- as.factor(pheno18$range)
 pheno18$column<- as.factor(pheno18$column)
+
+pheno19$Plot_ID<- as.factor(pheno19$Plot_ID)
+pheno19$Variety<- as.factor(pheno19$Variety)
+pheno19$block<- as.factor(pheno19$block)
+pheno19$rep<- as.factor(pheno19$rep)
+pheno19$range<- as.factor(pheno19$range)
+pheno19$column<- as.factor(pheno19$column)
 
 ##### Normality tests ####
 pheno17NormT<- pheno17 %>% 
@@ -154,7 +175,6 @@ norm17clean$univariateNormality
 boxplot.stats(pheno17NormTclean$GRYLD)$out
 boxplot.stats(pheno17NormTclean$GNDVI_20170331)$out
 
-
 pheno18NormT<- pheno18 %>% 
   tidylog::select(-Plot_ID,-Variety,-block,-rep,-range,-column)
 norm18<- mvn(pheno18NormT)
@@ -174,6 +194,26 @@ norm18clean<- mvn(pheno18NormTclean)
 norm18clean$univariateNormality
 boxplot.stats(pheno18NormTclean$GRYLD)$out
 boxplot.stats(pheno18NormTclean$GNDVI_20171120)$out
+
+pheno19NormT<- pheno19 %>% 
+  tidylog::select(-Plot_ID,-Variety,-block,-rep,-range,-column)
+norm19<- mvn(pheno19NormT)
+norm19$univariateNormality
+boxplot.stats(pheno19NormT$GRYLD)$out
+boxplot.stats(pheno19NormT$GNDVI_20190103)$out
+
+pheno19clean<- pheno19 %>% 
+  tidylog::select(Plot_ID,Variety,block,rep,range,column) %>% 
+  bind_cols(pheno19NormT)
+
+pheno19clean[,7:ncol(pheno19clean)]<- as.data.frame(
+  lapply(pheno19clean[,7:ncol(pheno19clean)],remove_outliers))
+pheno19NormTclean<- pheno19clean %>% 
+  tidylog::select(-Plot_ID,-Variety,-block,-rep,-range,-column)
+norm19clean<- mvn(pheno19NormTclean)
+norm19clean$univariateNormality
+boxplot.stats(pheno19NormTclean$GRYLD)$out
+boxplot.stats(pheno19NormTclean$GNDVI_20190103)$out
 
 ##### ASREML BLUEs ####
 
@@ -270,6 +310,50 @@ beep(2)
 
 dat18[1:5,1:15]
 
+#### All of 2019
+t19<- asreml(fixed = GRYLD ~ 0 + Variety,
+             random = ~ rep + rep:block,
+             data = pheno19)
+plot(t19)
+blues<- setDT(as.data.frame(coef(t19)$fixed), keep.rownames = T)
+blues$rn<- str_remove(blues$rn,"Variety_")
+dat19<- blues %>% 
+  rename(GRYLD = effect) %>% 
+  glimpse() 
+
+##### Generating all 2019 VI BLUEs
+
+effectvars <- names(pheno19) %in% c("block", "rep", "Variety", "year", 
+                                    "column","range", "Plot_ID","GRYLD")
+traits <- colnames(pheno19[ , !effectvars])
+traits
+fieldInfo<- pheno19 %>% 
+  tidylog::select(Variety, rep, block, column, range)
+
+for (i in traits) {
+  print(paste("Working on trait", i))
+  j<- i
+  
+  data<- cbind(fieldInfo, pheno19[,paste(i)])
+  names(data)<- c("Variety","rep","block","column","range","Trait")
+  print(colnames(data))
+  
+  t19<- asreml(fixed = Trait ~ 0 + Variety,
+               random = ~ rep + rep:block,
+               data = data)
+  
+  blues<- setDT(as.data.frame(coef(t19)$fixed), keep.rownames = T)
+  blues$rn<- str_remove(blues$rn,"Variety_")
+  colnames(blues)[colnames(blues)=="effect"] <- paste(i)
+  dat19<- blues %>% 
+    inner_join(dat19)
+  
+}
+
+beep(2)
+
+dat19[1:5,1:15]
+
 snpChip[1:10,1:10]
 snpMatrix[1:10,1:10]
 
@@ -282,9 +366,14 @@ colnames(dat17)[colnames(dat17)=="rn"] <- "Taxa"
 dat18<- semi_join(dat18,snpLines, by = "rn")
 colnames(dat18)[colnames(dat18)=="rn"] <- "Taxa"
 
+dat19<- semi_join(dat19,snpLines, by = "rn")
+colnames(dat19)[colnames(dat19)=="rn"] <- "Taxa"
+
 write.table(dat17,file = "./Phenotype_Database/ASREMLBlup_2017.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
 write.table(dat18,file = "./Phenotype_Database/ASREMLBlup_2018.txt",quote = F,
+            sep = "\t",row.names = F,col.names = T)
+write.table(dat19,file = "./Phenotype_Database/ASREMLBlup_2019.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
 
 numberedCols<- paste(1:(ncol(myGD)-1), sep = ",")
@@ -299,113 +388,10 @@ write.table(myGD,"./R/Gapit/HypothesisEleven/myGD.txt",sep = "\t", quote = F,
 write.table(myGM,"./R/Gapit/HypothesisEleven/myGM.txt",sep = "\t", quote = F,
             col.names = T, row.names = F)
 
-##### LD analysis ####
-flattenCorrMatrix <- function(cormat, pmat) {
-  ut <- upper.tri(cormat)
-  data.frame(
-    row = rownames(cormat)[row(cormat)[ut]],
-    column = rownames(cormat)[col(cormat)[ut]],
-    cor  =(cormat)[ut],
-    p = pmat[ut]
-  )
-}
-
-LDmatrix<- read.table("./R/Gapit/HypothesisEleven/myGD.txt", header = T)
-LDmatrix[1:10,1:10]
-LDmatrix<- LDmatrix %>% 
-  tidylog::select(-Taxa) %>% 
-  as.matrix() %>% 
-  glimpse()
-
-positionMarkers <- read.table("./R/Gapit/HypothesisEleven/myGM.txt", head = TRUE)
-positionMarkers[1:5,]
-
-ch1Asnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 1)
-ch1Bsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 2)
-ch1Dsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 3)
-ch2Asnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 4)
-ch2Bsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 5)
-ch2Dsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 6) 
-ch3Asnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 7)
-ch3Bsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 8)
-ch3Dsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 9)
-ch4Asnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 10)
-ch4Bsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 11)
-ch4Dsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 12)
-ch5Asnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 13)
-ch5Bsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 14)
-ch5Dsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 15)
-ch6Asnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 16)
-ch6Bsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 17)
-ch6Dsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 18)
-ch7Asnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 19)
-ch7Bsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 20)
-ch7Dsnps<- positionMarkers %>% 
-  tidylog::filter(Chromosome == 21)
-
-snps<- as.vector(sort(ch7Bsnps$Name))
-snps
-
-snpMatrix<- LDmatrix[,snps]
-snpMatrix[1:5,1:5]
-dim(snpMatrix)
-
-corrMatrix<- rcorr(snpMatrix)
-
-ch7B<- flattenCorrMatrix(corrMatrix$r,corrMatrix$P)
-ch7B %>% ggplot(aes(x = cor)) +
-  geom_density() +
-  theme_bw() +
-  labs(main = paste("Correltation between markers ch7B"))
-
-ch7B<- ch7B %>% 
-  inner_join(positionMarkers, by = c("row" = "Name")) %>% 
-  dplyr::rename(Chr1 = Chromosome, Pos1 = Position)
-
-ch7B<- ch7B %>% 
-  inner_join(positionMarkers, by = c("column" = "Name")) %>% 
-  dplyr::rename(Chr2 = Chromosome, Pos2 = Position) %>% 
-  mutate(Dist = Pos2 - Pos1)
-
-ch7B %>%  ggplot(aes(x = abs(Dist), y = abs(cor),
-                     colour = p)) +
-  geom_point(alpha = 0.25) +
-  geom_smooth() +
-  theme_bw() +
-  scale_color_gradient2(low = "#8e0152",
-                        high = "#276419",
-                        mid = "#f7f7f7",
-                        midpoint = 0.25) +
-  labs(x = "Distance separating markers",
-       y = "Correlation coefficient",
-       title = "Correlation between genetic markers",
-       subtitle = "Chromosome 7B") 
-
 ##### GAPIT Trial ####
 
-source("http://www.bioconductor.org/biocLite.R")
-biocLite("multtest")
-biocLite("snpStats")
+BiocManager::install("multtest")
+BiocManager::install("snpStats")
 
 install.packages("gplots")
 install.packages("LDheatmap")
@@ -434,7 +420,7 @@ setwd("~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/")
 
 #Step 1: Set working directory and import data
 myY <- read.table(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2017.txt", head = TRUE)
+  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2019.txt", head = TRUE)
 myY[1:10,1:10]
 
 myGD <- read.table("./myGD.txt", head = TRUE)
@@ -443,7 +429,7 @@ myGM <- read.table("./myGM.txt", head = TRUE)
 myGM[1:5,]
 
 setwd(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/PC3_2017")
+  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/PC3_2019")
 
 #Step 2: Run GAPIT 
 myGAPIT <- GAPIT(
@@ -455,44 +441,10 @@ myGAPIT <- GAPIT(
 
 beep(1)
 
-### How many PCs based on model selection
-fileNames<- list.files(path = "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/cleanModelSelection2018",
-                       full.names = T,
-                       pattern = ".BIC.Model.Selection.Results.csv$")
-traitNames<- basename(fileNames) %>%
-  str_remove_all("GAPIT.MLM.|.BIC.Model.Selection.Results.csv")
-
-load.file<- function (filename) {
-  d<- fread(file = filename,header = TRUE,check.names = F,data.table = F)
-  d
-}
-
-data17<- fileNames %>% 
-  map(load.file) 
-
-names(data17)<- traitNames
-
-bic17<- map2_df(data17, names(data17), ~ mutate(.x, ID = .y)) %>% 
-  rename(PC = `Number of PCs/Covariates`, 
-         BIC = `BIC (larger is better) - Schwarz 1978`,
-         LogLikelihood = `log Likelihood Function Value`) %>% 
-  group_by(ID) %>% 
-  glimpse()
-
-bic17max<- bic17 %>% 
-  tidylog::filter(BIC == max(BIC)) %>% 
-  glimpse()
-
-bic17max %>%
-  ggplot(aes(x=PC)) +
-  geom_histogram() +
-  theme_bw() +
-  labs(title = "PC's selected by BIC distribution",
-       subtitle = "2017/2018 Season")
-
 
 myY <- read.table(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2017.txt", head = TRUE)
+  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2019.txt", 
+  head = TRUE)
 myY[1:10,1:10]
 
 myGD <- read.table("./myGD.txt", head = TRUE)
@@ -505,7 +457,7 @@ myGAPIT <- GAPIT(
   Y = myY,
   GD = myGD,
   GM = myGM ,
-  PCA.total = 0,
+  PCA.total = 3,
   #Model.selection = TRUE,
   kinship.cluster = "average",
   kinship.group = "Mean",

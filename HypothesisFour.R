@@ -14,6 +14,7 @@ setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")
 
 pheno17<- fread("./Phenotype_Database/pheno17_htpLong.txt")
 pheno18<- fread("./Phenotype_Database/pheno18_htpLong.txt")
+pheno19<- fread("./Phenotype_Database/pheno19_htpLong.txt")
 
 colnames(pheno17)
 
@@ -42,8 +43,18 @@ nested18<- pheno18 %>%
   unnest(tidyCor) %>% 
   tidylog::select(-data,-correlation)
 
+nested19<- pheno19 %>% 
+  tidylog::select(-entity_id, -Variety, -year) %>% 
+  group_by(Date, ID) %>% 
+  nest() %>% 
+  mutate(correlation = map(data, ~ cor.test(.x$GRYLD,.x$value)),
+         tidyCor = map(correlation,glance)) %>% 
+  unnest(tidyCor) %>% 
+  tidylog::select(-data,-correlation)
+
 nested17$Date<- as.Date(nested17$Date)
 nested18$Date<- as.Date(nested18$Date)
+nested19$Date<- as.Date(nested19$Date)
 
 nested17 %>% 
   ggplot(aes(x = Date, y = estimate, color = ID)) +
@@ -77,7 +88,26 @@ nested18 %>%
         title = element_text(size = 20),
         legend.position = "bottom")
 
+nested19 %>% 
+  ggplot(aes(x = Date, y = estimate, color = ID)) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), size = 1) + 
+  geom_hline(yintercept = 0, linetype = 2, 
+             colour = "darkgrey") +
+  theme_bw() +
+  scale_x_date(date_breaks = "1 week", 
+               date_labels = "%d%b") +
+  labs(title = "Correlation with CI 2019") +
+  ylab("Pearson correlation co-efficient") +
+  theme(axis.text = element_text(colour = "black", size = 12),
+        axis.title = element_text(size = 16), 
+        title = element_text(size = 20),
+        legend.position = "bottom")
+
 write.table(nested17, "./Phenotype_Database/Correlation_VI_2017.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
 write.table(nested18, "./Phenotype_Database/Correlation_VI_2018.txt",
             sep = "\t", quote = F, row.names = F, col.names = T)
+write.table(nested19, "./Phenotype_Database/Correlation_VI_2019.txt",
+            sep = "\t", quote = F, row.names = F, col.names = T)
+

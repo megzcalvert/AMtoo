@@ -28,7 +28,7 @@ htpPheno<- c("GNDVI","GRVI","height","NDRE","NDVI","Nir","RE")
 path <- "./Phenotype_Database/2017_Ashland_AM3_traits_UAS/2017_ASH_AM_vis.xlsx"
 htp17<- path %>% 
   excel_sheets() %>% 
-  set_names() %>% 
+  purrr::set_names() %>% 
   map(read_excel, path = path) 
 
 htp17long<- map2_df(htp17, names(htp17), ~ mutate(.x, ID = .y)) %>%
@@ -140,4 +140,7 @@ htp18Long %>%
   geom_vline(alpha = 0.5, colour = "#1d91c0",
              aes(xintercept = hddt18), hddt18) + 
   labs(title = "2017/2018 season VI with HDDT")
+
+
+
 

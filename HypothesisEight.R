@@ -81,6 +81,7 @@ pca.plot <- function(x, p, q, ...) {
   plots<-ggplot(data = x, aes_string(x = p, y = q)) +
     geom_point(position = "jitter",aes(colour = Program)) +
     theme_bw() +
+    theme(aspect.ratio = 1:1) +
     labs(title = paste0("PCA Plot ", p, " and ", q), 
          x = paste(p, "R2 = ",(round(sumPCA[1,paste0(p)],3))*100,"%"), 
          y = paste(q, "R2 = ",(round(sumPCA[1,paste0(q)],3))*100,"%")) +
@@ -88,17 +89,21 @@ pca.plot <- function(x, p, q, ...) {
                                   "#f58231","#000000", "#42d4f4", "#f032e6", 
                                   "#fabebe", 
                                   "#469990", "#e6beff", "#9A6324", 
-                                  "#800000", "#000075"))
+                                  "#800000", "#000075")) 
   print(plots)
   
 }
 
-pca.plot(Scores, "PC1", "PC2")
-pca.plot(Scores, "PC1", "PC3")
+pc1<-pca.plot(Scores, "PC1", "PC2")
+pc2<-pca.plot(Scores, "PC1", "PC3")
 pca.plot(Scores, "PC2", "PC3")
 pca.plot(Scores, "PC1", "PC4")
 pca.plot(Scores, "PC2", "PC4")
 pca.plot(Scores, "PC3", "PC4")
+
+ggarrange(pc1 + guides(colour = FALSE),
+          pc2 + guides(colour = FALSE), 
+          ncol = 2)
 
 
 p <- plot_ly(Scores, x = ~PC1, y = ~PC2, z = ~PC3, 

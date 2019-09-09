@@ -73,10 +73,12 @@ colnames(myGM)<- c("Name", "Chromosome","Position")
 
 pheno17<- fread("./Phenotype_Database/pheno17_htpLong.txt")
 pheno18<- fread("./Phenotype_Database/pheno18_htpLong.txt")
-phenoLong<- fread("./Phenotype_Database/Pheno_Long1718.txt")
+pheno19<- fread("./Phenotype_Database/pheno19_htpLong.txt")
+phenoLong<- fread("./Phenotype_Database/Pheno_Long171819.txt")
 
 dat17<- fread("./Phenotype_Database/Hyp10BLUEs_17.txt")
 dat18<- fread("./Phenotype_Database/Hyp10BLUEs_18.txt")
+dat19<- fread("./Phenotype_Database/Hyp10BLUEs_19.txt")
 
 snpChip[1:10,1:10]
 snpMatrix[1:10,1:10]
@@ -88,11 +90,16 @@ dat17<- semi_join(dat17,snpLines, by = "rn")
 colnames(dat17)[colnames(dat17)=="rn"] <- "Taxa"
 
 dat18<- semi_join(dat18,snpLines, by = "rn")
-colnames(dat18)[colnames(dat18)=="rn"] <- "Taxa"
+colnames(dat18)[colnames(dat18)=="rn"] <- "Taxa" 
+
+dat19<- semi_join(dat19,snpLines, by = "rn")
+colnames(dat19)[colnames(dat19)=="rn"] <- "Taxa"
 
 write.table(dat17,file = "./Phenotype_Database/Hyp11Blue_2017.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
 write.table(dat18,file = "./Phenotype_Database/Hyp11Blue_2018.txt",quote = F,
+            sep = "\t",row.names = F,col.names = T)
+write.table(dat19,file = "./Phenotype_Database/Hyp11Blue_2019.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
 
 numberedCols<- paste(1:(ncol(myGD)-1), sep = ",")
@@ -194,14 +201,14 @@ for (i in traits) {
     tidylog::select("Taxa", paste(i))
   
   png(filename = 
-        paste0("./R/rrBlup/HypothesisEleven/PC4_2017/",i,"_2017_4PC.png"))
+        paste0("./R/rrBlup/HypothesisEleven/PC3_2017/",i,"_2017_3PC.png"))
   
   res<- GWAS(pheno = dat, 
-             geno = snpRR, n.PC = 4,
+             geno = snpRR, n.PC = 3,
              P3D = F)
   dev.off()
   
-  write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC4_2017/",
+  write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC3_2017/",
                                 i,"_2017_4PC.txt"), quote = F, sep = "\t", 
               row.names = F,col.names = T)
 }
@@ -223,13 +230,36 @@ for (i in traits) {
     tidylog::select("Taxa", paste(i))
   
   png(filename = 
-        paste0("./R/rrBlup/HypothesisEleven/PC4_2018/",i,"_2018_4PC.png"))
+        paste0("./R/rrBlup/HypothesisEleven/PC3_2018/",i,"_2018_3PC.png"))
   res<- GWAS(pheno = dat, 
              geno = snpRR, n.PC = 3,
              P3D = F)
   dev.off()
-  write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC4_2018/",
-                                i,"_2018_4PC.txt"), quote = F, sep = "\t", 
+  write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC3_2018/",
+                                i,"_2018_3PC.txt"), quote = F, sep = "\t", 
+              row.names = F,col.names = T)
+}
+
+beep(9)
+
+effectvars <- names(dat19) %in% c("Taxa")
+traits <- colnames(dat19[ , !effectvars])
+traits
+
+for (i in traits) {
+  print(paste("working on ", i))
+  
+  dat<- dat19 %>% 
+    tidylog::select("Taxa", paste(i))
+  
+  png(filename = 
+        paste0("./R/rrBlup/HypothesisEleven/PC3_2019/",i,"_2019_3PC.png"))
+  res<- GWAS(pheno = dat, 
+             geno = snpRR, n.PC = 3,
+             P3D = F)
+  dev.off()
+  write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC3_2019/",
+                                i,"_2019_3PC.txt"), quote = F, sep = "\t", 
               row.names = F,col.names = T)
 }
 
@@ -246,15 +276,6 @@ load.file<- function (filename) {
 }
 
 ## rrBLUP results
-fileNames<- list.files(path = "./R/rrBlup/HypothesisEleven/PC3_2017",
-                       full.names = T,
-                       pattern = "_2017_3PC.txt$")
-traitNames<- basename(fileNames) %>%
-  str_remove_all("_2017_3PC.txt")
-
-rrB3_17<- lapply(fileNames, load.file)
-
-names(rrB3_17)<- traitNames
 
 fileNames<- list.files(path = "./R/rrBlup/HypothesisEleven/PC4_2017",
                        full.names = T,
@@ -266,16 +287,6 @@ rrB4_17<- lapply(fileNames, load.file)
 
 names(rrB4_17)<- traitNames
 
-fileNames<- list.files(path = "./R/rrBlup/HypothesisEleven/PC3_2018",
-                       full.names = T,
-                       pattern = "_2018_3PC.txt$")
-traitNames<- basename(fileNames) %>%
-  str_remove_all("_2018_3PC.txt")
-
-rrB3_18<- lapply(fileNames, load.file)
-
-names(rrB3_18)<- traitNames
-
 fileNames<- list.files(path = "./R/rrBlup/HypothesisEleven/PC4_2018",
                        full.names = T,
                        pattern = "_2018_4PC.txt$")
@@ -286,46 +297,24 @@ rrB4_18<- lapply(fileNames, load.file)
 
 names(rrB4_18)<- traitNames
 
-snpPos<- rrB3_17$GNDVI_20170331[,1:3]
-
-rrB3_17F<- snpPos %>% 
-  bind_cols(map_dfr(rrB3_17,4)) %>% 
-  glimpse
-
-rrB3_18F<- snpPos %>% 
-  bind_cols(map_dfr(rrB3_18,4)) %>% 
-  glimpse
+snpPos<- rrB4_17$GNDVI_20170331[,1:3]
 
 rrB4_17F<- snpPos %>% 
   bind_cols(map_dfr(rrB4_17,4)) %>% 
+  mutate(rs_number = as.character(rs_number),
+         pos = as.numeric(pos)) %>% 
   glimpse
 
 rrB4_18F<- snpPos %>% 
   bind_cols(map_dfr(rrB4_18,4)) %>% 
+  mutate(rs_number = as.character(rs_number),
+         pos = as.numeric(pos)) %>% 
   glimpse
 
-rrB3_17F[,4:ncol(rrB3_17F)]<- 1/(10^rrB3_17F[,4:ncol(rrB3_17F)])
-rrB3_18F[,4:ncol(rrB3_18F)]<- 1/(10^rrB3_18F[,4:ncol(rrB3_18F)])
 rrB4_17F[,4:ncol(rrB4_17F)]<- 1/(10^rrB4_17F[,4:ncol(rrB4_17F)])
 rrB4_18F[,4:ncol(rrB4_18F)]<- 1/(10^rrB4_18F[,4:ncol(rrB4_18F)])
 
 ## GAPIT results
-
-fileNames<- list.files(path = "./R/Gapit/HypothesisEleven/PC3_01_2017",
-                       full.names = T,
-                       pattern = "GWAS.Results.csv$")
-traitNames<- basename(fileNames) %>%
-  str_remove_all("GAPIT.MLM.|.GWAS.Results.csv")
-
-gap3_17<- lapply(fileNames, load.file)
-
-names(gap3_17)<- traitNames
-
-gap3_17F<- gap3_17$GNDVI_20170331[,1:3] %>% 
-  glimpse %>% 
-  bind_cols(map_dfr(gap3_17,4)) %>% 
-  dplyr::rename(chrom = Chromosome, pos = Position) %>% 
-  glimpse()
 
 fileNames<- list.files(path = "./R/Gapit/HypothesisEleven/PC4_01_2017",
                        full.names = T,
@@ -341,22 +330,7 @@ gap4_17F<- gap4_17$GNDVI_20170331[,1:3] %>%
   glimpse %>% 
   bind_cols(map_dfr(gap4_17,4)) %>% 
   dplyr::rename(chrom = Chromosome, pos = Position) %>% 
-  glimpse()
-
-fileNames<- list.files(path = "./R/Gapit/HypothesisEleven/PC3_01_2018",
-                       full.names = T,
-                       pattern = "GWAS.Results.csv$")
-traitNames<- basename(fileNames) %>%
-  str_remove_all("GAPIT.MLM.|.GWAS.Results.csv")
-
-gap3_18<- lapply(fileNames, load.file)
-
-names(gap3_18)<- traitNames
-
-gap3_18F<- gap3_18$GNDVI_20171120[,1:3] %>% 
-  glimpse %>% 
-  bind_cols(map_dfr(gap3_18,4)) %>% 
-  dplyr::rename(chrom = Chromosome, pos = Position) %>% 
+  mutate(pos = as.numeric(pos)) %>% 
   glimpse()
 
 fileNames<- list.files(path = "./R/Gapit/HypothesisEleven/PC4_01_2018",
@@ -373,26 +347,10 @@ gap4_18F<- gap4_18$GNDVI_20171120[,1:3] %>%
   glimpse %>% 
   bind_cols(map_dfr(gap4_18,4)) %>% 
   dplyr::rename(chrom = Chromosome, pos = Position) %>% 
+  mutate(pos = as.numeric(pos)) %>% 
   glimpse()
 
 ##### Comparison plots between GWAS methods and PCs ####
-
-don_rrB3_17 <- rrB3_17F %>% 
-  # Compute chromosome size
-  group_by(chrom) %>% 
-  summarise(chr_len=max(pos)) %>% 
-  # Calculate cumulative position of each chromosome
-  mutate(tot=cumsum(chr_len)-chr_len) %>%
-  select(-chr_len) %>%
-  # Add this info to the initial dataset
-  left_join(rrB3_17F, ., by=c("chrom"="chrom")) %>%
-  # Add a cumulative position of each SNP
-  arrange(chrom, pos) %>%
-  mutate( BPcum=pos+tot)
-
-axisdf = don_rrB3_17 %>% 
-  group_by(chrom) %>% 
-  dplyr::summarize(center=( max(BPcum) + min(BPcum) ) / 2 )
 
 don_rrB4_17 <- rrB4_17F %>% 
   # Compute chromosome size
@@ -400,25 +358,17 @@ don_rrB4_17 <- rrB4_17F %>%
   summarise(chr_len=max(pos)) %>% 
   # Calculate cumulative position of each chromosome
   mutate(tot=cumsum(chr_len)-chr_len) %>%
-  select(-chr_len) %>%
+  tidylog::select(-chr_len) %>%
   # Add this info to the initial dataset
   left_join(rrB4_17F, ., by=c("chrom"="chrom")) %>%
   # Add a cumulative position of each SNP
   arrange(chrom, pos) %>%
-  mutate( BPcum=pos+tot)
+  mutate( BPcum=pos+tot) 
 
-don_rrB3_18 <- rrB3_18F %>% 
-  # Compute chromosome size
+axisdf = don_rrB4_17 %>% 
   group_by(chrom) %>% 
-  summarise(chr_len=max(pos)) %>% 
-  # Calculate cumulative position of each chromosome
-  mutate(tot=cumsum(chr_len)-chr_len) %>%
-  select(-chr_len) %>%
-  # Add this info to the initial dataset
-  left_join(rrB3_18F, ., by=c("chrom"="chrom")) %>%
-  # Add a cumulative position of each SNP
-  arrange(chrom, pos) %>%
-  mutate( BPcum=pos+tot)
+  dplyr::summarize(center=( max(BPcum) + min(BPcum) ) / 2,
+                   maximum = max(BPcum))
 
 don_rrB4_18 <- rrB4_18F %>% 
   # Compute chromosome size
@@ -426,25 +376,13 @@ don_rrB4_18 <- rrB4_18F %>%
   summarise(chr_len=max(pos)) %>% 
   # Calculate cumulative position of each chromosome
   mutate(tot=cumsum(chr_len)-chr_len) %>%
-  select(-chr_len) %>%
+  tidylog::select(-chr_len) %>%
   # Add this info to the initial dataset
   left_join(rrB4_18F, ., by=c("chrom"="chrom")) %>%
   # Add a cumulative position of each SNP
   arrange(chrom, pos) %>%
-  mutate( BPcum=pos+tot)
-
-don_gap3_17 <- gap3_17F %>% 
-  # Compute chromosome size
-  group_by(chrom) %>% 
-  summarise(chr_len=max(pos)) %>% 
-  # Calculate cumulative position of each chromosome
-  mutate(tot=cumsum(chr_len)-chr_len) %>%
-  select(-chr_len) %>%
-  # Add this info to the initial dataset
-  left_join(gap3_17F, ., by=c("chrom"="chrom")) %>%
-  # Add a cumulative position of each SNP
-  arrange(chrom, pos) %>%
-  mutate( BPcum=pos+tot)
+  mutate( BPcum=pos+tot) %>% 
+  glimpse()
 
 don_gap4_17 <- gap4_17F %>% 
   # Compute chromosome size
@@ -452,25 +390,13 @@ don_gap4_17 <- gap4_17F %>%
   summarise(chr_len=max(pos)) %>% 
   # Calculate cumulative position of each chromosome
   mutate(tot=cumsum(chr_len)-chr_len) %>%
-  select(-chr_len) %>%
+  tidylog::select(-chr_len) %>%
   # Add this info to the initial dataset
   left_join(gap4_17F, ., by=c("chrom"="chrom")) %>%
   # Add a cumulative position of each SNP
   arrange(chrom, pos) %>%
-  mutate( BPcum=pos+tot)
-
-don_gap3_18 <- gap3_18F %>% 
-  # Compute chromosome size
-  group_by(chrom) %>% 
-  summarise(chr_len=max(pos)) %>% 
-  # Calculate cumulative position of each chromosome
-  mutate(tot=cumsum(chr_len)-chr_len) %>%
-  select(-chr_len) %>%
-  # Add this info to the initial dataset
-  left_join(gap3_18F, ., by=c("chrom"="chrom")) %>%
-  # Add a cumulative position of each SNP
-  arrange(chrom, pos) %>%
-  mutate( BPcum=pos+tot)
+  mutate( BPcum=pos+tot) %>% 
+  glimpse()
 
 don_gap4_18 <- gap4_18F %>% 
   # Compute chromosome size
@@ -478,23 +404,25 @@ don_gap4_18 <- gap4_18F %>%
   summarise(chr_len=max(pos)) %>% 
   # Calculate cumulative position of each chromosome
   mutate(tot=cumsum(chr_len)-chr_len) %>%
-  select(-chr_len) %>%
+  tidylog::select(-chr_len) %>%
   # Add this info to the initial dataset
   left_join(gap4_18F, ., by=c("chrom"="chrom")) %>%
   # Add a cumulative position of each SNP
   arrange(chrom, pos) %>%
-  mutate( BPcum=pos+tot)
+  mutate( BPcum=pos+tot) %>% 
+  glimpse()
 
-ggplot(don_rrB3_17, aes(x=BPcum)) +
+ggplot(don_rrB4_17, aes(x=BPcum)) +
   # Show all points
-  geom_point(aes(y=-log10(don_rrB3_18$RE_20180606)), 
+  geom_point(aes(y=-log10(don_rrB4_18$GNDVI_20180613)), 
              colour = "#4d9221",
              alpha=0.5, size=1) +
-  geom_point(aes(y = -log10(don_gap3_18$RE_20180606)),
+  geom_point(aes(y = -log10(don_gap4_18$GNDVI_20180613)),
              colour = "#c51b7d",
              alpha = 0.5, size = 1) +
   # Significance Threshold
-  geom_hline(yintercept = -log10(0.05/nrow(don_rrB3_17)), linetype = 2) +
+  geom_hline(yintercept = -log10(0.05/nrow(don_rrB4_17)), linetype = 2) +
+  #geom_vline(xintercept = )
   # custom X axis:
   scale_x_continuous( label = axisdf$chrom, breaks= axisdf$center ) +
   scale_y_continuous(expand = c(0, 0.05) ) +# remove space between plot area and x axis
@@ -509,18 +437,19 @@ ggplot(don_rrB3_17, aes(x=BPcum)) +
     plot.title = element_text(size = 18),
     plot.subtitle = element_text(size = 16)
   ) +
-  labs(title = "GWAS results RE_20180606",
+  labs(title = "GWAS results GNDVI_20180613",
        subtitle = "rrBLUP results - green, GAPIT results - pink, Bonferroni corection alpha = 0.05",
        x = "Chromosome",
        y = "-log10(P)")
 
-ggplot(don_rrB3_18, aes(x=BPcum, colour = as.factor(don_rrB3_18$chrom))) +
+ggplot(don_rrB4_18, aes(x=BPcum, colour = as.factor(don_rrB4_18$chrom))) +
   # Show all points
   geom_point(aes(y=-log10(GNDVI_20180613)),
              alpha=0.5, size=1) +
   scale_color_manual(values = rep(c("#2ca25f", "#8856a7","#43a2ca"), 22 )) +
   # Significance Threshold
-  geom_hline(yintercept = -log10(0.05/nrow(don_rrB3_18)), linetype = 2) +
+  geom_hline(yintercept = -log10(0.05/nrow(don_rrB4_18)), linetype = 2) +
+  #geom_vline(xintercept = 6979839046, linetype = 3) +
   # custom X axis:
   scale_x_continuous( label = c("1A","1B","1D",
                                 "2A","2B","2D",
@@ -543,6 +472,13 @@ ggplot(don_rrB3_18, aes(x=BPcum, colour = as.factor(don_rrB3_18$chrom))) +
     plot.subtitle = element_text(size = 16)
   ) +
   labs(title = "GWAS results GNDVI_20180613",
-       subtitle = "rrBLUP Bonferroni Threshold alpha = 0.05",
+       subtitle = "Bonferroni Threshold alpha = 0.05",
        x = "Chromosome",
-       y = "-log10(P)") 
+       y = "-log10(P)") #+
+annotate(geom = "text", x = 7000000000, y = 6, label = "Rht-1B")
+
+
+
+
+
+
