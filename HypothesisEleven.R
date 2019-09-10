@@ -436,7 +436,22 @@ myGAPIT <- GAPIT(
   Y = myY,
   GD = myGD,
   GM = myGM ,
-  PCA.total = 3
+  PCA.total = 3,
+  cutOff = 0.05
+)
+
+beep(1)
+
+setwd(
+  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/PC4_2019")
+
+#Step 2: Run GAPIT 
+myGAPIT <- GAPIT(
+  Y = myY,
+  GD = myGD,
+  GM = myGM ,
+  PCA.total = 4,
+  cutOff = 0.05
 )
 
 beep(1)

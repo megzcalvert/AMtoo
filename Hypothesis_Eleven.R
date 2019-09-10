@@ -209,7 +209,7 @@ for (i in traits) {
   dev.off()
   
   write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC3_2017/",
-                                i,"_2017_4PC.txt"), quote = F, sep = "\t", 
+                                i,"_2017_3PC.txt"), quote = F, sep = "\t", 
               row.names = F,col.names = T)
 }
 

@@ -179,24 +179,12 @@ snpMatrix17[1:5,1:5]
 snpLines<- snpMatrix17$rn
 snpMatrix17<- snpMatrix17 %>% 
   tidylog::select(-rn)
-relMat<- A.mat(snpMatrix17)
-colnames(relMat)<- snpLines
-rownames(relMat)<- snpLines
-relMat[1:5,1:5]
-str(relMat)
-relMat<- ginv(relMat)
-relMat[1:5,1:5]
-str(relMat)
-rownames(relMat)<- snpLines
-colnames(relMat)<- snpLines
 
 par(mar=c(1,1,1,1))
 mean(pheno17$GRYLD)
 
 t17<- asreml(fixed = GRYLD ~ 0 + Variety,
-             random = ~ rep + rep:block,#+ vm(Variety,relMat,singG="PSD")
-             #mef = list(relMat = snpMatrix17),
-             #na.method(y = "include",x = "include"),
+             random = ~ rep + rep:block,
              data = pheno17)
 summary(t17)
 plot(t17)
@@ -359,7 +347,11 @@ dat17 %>%
   ggplot(aes(x = NDVI_20170512)) +
   geom_histogram(colour = "black", fill = "white") +
   geom_vline(xintercept = mean(dat17$NDVI_20170512), linetype = 2) +
-  theme_bw()
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) 
 
 ndvi0512_top<- dat17 %>% 
   dplyr::arrange(desc(NDVI_20170512)) %>% #use desc() if you want highest to lowest
@@ -377,7 +369,10 @@ dat17 %>%
              linetype = 2) +
   geom_vline(xintercept = min(ndvi0512_top$NDVI_20170512), colour = "blue") +
   theme_bw() +
-  theme(axis.text = element_text(colour = "black")) +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(title = "Distribution of NDVI_20170512", 
        subtitle = "All lines - black, top 5% of NDVI_20170512 - blue")
 
@@ -391,13 +386,17 @@ dat17 %>%
   #geom_vline(xintercept = min(RE0512_top$GRYLD), colour = "blue") +
   #geom_vline(xintercept = max(RE0512_top$GRYLD), colour = "blue") +
   theme_bw() +
-  theme(axis.text = element_text(colour = "black")) +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(title = "Distribution of GRYLD in 2016/2017", 
        subtitle = "All lines - black, lines selected from NDVI_20170512 - blue")
 
 ndviSelect<- ndvi0512_top %>% 
   left_join(dat18, by = "rn") %>% 
-  tidylog::select(rn,GRYLD.x,NDVI_20170512,GRYLD.y) %>% 
+  left_join(dat19, by = "rn") %>% 
+  tidylog::select(rn,GRYLD.x,NDVI_20170512,GRYLD.y,GRYLD) %>% 
   glimpse
 
 dat18 %>% 
@@ -410,23 +409,51 @@ dat18 %>%
   geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2, 
              colour = "#737373") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(title = "Distribution of GRYLD in 2017/2018", 
+       subtitle = "All lines - black, lines selected from NDVI_20170512 - blue, mean from 2016/2017 - grey")
+
+dat19 %>% 
+  ggplot(aes(x = GRYLD)) +
+  geom_histogram(colour = "black", fill = "white") +
+  geom_histogram(data = ndviSelect,aes(x = GRYLD), colour = "blue") +
+  geom_vline(xintercept = mean(dat19$GRYLD), linetype = 2) +
+  geom_vline(xintercept = mean(ndviSelect$GRYLD), linetype = 2, 
+             colour = "blue") +
+  geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2, 
+             colour = "#737373") +
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
+  labs(title = "Distribution of GRYLD in 2018/2019", 
        subtitle = "All lines - black, lines selected from NDVI_20170512 - blue, mean from 2016/2017 - grey")
 
 mean(ndviSelect$GRYLD.x)
 mean(ndviSelect$GRYLD.y)
+mean(ndviSelect$GRYLD)
 mean(dat17$GRYLD)
 mean(dat18$GRYLD)
+mean(dat19$GRYLD)
 
 t.test(dat18$GRYLD,ndviSelect$GRYLD.y)
 t.test(dat18$GRYLD,dat17$GRYLD)
+t.test(dat19$GRYLD, ndviSelect$GRYLD)
 
 # Check RedEdge because it's opposite
 dat17 %>% 
   ggplot(aes(x = RedEdge_20170512)) +
   geom_histogram(colour = "black", fill = "white") +
   geom_vline(xintercept = mean(dat17$RedEdge_20170512), linetype = 2) +
-  theme_bw()
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) 
 
 RE0512_top<- dat17 %>% 
   dplyr::arrange(RedEdge_20170512) %>% #use desc() if you want highest to lowest
@@ -443,6 +470,10 @@ dat17 %>%
              linetype = 2) +
   geom_vline(xintercept = max(RE0512_top$RedEdge_20170512), colour = "blue") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   theme(axis.text = element_text(colour = "black")) +
   labs(title = "Distribution of RedEdge_20170512", 
        subtitle = "All lines - black, lowest 5% of RedEdge_20170512 - blue")
@@ -457,13 +488,18 @@ dat17 %>%
   #geom_vline(xintercept = min(RE0512_top$GRYLD), colour = "blue") +
   #geom_vline(xintercept = max(RE0512_top$GRYLD), colour = "blue") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   theme(axis.text = element_text(colour = "black")) +
   labs(title = "Distribution of GRYLD in 2016/2017", 
        subtitle = "All lines - black, lines selected from RedEdge_20170512 - blue")
 
 reSelect<- RE0512_top %>% 
   left_join(dat18, by = "rn") %>% 
-  tidylog::select(rn,GRYLD.x,RedEdge_20170512,GRYLD.y) %>% 
+  left_join(dat19, by = "rn") %>% 
+  tidylog::select(rn,GRYLD.x,RedEdge_20170512,GRYLD.y,GRYLD) %>% 
   glimpse
 
 dat18 %>% 
@@ -476,13 +512,37 @@ dat18 %>%
   geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2, 
              colour = "#737373") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   theme(axis.text = element_text(colour = "black")) +
   labs(title = "Distribution of GRYLD in 2017/2018", 
        subtitle = "All lines - black, lines selected from RedEdge_20170512 - blue, mean from 2016/2017 - grey")
 
+dat19 %>% 
+  ggplot(aes(x = GRYLD)) +
+  geom_histogram(colour = "black", fill = "white") +
+  geom_histogram(data = reSelect,aes(x = GRYLD), colour = "blue") +
+  geom_vline(xintercept = mean(dat19$GRYLD), linetype = 2) +
+  geom_vline(xintercept = mean(reSelect$GRYLD), linetype = 2, 
+             colour = "blue") +
+  geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2, 
+             colour = "#737373") +
+  theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
+  theme(axis.text = element_text(colour = "black")) +
+  labs(title = "Distribution of GRYLD in 2018/2019", 
+       subtitle = "All lines - black, lines selected from RedEdge_20170512 - blue, mean from 2016/2017 - grey")
+
 mean(reSelect$GRYLD.x)
 mean(reSelect$GRYLD.y)
+mean(reSelect$GRYLD)
 t.test(dat18$GRYLD,reSelect$GRYLD.y)
+t.test(dat19$GRYLD,reSelect$GRYLD)
 t.test(reSelect$GRYLD.y,ndviSelect$GRYLD.y)
 t.test(reSelect$GRYLD.x,ndviSelect$GRYLD.x)
 
@@ -610,7 +670,10 @@ ggplot(data = pheno17, aes(x=GRYLD)) +
   geom_vline(xintercept = mean(pheno19$GRYLD),linetype = 2, 
              colour = "#604e97") +
   theme_bw() +
-  theme(axis.text = element_text(colour = "black")) +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(title = "Distribution of GRYLD over 2016/2017, 2017/2018 and 2018/2019",
        subtitle = "2016/2017-green, 2017/2018-blue, 2018/2019-violet")
 
@@ -622,37 +685,54 @@ ggplot(data = dat17, aes(x=GRYLD)) +
   geom_density(data = dat19, aes(x=GRYLD), colour = "#604e97") +
   geom_vline(xintercept = mean(dat19$GRYLD),linetype = 2, colour = "#604e97") +
   theme_bw() +
-  theme(axis.text = element_text(colour = "black")) +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(title = "Distribution of GRYLD BLUEs over 2016/2017, 2017/2018 and 2018/2019",
        subtitle = "2016/2017-green, 2017/2018-blue, 2018/2019-violet")
 
 ggplot(data = traitME_17, aes(x=GRYLD)) +
   geom_histogram(colour = "black", fill = "white") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(title = "Marker Effect distribution for GRYLD2016/2017")
 
 ggplot(data = traitME_18, aes(x=GRYLD)) +
   geom_histogram(colour = "black", fill = "white") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(title = "Marker Effect distribution for GRYLD 2017/2018")
 
 ggplot(data = traitME_19, aes(x=GRYLD)) +
   geom_histogram(colour = "black", fill = "white") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(title = "Marker Effect distribution for GRYLD 2018/2019")
 
 ggplot(data = traitME_17, aes(x=GRYLD)) +
-  geom_histogram(colour = "#008856", fill = NA) +
+  geom_histogram(colour = "#008856", fill = NA, bins = 100) +
   geom_histogram(data = traitME_18, aes(x=GRYLD), colour = "#0067a5", 
-                 fill = NA) +
+                 fill = NA, bins = 100) +
   geom_vline(xintercept = mean(traitME_17$GRYLD), colour = "#008856") +
   geom_vline(xintercept = mean(traitME_18$GRYLD), colour = "#0067a5") +
   geom_histogram(data = traitME_19, aes(x=GRYLD), colour = "#604e97", 
-                 fill = NA) +
+                 fill = NA, bins = 100) +
   geom_vline(xintercept = mean(traitME_19$GRYLD), colour = "#604e97") +
   theme_bw() +
-  theme(axis.text = element_text(colour = "black")) +
-  theme(axis.text = element_text(colour = "black")) +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(title = "Marker Effect distribution for GRYLD 2016/2017, 2017/2018 and 2018/2019",
        subtitle = "2016/2017-green, 2017/2018-blue, 2018/2019-violet",
        y = "Frequency")
@@ -703,6 +783,10 @@ ggplot() +
   geom_point(aes(x=mean(pheno19$GRYLD), y = mean(traitME_19$GRYLD)), 
              colour = "#604e97") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(x = "mean GRYLD", y = "mean marker effect",
        title = "Comparison of mean GRYLD and mean marker effect",
        subtitle = "2016/2017-green, 2017/2018-blue, 2018/2019-violet")
@@ -715,6 +799,10 @@ ggplot() +
   geom_point(aes(x=mean(pheno19$GRYLD), y = var(traitME_19$GRYLD)), 
              colour = "#604e97") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(x = "mean GRYLD", y = "variance of marker effect",
        title = "Comparison of mean GRYLD and variance of marker effect",
        subtitle = "2016/2017-green, 2017/2018-blue, 2018/2019-violet")
@@ -815,13 +903,17 @@ correlationsPheno19<- flattenCorrMatrix(phenoCorrMatrix_19$r,
 
 ## Distribution of all correlations for VI and GRYLD ME
 correlationMarkerEffects<- ggplot() +
-  geom_histogram(data = correlationME17, aes(x = cor), binwidth = 0.05,
-                 fill = "white",colour="#008856") +
-  geom_histogram(data = correlationME18, aes(x = cor), binwidth = 0.05, 
-                 fill = "white",colour = "#0067a5") +
-  geom_histogram(data = correlationME19, aes(x = cor), binwidth = 0.05, 
-                 fill = "white",colour = "#604e97") +
+  geom_density(data = correlationME17, aes(x = cor), binwidth = 0.05,
+                 fill = NA,colour="#008856") +
+  geom_density(data = correlationME18, aes(x = cor), binwidth = 0.05, 
+                 fill = NA,colour = "#0067a5") +
+  geom_density(data = correlationME19, aes(x = cor), binwidth = 0.05, 
+                 fill = NA,colour = "#604e97") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(title = 
          "Distribution of the correlations between marker effects",
        subtitle = 
@@ -854,6 +946,10 @@ correlationME17 %>%
   ggplot(aes(x=CorToGeno)) +
   geom_histogram(binwidth = 0.025, colour = "black", fill="white") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(
     title = 
       "Distribution of the correlations between marker effects",
@@ -870,6 +966,10 @@ correlationME18 %>%
   ggplot(aes(x=CorToGeno)) +
   geom_histogram(binwidth = 0.025, colour = "black", fill="white") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(
     title = 
       "Distribution of the correlations between marker effects",
@@ -886,6 +986,10 @@ correlationME19 %>%
   ggplot(aes(x=CorToGeno)) +
   geom_histogram(binwidth = 0.025, colour = "black", fill="white") +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(
     title = 
       "Distribution of the correlations between marker effects",
@@ -1044,8 +1148,10 @@ pcoOrd_17 %>%
                                 "#0067a5","#604e97",
                                 "#f6a600","#b3446c","#222222")) +
   theme_bw() +
-  theme(axis.text = element_text(colour = "black", size = 10),
-        aspect.ratio = 1:1) +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(
     title = 
       "Principal Coordinate analysis of genetic distance matrix",
@@ -1069,6 +1175,10 @@ pcoOrd_18 %>%
                                 "#f6a600","#b3446c","#dcd300","#882d17", 
                                 "#8db600","#654522","#e25822","#2b3d26" )) +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(title = "Principal Coordinate analysis of genetic distance matrix",
        subtitle = "2017/2018 season") +
   theme(axis.text = element_text(size = 10, colour = "black"),
@@ -1123,6 +1233,10 @@ pcoOrd_19 %>%
                                 "#f6a600","#b3446c","#dcd300","#882d17", 
                                 "#8db600","#654522","#e25822","#2b3d26" )) +
   theme_bw() +
+  theme(axis.text = element_text(colour = "black", size = rel(1.75)),
+        axis.title = element_text(colour = "black", size = rel(2)),
+        plot.title = element_text(size = rel(2.25)),
+        plot.subtitle = element_text(size = rel(1.5))) +
   labs(title = "Principal Coordinate analysis of genetic distance matrix",
        subtitle = "2018/2019 season") +
   theme(axis.text = element_text(size = 10, colour = "black"),
