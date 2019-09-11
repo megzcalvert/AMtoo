@@ -13,7 +13,7 @@ getwd()
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")
 
 snpChip <- read_delim(
-  "./Genotype_Database/90KsnpChipHapMap/AMsnpChipImputed.hmp.txt", 
+  "./Genotype_Database/snpChip_90K_outliers/AMsnpChipImputed_outliers.hmp.txt", 
   "\t", escape_double = FALSE, trim_ws = TRUE)
 snpChip<- snpChip %>% 
   clean_names()
@@ -32,6 +32,8 @@ write.table(snpChip, file="./Genotype_Database/SelectedImputedBeagle.txt",
 
 snpChip = fread(file="./Genotype_Database/SelectedImputedBeagle.txt", 
                 header=TRUE, check.names=F, sep = "\t")
+snpChip<- snpChip %>% 
+  separate(alleles, c("allele_a","allele_b"), sep = "/")
 
 snpChip[snpChip == snpChip$allele_a] = -1
 snpChip[snpChip == snpChip$allele_b] = 1
@@ -45,13 +47,19 @@ snpChip[snpChip == "."] = NA
 
 snpChip<- snpChip[ ,c(1,4,5,13:311)]
 
-write.table(snpChip, file="./Genotype_Database/SelectedImputedBeagleNumeric.txt",
+write.table(snpChip, file="./Genotype_Database/SelectedImputedBeagleNumeric_outliers.txt",
             col.names=TRUE, row.names=FALSE, sep="\t", quote=FALSE)
 
-snpChip = fread(file="./Genotype_Database/SelectedImputedBeagleNumeric.txt", 
+snpChip = fread(file="./Genotype_Database/SelectedImputedBeagleNumeric_outliers.txt", 
                 header=TRUE, check.names=F, sep = "\t")
 
 chrSum<- plyr::count(snpChip, vars = "chrom")
+snpChip<- snpChip %>% 
+  tidylog::filter(chrom != "UN") %>% 
+  tidylog::mutate(akron = as.numeric(akron)) %>% 
+  glimpse()
+
+
 snpMatrix<- t(snpChip[ , c(-1, -2, -3)])
 
 pcaMethods::checkData(snpMatrix)  #Check PCA assumptions
