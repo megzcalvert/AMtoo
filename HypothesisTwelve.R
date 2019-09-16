@@ -74,10 +74,12 @@ snpMatrix[1:10,1:10]
 
 pheno17<- fread("./Phenotype_Database/pheno17_htpLong.txt")
 pheno18<- fread("./Phenotype_Database/pheno18_htpLong.txt")
-phenoLong<- fread("./Phenotype_Database/Pheno_Long1718.txt")
+pheno19<- fread("./Phenotype_Database/pheno19_htpLong.txt")
+phenoLong<- fread("./Phenotype_Database/Pheno_Long171819.txt")
 
 dat17<- fread("./Phenotype_Database/Hyp10BLUEs_17.txt")
 dat18<- fread("./Phenotype_Database/Hyp10BLUEs_18.txt")
+dat19<- fread("./Phenotype_Database/Hyp10BLUEs_19.txt")
 ###############################################################
 ####                    rrBlup trial                      ####
 
@@ -102,6 +104,16 @@ rownames(snpMatrix18) <- snpMatrix18[,1]
 snpMatrix18[,1] <- NULL
 
 snpMatrix18<- as.matrix(snpMatrix18)
+
+dat19<- dat19 %>% 
+  semi_join(snpMatrix, by = "rn")
+
+snpMatrix19<- snpMatrix %>% 
+  semi_join(dat19,by = "rn") 
+rownames(snpMatrix19) <- snpMatrix19[,1]
+snpMatrix19[,1] <- NULL
+
+snpMatrix19<- as.matrix(snpMatrix19)
 
 ##### Defining the training and test populations ####
 #define the training and test populations
@@ -259,6 +271,69 @@ colMeans(accuracy)
 mean(accuracy$GRYLD, na.rm = T)
 sd(accuracy$GRYLD, na.rm = T)
 
+# 2019
+Pheno_train19<- dat19 %>% 
+  dplyr::sample_frac(0.8)
+Pheno_valid19<- dat19 %>% 
+  anti_join(Pheno_train19, by = "rn")
+
+m_train19=snpMatrix19[Pheno_train19$rn,]
+m_valid19=snpMatrix19[Pheno_valid19$rn,]
+
+##### Predicting Phenotypes ####
+## GRYLD
+yield=(Pheno_train19[,"GRYLD"])
+yield_answer<-mixed.solve(yield, Z = m_train19, SE = TRUE)
+YLD = yield_answer$u
+e = as.matrix(YLD)
+pred_yield_valid =  m_valid19 %*% e
+pred_yield=(pred_yield_valid[,1]) + yield_answer$beta
+pred_yield
+yield_valid = Pheno_valid19[,"GRYLD"]
+YLD_accuracy <-cor(pred_yield_valid, yield_valid )
+YLD_accuracy
+
+##### Cross-Validation ####
+
+effectvars <- names(dat19) %in% c("rn")
+traits <- colnames(dat19[ , !effectvars])
+traits
+cycles=100
+accuracy = matrix(nrow=cycles, ncol=length(traits))
+colnames(accuracy)<- traits
+
+for(r in 1:cycles) {
+  print(paste("Rep cycle: ",r))
+  
+  Pheno_train<- dat19 %>%
+    dplyr::sample_frac(0.8)
+  Pheno_valid<- dat19 %>%
+    anti_join(Pheno_train, by = "rn")
+  
+  m_train=snpMatrix19[Pheno_train$rn,]
+  m_valid=snpMatrix19[Pheno_valid$rn,]
+  
+  for (i in traits) {
+    print(paste(i))
+    trait=(Pheno_train[,paste(i)])
+    trait_answer<-mixed.solve(trait, Z=m_train, SE = F)
+    TRT = trait_answer$u
+    e = as.matrix(TRT)
+    pred_trait_valid =  m_valid %*% e
+    pred_trait = (pred_trait_valid[,1]) + trait_answer$beta
+    pred_trait
+    trait_valid = Pheno_valid[,paste(i)]
+    accuracy[r,paste(i)] <-cor(pred_trait_valid, trait_valid, use="complete" )
+  }
+  
+}
+
+write.csv(accuracy, 
+          "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy19.txt", 
+          quote = F,row.names = F)
+colMeans(accuracy)
+mean(accuracy$GRYLD, na.rm = T)
+sd(accuracy$GRYLD, na.rm = T)
 
 ##### Predicting across years #####
 

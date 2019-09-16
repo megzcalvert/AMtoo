@@ -201,15 +201,15 @@ for (i in traits) {
     tidylog::select("Taxa", paste(i))
   
   png(filename = 
-        paste0("./R/rrBlup/HypothesisEleven/PC3_2017/",i,"_2017_3PC.png"))
+        paste0("./R/rrBlup/HypothesisEleven/PC4_2017/",i,"_2017_4PC.png"))
   
   res<- GWAS(pheno = dat, 
-             geno = snpRR, n.PC = 3,
+             geno = snpRR, n.PC = 4,
              P3D = F)
   dev.off()
   
-  write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC3_2017/",
-                                i,"_2017_3PC.txt"), quote = F, sep = "\t", 
+  write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC4_2017/",
+                                i,"_2017_4PC.txt"), quote = F, sep = "\t", 
               row.names = F,col.names = T)
 }
 
@@ -230,13 +230,13 @@ for (i in traits) {
     tidylog::select("Taxa", paste(i))
   
   png(filename = 
-        paste0("./R/rrBlup/HypothesisEleven/PC3_2018/",i,"_2018_3PC.png"))
+        paste0("./R/rrBlup/HypothesisEleven/PC4_2018/",i,"_2018_4PC.png"))
   res<- GWAS(pheno = dat, 
-             geno = snpRR, n.PC = 3,
+             geno = snpRR, n.PC = 4,
              P3D = F)
   dev.off()
-  write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC3_2018/",
-                                i,"_2018_3PC.txt"), quote = F, sep = "\t", 
+  write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC4_2018/",
+                                i,"_2018_4PC.txt"), quote = F, sep = "\t", 
               row.names = F,col.names = T)
 }
 
@@ -253,13 +253,13 @@ for (i in traits) {
     tidylog::select("Taxa", paste(i))
   
   png(filename = 
-        paste0("./R/rrBlup/HypothesisEleven/PC3_2019/",i,"_2019_3PC.png"))
+        paste0("./R/rrBlup/HypothesisEleven/PC4_2019/",i,"_2019_4PC.png"))
   res<- GWAS(pheno = dat, 
-             geno = snpRR, n.PC = 3,
+             geno = snpRR, n.PC = 4,
              P3D = F)
   dev.off()
-  write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC3_2019/",
-                                i,"_2019_3PC.txt"), quote = F, sep = "\t", 
+  write.table(res,file = paste0("./R/rrBlup/HypothesisEleven/PC4_2019/",
+                                i,"_2019_4PC.txt"), quote = F, sep = "\t", 
               row.names = F,col.names = T)
 }
 
