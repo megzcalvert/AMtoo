@@ -358,8 +358,8 @@ ndvi0512_top<- dat17 %>%
   tidylog::select(rn,GRYLD,NDVI_20170512) %>% 
   glimpse()
 
-0.05*nrow(dat17)
-ndvi0512_top<- ndvi0512_top[1:round(0.05*nrow(dat17)),]
+0.2*nrow(dat17)
+ndvi0512_top<- ndvi0512_top[1:round(0.2*nrow(dat17)),]
 
 dat17 %>% 
   ggplot(aes(x = NDVI_20170512)) +
@@ -459,8 +459,8 @@ RE0512_top<- dat17 %>%
   dplyr::arrange(RedEdge_20170512) %>% #use desc() if you want highest to lowest
   tidylog::select(rn,GRYLD,RedEdge_20170512) %>% 
   glimpse()
-0.05*nrow(dat17)
-RE0512_top<- RE0512_top[1:round(0.05*nrow(dat17)),]
+0.2*nrow(dat17)
+RE0512_top<- RE0512_top[1:round(0.2*nrow(dat17)),]
 
 dat17 %>% 
   ggplot(aes(x = RedEdge_20170512)) +

@@ -6,17 +6,63 @@ library(tidyverse)
 library(tidylog)
 library(readr)
 library(data.table)
-library(asreml)
 library(beepr)
 library(rrBLUP)
-library(Hmisc)
 library(broom)
-library(MVN)
-library(MASS)
-library(car)
-library(ape)
-library(RColorBrewer)
-library(caret)
+
+
+#### Theme set
+custom_theme<- theme_minimal() %+replace%
+  theme(axis.title = element_text(colour = "black",
+                                  size = rel(2)),
+        axis.title.x = element_text(vjust = 0,
+                                    margin = margin(t = 0, r = 0.25,
+                                                    b = 0, l = 0,
+                                                    unit = "cm")),
+        axis.title.y = element_text(vjust = 1,
+                                    angle = 90,
+                                    margin = margin(t = 0, r = 0.25,
+                                                    b = 0, l = 0.1,
+                                                    unit = "cm")),
+        axis.text = element_text(colour = "black",
+                                 size = rel(1.5)),
+        axis.ticks = element_line(colour = "black"),
+        axis.ticks.length = unit(3,"pt"),
+        axis.line = element_line(color = "black",
+                                 size = 0.5),
+        legend.key.size = unit(4,"lines"),
+        # legend.background = element_rect(fill = NULL, colour = NULL),
+        # legend.box = NULL,
+        legend.margin = margin(t = 0, r = 0.75,
+                               b = 0, l = 0.75,
+                               unit = "cm"),
+        legend.text = element_text(size = rel(2)),
+        legend.title = element_text(size = rel(1.5)),
+        panel.grid.major = element_line(colour = "#969696",
+                                        linetype = 3),
+        panel.grid.minor = element_blank(),
+        plot.tag = element_text(size = rel(2),
+                                margin = margin(t = 0.1, r = 0.1, 
+                                                b = 0.1, l = 0.1,
+                                                unit = "cm")),
+        plot.margin = margin(t = 0.5, r = 0.5, 
+                             b = 0.5, l = 0,
+                             unit = "cm"),
+        plot.title = element_text(colour = "black",
+                                  size = rel(3),
+                                  vjust = 0,
+                                  hjust = 0,
+                                  margin = margin(t = 0.25, r = 0.25, 
+                                                  b = 0.5, l = 0.25,
+                                                  unit = "cm")),
+        strip.background = element_rect(fill = "white",
+                                        colour = "black",
+                                        size = 1),
+        strip.text = element_text(colour = "black",
+                                  size = rel(1)),
+        complete = F)
+
+theme_set(custom_theme)
 
 getwd()
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")
@@ -130,35 +176,35 @@ m_valid17=snpMatrix17[Pheno_valid17$rn,]
 ## GRYLD
 yield=(Pheno_train17[,"GRYLD"])
 covar<- (Pheno_train17[,"NDRE_20170505"])
-yield_answer<-mixed.solve(yield, Z = m_train17, X = covar,
+yield_answer<-mixed.solve(yield, Z = m_train17, #X = covar,
                           SE = TRUE)
 YLD = yield_answer$u
 e = as.matrix(YLD)
 pred_yield_valid =  m_valid17 %*% e
-pred_yield=(pred_yield_valid[,1]) + yield_answer$beta
+pred_yield = (pred_yield_valid[,1]) + yield_answer$beta
 pred_yield
 yield_valid = Pheno_valid17[,"GRYLD"]
 YLD_accuracy <-cor(pred_yield_valid, yield_valid )
 YLD_accuracy
 
 ## VI
-ndvi0512=(Pheno_train17[,"NDVI_20170512"])
-ndvi0512_answer<-mixed.solve(ndvi0512, Z = m_train17, SE = TRUE)
+ndvi0512 = (Pheno_train17[,"NDVI_20170512"])
+ndvi0512_answer<- mixed.solve(ndvi0512, Z = m_train17, SE = TRUE)
 NDVI0512 = ndvi0512_answer$u
 e = as.matrix(NDVI0512)
 pred_ndvi0512_valid =  m_valid17 %*% e
-pred_ndvi0512=(pred_ndvi0512_valid[,1]) + ndvi0512_answer$beta
+pred_ndvi0512 = (pred_ndvi0512_valid[,1]) + ndvi0512_answer$beta
 pred_ndvi0512
 ndvi0512_valid = Pheno_valid17[,"NDVI_20170512"]
 NDVI_20170512_accuracy <-cor(pred_ndvi0512_valid, ndvi0512_valid )
 NDVI_20170512_accuracy
 
-re0512=(Pheno_train17[,"RedEdge_20170512"])
-re0512_answer<-mixed.solve(re0512, Z = m_train17, SE = TRUE)
+re0512 = (Pheno_train17[,"RedEdge_20170512"])
+re0512_answer<- mixed.solve(re0512, Z = m_train17, SE = TRUE)
 RE0512 = re0512_answer$u
 e = as.matrix(RE0512)
 pred_re0512_valid =  m_valid17 %*% e
-pred_re0512=(pred_re0512_valid[,1]) + re0512_answer$beta
+pred_re0512 = (pred_re0512_valid[,1]) + re0512_answer$beta
 pred_re0512
 re0512_valid = Pheno_valid17[,"RedEdge_20170512"]
 RedEdge_20170512_accuracy <-cor(pred_re0512_valid, re0512_valid )
@@ -166,46 +212,105 @@ RedEdge_20170512_accuracy
 
 ##### Cross-Validation ####
 
-effectvars <- names(dat17) %in% c("rn")
-traits <- colnames(dat17[ , !effectvars])
-traits
-cycles=100
-accuracy = matrix(nrow=cycles, ncol=length(traits))
-colnames(accuracy)<- traits
-
-for(r in 1:cycles) {
-  print(paste("Rep cycle: ",r))
+cvWithHistogram<- function(dat,columns_to_remove,cycles,saveFileFigures,
+                           selectionTrait, snpMatrix, identifier, ...) {
+  effectvars <- names(dat) %in% columns_to_remove
+  traits <- colnames(dat[ , !effectvars])
+  (traits)
+  cycles = cycles
+  accuracy = matrix(nrow=cycles, ncol=length(traits))
+  colnames(accuracy)<- traits
   
-  Pheno_train<- dat17 %>%
-    dplyr::sample_frac(0.8)
-  Pheno_valid<- dat17 %>%
-    anti_join(Pheno_train, by = "rn")
-  
-  m_train=snpMatrix17[Pheno_train$rn,]
-  m_valid=snpMatrix17[Pheno_valid$rn,]
-  
-  for (i in traits) {
-    print(paste(i))
-    trait=(Pheno_train[,paste(i)])
-    trait_answer<-mixed.solve(trait, Z=m_train, SE = F)
-    TRT = trait_answer$u
-    e = as.matrix(TRT)
-    pred_trait_valid =  m_valid %*% e
-    pred_trait = (pred_trait_valid[,1]) + trait_answer$beta
-    pred_trait
-    trait_valid = Pheno_valid[,paste(i)]
-    accuracy[r,paste(i)] <-cor(pred_trait_valid, trait_valid, use="complete" )
+  for(r in 1:cycles) {
+    print(paste("Rep cycle: ",r))
+    
+    Pheno_train<- dat %>%
+      dplyr::sample_frac(0.8)
+    Pheno_valid<- dat %>%
+      anti_join(Pheno_train, by = "rn")
+    
+    m_train=snpMatrix[Pheno_train$rn,]
+    m_valid=snpMatrix[Pheno_valid$rn,]
+    
+    for (i in traits) {
+      print(paste(i))
+      trait=(Pheno_train[,paste(i)])
+      trait_answer<-mixed.solve(trait, Z=m_train, SE = F)
+      TRT = trait_answer$u
+      e = as.matrix(TRT)
+      pred_trait_valid =  m_valid %*% e
+      pred_trait = as.data.frame((pred_trait_valid[,1]) + trait_answer$beta)
+      colnames(pred_trait)<- paste(i)
+      pred_trait
+      trait_valid = Pheno_valid[,paste(i)]
+      accuracy[r,paste(i)] <-(cor(pred_trait_valid, trait_valid, 
+                                  use="complete"))
+      if (i != selectionTrait) {
+        
+        selectTrait<- dat %>% 
+          dplyr::select(rn, paste(selectionTrait))
+        
+        topSelec<- setDT(pred_trait, keep.rownames = T) 
+        topSelec<- topSelec %>% 
+          dplyr::top_n(nrow(topSelec) * 0.25) %>% 
+          inner_join(selectTrait)
+        
+        mT<- t.test(topSelec[,paste(selectionTrait)],
+                    dat[,paste(selectionTrait)])
+        
+        plot1<- ggplot(data = pred_trait,
+                       mapping = aes_string(i)) +
+          geom_histogram(colour = "black",
+                         fill = "white",
+                         bins = 100) +
+          geom_vline(xintercept = mean(pred_trait[,paste(i)]), linetype = 2) +
+          geom_histogram(data = topSelec, 
+                         mapping = aes_string(paste(i)),
+                         colour = "red",
+                         bins = 100) +
+          geom_vline(xintercept = mean(topSelec[,paste(i)]),
+                     colour = "red", linetype = 2) 
+        
+        plot2<- ggplot(data = dat,
+                       mapping = aes_string(selectionTrait)) +
+          geom_histogram(colour = "black",
+                         fill = "white",
+                         bins = 100) + 
+          geom_vline(xintercept = mean(dat[,paste(selectionTrait)]), 
+                     linetype = 2) +
+          geom_histogram(data = topSelec, 
+                         mapping = aes_string(selectionTrait),
+                         colour = "red",
+                         bins = 100) +
+          geom_vline(xintercept = mean(topSelec[,paste(selectionTrait)]),
+                     colour = "red", linetype = 2) +
+          labs(subtitle = paste("T-test p-value = ",mT$p.value))
+        
+        plots<- ggpubr::ggarrange(plot1,plot2)
+        print(plots)
+        ggpubr::ggexport(plots, filename = paste0(saveFileFigures,
+                                                  identifier,"_",i,"_",r,".png"),
+                         width = 1000, height = 550)
+      }
+      else {
+        print("GRYLD")
+      }
+    }
   }
-  
+  return(accuracy)
 }
 
-write.csv(accuracy, 
+accuracy17<- cvWithHistogram(dat = dat17, columns_to_remove = c("rn"),
+                             cycles = 100, 
+                             saveFileFigures = "./Figures/Selection/",
+                             selectionTrait = "GRYLD",
+                             snpMatrix = snpMatrix17,
+                             identifier = "Selection17")
+
+write.csv(accuracy17, 
           "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy17.txt", 
           quote = F,row.names = F)
-colMeans(accuracy)
-mean(accuracy$GRYLD, na.rm = T)
-sd(accuracy$GRYLD, na.rm = T)
-
+colMeans(accuracy17)
 
 # 2018
 Pheno_train18<- dat18 %>% 
@@ -231,45 +336,20 @@ YLD_accuracy
 
 ##### Cross-Validation ####
 
-effectvars <- names(dat18) %in% c("rn")
-traits <- colnames(dat18[ , !effectvars])
-traits
-cycles=100
-accuracy = matrix(nrow=cycles, ncol=length(traits))
-colnames(accuracy)<- traits
+accuracy18<- cvWithHistogram(dat = dat18, columns_to_remove = c("rn"),
+                             cycles = 100, 
+                             saveFileFigures = "./Figures/Selection/",
+                             selectionTrait = "GRYLD",
+                             snpMatrix = snpMatrix18,
+                             identifier = "Selection18")
 
-for(r in 1:cycles) {
-  print(paste("Rep cycle: ",r))
-  
-  Pheno_train<- dat18 %>%
-    dplyr::sample_frac(0.8)
-  Pheno_valid<- dat18 %>%
-    anti_join(Pheno_train, by = "rn")
-  
-  m_train=snpMatrix18[Pheno_train$rn,]
-  m_valid=snpMatrix18[Pheno_valid$rn,]
-  
-  for (i in traits) {
-    print(paste(i))
-    trait=(Pheno_train[,paste(i)])
-    trait_answer<-mixed.solve(trait, Z=m_train, SE = F)
-    TRT = trait_answer$u
-    e = as.matrix(TRT)
-    pred_trait_valid =  m_valid %*% e
-    pred_trait = (pred_trait_valid[,1]) + trait_answer$beta
-    pred_trait
-    trait_valid = Pheno_valid[,paste(i)]
-    accuracy[r,paste(i)] <-cor(pred_trait_valid, trait_valid, use="complete" )
-  }
-  
-}
-
-write.csv(accuracy, 
+write.csv(accuracy18, 
           "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy18.txt", 
           quote = F,row.names = F)
-colMeans(accuracy)
-mean(accuracy$GRYLD, na.rm = T)
-sd(accuracy$GRYLD, na.rm = T)
+colMeans(accuracy18)
+mean(accuracy18$GRYLD, na.rm = T)
+sd(accuracy18$GRYLD, na.rm = T)
+
 
 # 2019
 Pheno_train19<- dat19 %>% 
@@ -295,45 +375,16 @@ YLD_accuracy
 
 ##### Cross-Validation ####
 
-effectvars <- names(dat19) %in% c("rn")
-traits <- colnames(dat19[ , !effectvars])
-traits
-cycles=100
-accuracy = matrix(nrow=cycles, ncol=length(traits))
-colnames(accuracy)<- traits
-
-for(r in 1:cycles) {
-  print(paste("Rep cycle: ",r))
-  
-  Pheno_train<- dat19 %>%
-    dplyr::sample_frac(0.8)
-  Pheno_valid<- dat19 %>%
-    anti_join(Pheno_train, by = "rn")
-  
-  m_train=snpMatrix19[Pheno_train$rn,]
-  m_valid=snpMatrix19[Pheno_valid$rn,]
-  
-  for (i in traits) {
-    print(paste(i))
-    trait=(Pheno_train[,paste(i)])
-    trait_answer<-mixed.solve(trait, Z=m_train, SE = F)
-    TRT = trait_answer$u
-    e = as.matrix(TRT)
-    pred_trait_valid =  m_valid %*% e
-    pred_trait = (pred_trait_valid[,1]) + trait_answer$beta
-    pred_trait
-    trait_valid = Pheno_valid[,paste(i)]
-    accuracy[r,paste(i)] <-cor(pred_trait_valid, trait_valid, use="complete" )
-  }
-  
-}
-
-write.csv(accuracy, 
+accuracy19<- cvWithHistogram(dat = dat19, columns_to_remove = c("rn"),
+                             cycles = 100, 
+                             saveFileFigures = "./Figures/Selection/",
+                             selectionTrait = "GRYLD",
+                             snpMatrix = snpMatrix19,
+                             identifier = "Selection19")
+write.csv(accuracy19, 
           "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy19.txt", 
           quote = F,row.names = F)
 colMeans(accuracy)
-mean(accuracy$GRYLD, na.rm = T)
-sd(accuracy$GRYLD, na.rm = T)
 
 ##### Predicting across years #####
 
@@ -509,28 +560,6 @@ flattenCorrMatrix <- function(cormat, pmat) {
 #### Examining results ####
 getwd()
 
-gs17_50<- fread(
-  "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_50_accuracy17.txt",
-  header = T)
-gs17_50<- gs17_50 %>% 
-  mutate(Rep = row.names(gs17_50)) %>% 
-  gather(key = "Trait", value = "Accuracy",RedEdge_20170609:GRYLD) %>% 
-  # group_by(Trait) %>% 
-  # summarise(average = mean(Accuracy), standardDeviation = sd(Accuracy)) %>% 
-  separate(Trait, c("Trait","Date"), sep = "_") %>% 
-  filter(Trait != "GRYLD")
-
-gs18_50<- fread(
-  "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_50_accuracy18.txt",
-  header = T)
-gs18_50<- gs18_50 %>% 
-  mutate(Rep = row.names(gs18_50)) %>% 
-  gather(key = "Trait", value = "Accuracy",RE_20180613:GRYLD)  %>% 
-  # group_by(Trait) %>% 
-  # summarise(average = mean(Accuracy), standardDeviation = sd(Accuracy)) %>% 
-  separate(Trait, c("Trait","Date"), sep = "_") %>% 
-  filter(Trait != "GRYLD")
-
 gs17_100<- fread(
   "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy17.txt",
   header = T)
@@ -553,18 +582,94 @@ gs18_100<- gs18_100 %>%
   separate(Trait, c("Trait","Date"), sep = "_") %>% 
   filter(Trait != "GRYLD")
 
+gs19_100<- fread(
+  "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy19.txt",
+  header = T)
+gs19_100<- gs19_100 %>% 
+  mutate(Rep = row.names(gs19_100)) %>% 
+  gather(key = "Trait", value = "Accuracy",RE_20190624:GRYLD) %>% 
+  # group_by(Trait) %>% 
+  # summarise(average = mean(Accuracy), standardDeviation = sd(Accuracy)) %>% 
+  separate(Trait, c("Trait","Date"), sep = "_") %>% 
+  filter(Trait != "GRYLD")
+
 gs17_100$Date<- as.Date(gs17_100$Date, format = "%Y%m%d")
 gs18_100$Date<- as.Date(gs18_100$Date, format = "%Y%m%d")
+gs19_100$Date<- as.Date(gs19_100$Date, format = "%Y%m%d")
 
-ggplot(gs18_100, aes(x = Date, y = Accuracy)) + 
+ggplot(gs17_100, aes(x = Date, y = Accuracy)) + 
   geom_boxplot(aes(group = Date)) +
-  facet_wrap(~Trait, ncol = 2, scales = "fixed") + 
+  facet_wrap(~Trait, ncol = 2, scales = "free") + 
   theme_bw() +
   theme(axis.text = element_text(colour = "black")) +
-  #coord_cartesian(ylim = c(0,1)) +
+  coord_cartesian(ylim = c(-1,1)) +
   #scale_x_date(labels = "%m%d") +
   labs(title = "Genomic Prediction Accuracies",
-       subtitle = "2017/2018 season",
+       subtitle = "2016/2017 season",
        y = "Average prediction accuracy")
 
+##### Testing selection ####
+
+#### Selecting top 5% and drawing histogram
+
+selectTop<- function(dat, traits, file, identifier, selecTrait, ...) {
+  df <- data.frame(matrix(ncol = length(traits), 
+                          nrow = nrow(dat) * 0.1 ))
+  colnames(df) <- traits
+  for (i in traits) {
+    print(i)
+    mT<- dat %>% 
+      select(rn,paste(i),paste(selecTrait)) %>% 
+      dplyr::rename(Trait = paste(i),
+                    selecTrait = paste(selecTrait))
+    topSelec<- dat %>% 
+      select(rn,paste(selecTrait),paste(i)) %>% 
+      dplyr::rename(Trait = paste(i),
+                    selecTrait = paste(selecTrait))  
+    topSelec<- topSelec %>% 
+      dplyr::top_n(nrow(dat) * 0.1)
+    
+    tidyT<-tidy(t.test(mT$selecTrait,topSelec$selecTrait))
+    tidyP<-tidy(t.test(mT$Trait,topSelec$Trait))
+    
+    plot1<- ggplot(data = dat,
+                   mapping = aes_string(i)) +
+      geom_histogram(colour = "black",
+                     fill = "white",
+                     bins = 100) +
+      geom_vline(xintercept = mean(mT$Trait), linetype = 2) +
+      geom_histogram(data = topSelec, 
+                     mapping = aes(Trait),
+                     colour = "red",
+                     bins = 100) +
+      geom_vline(xintercept = mean(topSelec$Trait),
+                 colour = "red", linetype = 2) +
+      labs(subtitle = paste0("T-test for difference in mean p-value = ",
+                             round(tidyP$p.value, 
+                                   digits = 3)))
+    
+    plot2<- ggplot(data = dat,
+                   mapping = aes_string(selecTrait)) +
+      geom_histogram(colour = "black",
+                     fill = "white",
+                     bins = 100) + 
+      geom_vline(xintercept = mean(mT$selecTrait), linetype = 2) +
+      geom_histogram(data = topSelec, 
+                     mapping = aes(selecTrait),
+                     colour = "red",
+                     bins = 100) +
+      geom_vline(xintercept = mean(topSelec$selecTrait),
+                 colour = "red", linetype = 2) +
+      labs(subtitle = paste0("T-test for difference in mean p-value = ",
+                             round(tidyT$p.value, 
+                                   digits = 3)))
+    
+    plots<- ggarrange(plot1,plot2)
+    print(plots)
+    ggexport(plots, filename = paste0(file,identifier,"_",i,".png"),
+             width = 1000, height = 550)
+    df[,paste(i)]<- topSelec$rn
+  }
+  return(df)
+}
 
