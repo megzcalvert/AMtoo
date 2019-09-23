@@ -347,9 +347,6 @@ write.csv(accuracy18,
           "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy18.txt", 
           quote = F,row.names = F)
 colMeans(accuracy18)
-mean(accuracy18$GRYLD, na.rm = T)
-sd(accuracy18$GRYLD, na.rm = T)
-
 
 # 2019
 Pheno_train19<- dat19 %>% 
@@ -384,7 +381,7 @@ accuracy19<- cvWithHistogram(dat = dat19, columns_to_remove = c("rn"),
 write.csv(accuracy19, 
           "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy19.txt", 
           quote = F,row.names = F)
-colMeans(accuracy)
+colMeans(accuracy19)
 
 ##### Predicting across years #####
 
@@ -597,7 +594,7 @@ gs17_100$Date<- as.Date(gs17_100$Date, format = "%Y%m%d")
 gs18_100$Date<- as.Date(gs18_100$Date, format = "%Y%m%d")
 gs19_100$Date<- as.Date(gs19_100$Date, format = "%Y%m%d")
 
-ggplot(gs17_100, aes(x = Date, y = Accuracy)) + 
+ggplot(gs19_100, aes(x = Date, y = Accuracy)) + 
   geom_boxplot(aes(group = Date)) +
   facet_wrap(~Trait, ncol = 2, scales = "free") + 
   theme_bw() +
@@ -605,71 +602,6 @@ ggplot(gs17_100, aes(x = Date, y = Accuracy)) +
   coord_cartesian(ylim = c(-1,1)) +
   #scale_x_date(labels = "%m%d") +
   labs(title = "Genomic Prediction Accuracies",
-       subtitle = "2016/2017 season",
+       subtitle = "2018/2019 season",
        y = "Average prediction accuracy")
-
-##### Testing selection ####
-
-#### Selecting top 5% and drawing histogram
-
-selectTop<- function(dat, traits, file, identifier, selecTrait, ...) {
-  df <- data.frame(matrix(ncol = length(traits), 
-                          nrow = nrow(dat) * 0.1 ))
-  colnames(df) <- traits
-  for (i in traits) {
-    print(i)
-    mT<- dat %>% 
-      select(rn,paste(i),paste(selecTrait)) %>% 
-      dplyr::rename(Trait = paste(i),
-                    selecTrait = paste(selecTrait))
-    topSelec<- dat %>% 
-      select(rn,paste(selecTrait),paste(i)) %>% 
-      dplyr::rename(Trait = paste(i),
-                    selecTrait = paste(selecTrait))  
-    topSelec<- topSelec %>% 
-      dplyr::top_n(nrow(dat) * 0.1)
-    
-    tidyT<-tidy(t.test(mT$selecTrait,topSelec$selecTrait))
-    tidyP<-tidy(t.test(mT$Trait,topSelec$Trait))
-    
-    plot1<- ggplot(data = dat,
-                   mapping = aes_string(i)) +
-      geom_histogram(colour = "black",
-                     fill = "white",
-                     bins = 100) +
-      geom_vline(xintercept = mean(mT$Trait), linetype = 2) +
-      geom_histogram(data = topSelec, 
-                     mapping = aes(Trait),
-                     colour = "red",
-                     bins = 100) +
-      geom_vline(xintercept = mean(topSelec$Trait),
-                 colour = "red", linetype = 2) +
-      labs(subtitle = paste0("T-test for difference in mean p-value = ",
-                             round(tidyP$p.value, 
-                                   digits = 3)))
-    
-    plot2<- ggplot(data = dat,
-                   mapping = aes_string(selecTrait)) +
-      geom_histogram(colour = "black",
-                     fill = "white",
-                     bins = 100) + 
-      geom_vline(xintercept = mean(mT$selecTrait), linetype = 2) +
-      geom_histogram(data = topSelec, 
-                     mapping = aes(selecTrait),
-                     colour = "red",
-                     bins = 100) +
-      geom_vline(xintercept = mean(topSelec$selecTrait),
-                 colour = "red", linetype = 2) +
-      labs(subtitle = paste0("T-test for difference in mean p-value = ",
-                             round(tidyT$p.value, 
-                                   digits = 3)))
-    
-    plots<- ggarrange(plot1,plot2)
-    print(plots)
-    ggexport(plots, filename = paste0(file,identifier,"_",i,".png"),
-             width = 1000, height = 550)
-    df[,paste(i)]<- topSelec$rn
-  }
-  return(df)
-}
 

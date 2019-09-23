@@ -297,6 +297,16 @@ rrB4_18<- lapply(fileNames, load.file)
 
 names(rrB4_18)<- traitNames
 
+fileNames<- list.files(path = "./R/rrBlup/HypothesisEleven/PC4_2019",
+                       full.names = T,
+                       pattern = "_2019_4PC.txt$")
+traitNames<- basename(fileNames) %>%
+  str_remove_all("_2019_4PC.txt")
+
+rrB4_19<- lapply(fileNames, load.file)
+
+names(rrB4_19)<- traitNames
+
 snpPos<- rrB4_17$GNDVI_20170331[,1:3]
 
 rrB4_17F<- snpPos %>% 
@@ -311,8 +321,15 @@ rrB4_18F<- snpPos %>%
          pos = as.numeric(pos)) %>% 
   glimpse
 
+rrB4_19F<- snpPos %>% 
+  bind_cols(map_dfr(rrB4_19,4)) %>% 
+  mutate(rs_number = as.character(rs_number),
+         pos = as.numeric(pos)) %>% 
+  glimpse
+
 rrB4_17F[,4:ncol(rrB4_17F)]<- 1/(10^rrB4_17F[,4:ncol(rrB4_17F)])
 rrB4_18F[,4:ncol(rrB4_18F)]<- 1/(10^rrB4_18F[,4:ncol(rrB4_18F)])
+rrB4_19F[,4:ncol(rrB4_19F)]<- 1/(10^rrB4_19F[,4:ncol(rrB4_19F)])
 
 ## GAPIT results
 
@@ -327,6 +344,7 @@ gap4_17<- lapply(fileNames, load.file)
 names(gap4_17)<- traitNames
 
 gap4_17F<- gap4_17$GNDVI_20170331[,1:3] %>% 
+  arrange(Chromosome,Position) %>% 
   glimpse %>% 
   bind_cols(map_dfr(gap4_17,4)) %>% 
   dplyr::rename(chrom = Chromosome, pos = Position) %>% 
@@ -344,8 +362,27 @@ gap4_18<- lapply(fileNames, load.file)
 names(gap4_18)<- traitNames
 
 gap4_18F<- gap4_18$GNDVI_20171120[,1:3] %>% 
+  arrange(Chromosome,Position) %>% 
   glimpse %>% 
   bind_cols(map_dfr(gap4_18,4)) %>% 
+  dplyr::rename(chrom = Chromosome, pos = Position) %>% 
+  mutate(pos = as.numeric(pos)) %>% 
+  glimpse()
+
+fileNames<- list.files(path = "./R/Gapit/HypothesisEleven/PC4_2019",
+                       full.names = T,
+                       pattern = "GWAS.Results.csv$")
+traitNames<- basename(fileNames) %>%
+  str_remove_all("GAPIT.MLM.|.GWAS.Results.csv")
+
+gap4_19<- lapply(fileNames, load.file)
+
+names(gap4_19)<- traitNames
+
+gap4_19F<- gap4_19$GNDVI_20190103[,1:3] %>% 
+  arrange(Chromosome,Position) %>% 
+  glimpse %>% 
+  bind_cols(map_dfr(gap4_19,4)) %>% 
   dplyr::rename(chrom = Chromosome, pos = Position) %>% 
   mutate(pos = as.numeric(pos)) %>% 
   glimpse()
@@ -381,8 +418,7 @@ don_rrB4_18 <- rrB4_18F %>%
   left_join(rrB4_18F, ., by=c("chrom"="chrom")) %>%
   # Add a cumulative position of each SNP
   arrange(chrom, pos) %>%
-  mutate( BPcum=pos+tot) %>% 
-  glimpse()
+  mutate( BPcum=pos+tot) 
 
 don_gap4_17 <- gap4_17F %>% 
   # Compute chromosome size
@@ -395,8 +431,7 @@ don_gap4_17 <- gap4_17F %>%
   left_join(gap4_17F, ., by=c("chrom"="chrom")) %>%
   # Add a cumulative position of each SNP
   arrange(chrom, pos) %>%
-  mutate( BPcum=pos+tot) %>% 
-  glimpse()
+  mutate( BPcum=pos+tot) 
 
 don_gap4_18 <- gap4_18F %>% 
   # Compute chromosome size
@@ -409,10 +444,9 @@ don_gap4_18 <- gap4_18F %>%
   left_join(gap4_18F, ., by=c("chrom"="chrom")) %>%
   # Add a cumulative position of each SNP
   arrange(chrom, pos) %>%
-  mutate( BPcum=pos+tot) %>% 
-  glimpse()
+  mutate( BPcum=pos+tot) 
 
-ggplot(don_rrB4_17, aes(x=BPcum)) +
+ggplot(don_rrB4_18, aes(x=BPcum)) +
   # Show all points
   geom_point(aes(y=-log10(don_rrB4_18$GNDVI_20180613)), 
              colour = "#4d9221",
@@ -444,12 +478,12 @@ ggplot(don_rrB4_17, aes(x=BPcum)) +
 
 ggplot(don_rrB4_18, aes(x=BPcum, colour = as.factor(don_rrB4_18$chrom))) +
   # Show all points
-  geom_point(aes(y=-log10(GNDVI_20180613)),
+  geom_point(aes(y=-log10(GRYLD)),
              alpha=0.5, size=1) +
   scale_color_manual(values = rep(c("#2ca25f", "#8856a7","#43a2ca"), 22 )) +
   # Significance Threshold
   geom_hline(yintercept = -log10(0.05/nrow(don_rrB4_18)), linetype = 2) +
-  #geom_vline(xintercept = 6979839046, linetype = 3) +
+  geom_vline(xintercept = 6979839046, linetype = 3) +
   # custom X axis:
   scale_x_continuous( label = c("1A","1B","1D",
                                 "2A","2B","2D",
@@ -471,14 +505,122 @@ ggplot(don_rrB4_18, aes(x=BPcum, colour = as.factor(don_rrB4_18$chrom))) +
     plot.title = element_text(size = 18),
     plot.subtitle = element_text(size = 16)
   ) +
-  labs(title = "GWAS results GNDVI_20180613",
+  labs(title = "GWAS results GRYLD",
        subtitle = "Bonferroni Threshold alpha = 0.05",
        x = "Chromosome",
-       y = "-log10(P)") #+
+       y = "-log10(P)") +
 annotate(geom = "text", x = 7000000000, y = 6, label = "Rht-1B")
 
+##### Making this a function to plot all ####
 
+myManhattans<- function(dat, traits, saveFileFigures, identifier,
+                        colourOne, colourTwo, colourThree, ...){
+  
+  dat <- dat %>% 
+    # Compute chromosome size
+    group_by(chrom) %>% 
+    summarise(chr_len=max(pos)) %>% 
+    # Calculate cumulative position of each chromosome
+    mutate(tot=cumsum(chr_len)-chr_len) %>%
+    tidylog::select(-chr_len) %>%
+    # Add this info to the initial dataset
+    left_join(dat, ., by=c("chrom"="chrom")) %>%
+    # Add a cumulative position of each SNP
+    arrange(chrom, pos) %>%
+    mutate( BPcum=pos+tot) %>% 
+    select(1:3,tot, BPcum, everything())
+  dat[,6:ncol(dat)]<- -log10(dat[,6:ncol(dat)])
+  
+  axisdf <- dat %>% 
+    group_by(chrom) %>% 
+    dplyr::summarize(center=( max(BPcum) + min(BPcum) ) / 2,
+                     maximum = max(BPcum))
+  plotList<- list()
+  
+  for (i in traits) {
+    thisPlot<- ggplot(data = dat, 
+                      mapping = aes(x=BPcum, 
+                                    colour = as.factor(chrom))) +
+      # Show all points
+      geom_point(aes_string(y = paste(i)),
+                 alpha = 0.5, size = 1) +
+      scale_color_manual(values = rep(c(colourOne, colourTwo, colourThree), 
+                                      22 )) +
+      # Significance Threshold
+      geom_hline(yintercept = -log10(0.05/nrow(dat)), linetype = 2) +
+      # custom X axis:
+      scale_x_continuous( label = c("1A","1B","1D",
+                                    "2A","2B","2D",
+                                    "3A","3B","3D",
+                                    "4A","4B","4D",
+                                    "5A","5B","5D",
+                                    "6A","6B","6D",
+                                    "7A","7B","7D"), 
+                          breaks= axisdf$center ) +
+      scale_y_continuous(expand = c(0, 0.05) ) +# remove space between plot area and x axis
+      # Custom the theme:
+      theme_bw() +
+      theme( 
+        legend.position="none",
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text = element_text(colour = "black", size = 14),
+        axis.title = element_text(colour = "black", size = 16),
+        plot.title = element_text(size = 18),
+        plot.subtitle = element_text(size = 16)
+      ) +
+      labs(title = paste0("GWAS results ", identifier, " ", i),
+           subtitle = "Bonferroni Threshold alpha = 0.05",
+           x = "Chromosome",
+           y = "-log10(P)") 
+    plotList[[i]] <- thisPlot
+    print(i)
+    ggpubr::ggexport(thisPlot, filename = paste0(saveFileFigures,
+                                              identifier,"_",i,".png"),
+                     width = 1000, height = 550)
+  }
+  return(plotList)
+}
 
+traits<- colnames(rrB4_17F[,4:ncol(rrB4_17F)])
+manhattan17<- myManhattans(dat = rrB4_17F, traits = traits, 
+                           saveFileFigures = "./Figures/AssociationPlots/",
+                           identifier = "rrBlup4PC_17",
+                           colourOne = "#2ca25f", colourTwo = "#43a2ca",
+                           colourThree = "#8856a7")
 
+traits<- colnames(rrB4_18F[,4:ncol(rrB4_18F)])
+manhattan18<- myManhattans(dat = rrB4_18F, traits = traits, 
+                           saveFileFigures = "./Figures/AssociationPlots/",
+                           identifier = "rrBlup4PC_18",
+                           colourOne = "#2ca25f", colourTwo = "#43a2ca",
+                           colourThree = "#8856a7")
 
+traits<- colnames(rrB4_19F[,4:ncol(rrB4_19F)])
+manhattan19<- myManhattans(dat = rrB4_19F, traits = traits, 
+                           saveFileFigures = "./Figures/AssociationPlots/",
+                           identifier = "rrBlup4PC_19",
+                           colourOne = "#2ca25f", colourTwo = "#43a2ca",
+                           colourThree = "#8856a7")
+
+traits<- colnames(gap4_17F[,4:ncol(gap4_17F)])
+manhattan19<- myManhattans(dat = gap4_17F, traits = traits, 
+                           saveFileFigures = "./Figures/AssociationPlots/",
+                           identifier = "Gapit4PC_17",
+                           colourOne = "#2ca25f", colourTwo = "#43a2ca",
+                           colourThree = "#8856a7")
+
+traits<- colnames(gap4_18F[,4:ncol(gap4_18F)])
+manhattan18<- myManhattans(dat = gap4_18F, traits = traits, 
+                           saveFileFigures = "./Figures/AssociationPlots/",
+                           identifier = "Gapit4PC_18",
+                           colourOne = "#2ca25f", colourTwo = "#43a2ca",
+                           colourThree = "#8856a7")
+
+traits<- colnames(gap4_19F[,4:ncol(gap4_19F)])
+manhattan19<- myManhattans(dat = gap4_19F, traits = traits, 
+                           saveFileFigures = "./Figures/AssociationPlots/",
+                           identifier = "Gapit4PC_19",
+                           colourOne = "#2ca25f", colourTwo = "#43a2ca",
+                           colourThree = "#8856a7")
 
