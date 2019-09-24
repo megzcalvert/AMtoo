@@ -531,6 +531,8 @@ e <- as.matrix(YLD)
 pred_yield_valid <- m_valid18_17 %*% e
 pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
 pred_yield
+yield_valid <- Pheno_valid18_17[, "GRYLD"]
+cor(pred_yield_valid, yield_valid, use = "complete")
 
 ## 2017 predicting 2019
 yield <- (Pheno_train17_19[, "GRYLD"])
