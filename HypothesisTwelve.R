@@ -111,7 +111,7 @@ snpChip <- read_delim(
   escape_double = FALSE, trim_ws = TRUE
 )
 snpChip <- snpChip %>%
-  clean_names() #janitor package, gives a consistent formatting
+  clean_names() # janitor package, gives a consistent formatting
 
 # Get rid of the ambiguous and the het codes
 missAmbiguous <- c("0", "+", "-")
@@ -184,7 +184,7 @@ dat19 <- fread("./Phenotype_Database/Hyp10BLUEs_19.txt")
 snpMatrix[1:5, 1:5]
 
 ## Keep only lines which have geno and pheno
-#2017
+# 2017
 dat17 <- dat17 %>%
   semi_join(snpMatrix, by = "rn")
 
@@ -195,7 +195,7 @@ snpMatrix17[, 1] <- NULL
 
 snpMatrix17 <- as.matrix(snpMatrix17)
 
-#2018
+# 2018
 dat18 <- dat18 %>%
   semi_join(snpMatrix, by = "rn")
 
@@ -206,7 +206,7 @@ snpMatrix18[, 1] <- NULL
 
 snpMatrix18 <- as.matrix(snpMatrix18)
 
-#2019
+# 2019
 dat19 <- dat19 %>%
   semi_join(snpMatrix, by = "rn")
 
@@ -498,7 +498,7 @@ Pheno_train18_17 <- dat18 %>%
   tidylog::semi_join(dat17, by = "rn")
 m_valid18_17 <- snpMatrix18[Pheno_valid18_17$rn, ]
 m_train18_17 <- snpMatrix18[Pheno_train18_17$rn, ]
-# 2018 for 2019 
+# 2018 for 2019
 Pheno_valid18_19 <- dat18 %>%
   tidylog::semi_join(dat19, by = "rn")
 Pheno_train18_19 <- dat18 %>%
@@ -532,13 +532,13 @@ pred_yield_valid <- m_valid18_17 %*% e
 pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
 pred_yield
 yield_valid <- Pheno_valid18_17[, "GRYLD"]
-cor(pred_yield_valid, yield_valid, use = "complete")
+cor.test(pred_yield_valid, yield_valid)
 
 ## 2017 predicting 2019
 yield <- (Pheno_train17_19[, "GRYLD"])
 yield_answer <- mixed.solve(yield,
-                            Z = m_train17_19,
-                            K = NULL, SE = FALSE, return.Hinv = FALSE
+  Z = m_train17_19,
+  K = NULL, SE = FALSE, return.Hinv = FALSE
 )
 YLD <- yield_answer$u
 e <- as.matrix(YLD)
@@ -546,7 +546,7 @@ pred_yield_valid <- m_valid19_17 %*% e
 pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
 pred_yield
 yield_valid <- Pheno_valid19_17[, "GRYLD"]
-cor(pred_yield_valid, yield_valid, use = "complete")
+tidy(cor.test(pred_yield_valid, yield_valid))
 
 ## 2018 predicting 2017
 yield <- (Pheno_train18_17[, "GRYLD"])
@@ -560,13 +560,13 @@ pred_yield_valid <- m_valid17_18 %*% e
 pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
 pred_yield
 yield_valid <- Pheno_valid17_18[, "GRYLD"]
-cor(pred_yield_valid, yield_valid, use = "complete")
+tidy(cor.test(pred_yield_valid, yield_valid))
 
 ## 2018 predicting 2019
 yield <- (Pheno_train18_19[, "GRYLD"])
 yield_answer <- mixed.solve(yield,
-                            Z = m_train18_19,
-                            K = NULL, SE = FALSE, return.Hinv = FALSE
+  Z = m_train18_19,
+  K = NULL, SE = FALSE, return.Hinv = FALSE
 )
 YLD <- yield_answer$u
 e <- as.matrix(YLD)
@@ -574,13 +574,13 @@ pred_yield_valid <- m_valid19_18 %*% e
 pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
 pred_yield
 yield_valid <- Pheno_valid19_18[, "GRYLD"]
-cor(pred_yield_valid, yield_valid, use = "complete")
+cor.test(pred_yield_valid, yield_valid)
 
 ## 2019 predicting 2017
 yield <- (Pheno_train19_17[, "GRYLD"])
 yield_answer <- mixed.solve(yield,
-                            Z = m_train19_17,
-                            K = NULL, SE = FALSE, return.Hinv = FALSE
+  Z = m_train19_17,
+  K = NULL, SE = FALSE, return.Hinv = FALSE
 )
 YLD <- yield_answer$u
 e <- as.matrix(YLD)
@@ -588,13 +588,13 @@ pred_yield_valid <- m_valid17_19 %*% e
 pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
 pred_yield
 yield_valid <- Pheno_valid17_19[, "GRYLD"]
-cor(pred_yield_valid, yield_valid, use = "complete")
+tidy(cor.test(pred_yield_valid, yield_valid))
 
 ## 2019 predicting 2018
 yield <- (Pheno_train19_18[, "GRYLD"])
 yield_answer <- mixed.solve(yield,
-                            Z = m_train19_18,
-                            K = NULL, SE = FALSE, return.Hinv = FALSE
+  Z = m_train19_18,
+  K = NULL, SE = FALSE, return.Hinv = FALSE
 )
 YLD <- yield_answer$u
 e <- as.matrix(YLD)
@@ -602,7 +602,7 @@ pred_yield_valid <- m_valid18_19 %*% e
 pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
 pred_yield
 yield_valid <- Pheno_valid18_19[, "GRYLD"]
-cor(pred_yield_valid, yield_valid, use = "complete")
+cor.test(pred_yield_valid, yield_valid)
 
 ###############################################################################
 #### Examining results ####

@@ -22,10 +22,97 @@ library(pvclust)
 library(viridis)
 library(RColorBrewer)
 
+##### Set up work space ####
+#### Theme set
+custom_theme <- theme_minimal() %+replace%
+  theme(
+    axis.title = element_text(
+      colour = "black",
+      size = rel(2)
+    ),
+    axis.title.x = element_text(
+      vjust = 0,
+      margin = margin(
+        t = 0, r = 0.25,
+        b = 0, l = 0,
+        unit = "cm"
+      )
+    ),
+    axis.title.y = element_text(
+      vjust = 1,
+      angle = 90,
+      margin = margin(
+        t = 0, r = 0.25,
+        b = 0, l = 0.1,
+        unit = "cm"
+      )
+    ),
+    axis.text = element_text(
+      colour = "black",
+      size = rel(1.5)
+    ),
+    axis.ticks = element_line(colour = "black"),
+    axis.ticks.length = unit(3, "pt"),
+    axis.line = element_line(
+      color = "black",
+      size = 0.5
+    ),
+    legend.key.size = unit(1.5, "lines"),
+    legend.margin = margin(
+      t = 0, r = 0.75,
+      b = 0, l = 0.75,
+      unit = "cm"
+    ),
+    legend.text = element_text(size = rel(2)),
+    legend.title = element_text(size = rel(1.5)),
+    panel.grid.major = element_line(
+      colour = "#969696",
+      linetype = 3
+    ),
+    panel.grid.minor = element_blank(),
+    plot.tag = element_text(
+      size = rel(2),
+      margin = margin(
+        t = 0.1, r = 0.1,
+        b = 0.1, l = 0.1,
+        unit = "cm"
+      )
+    ),
+    plot.margin = margin(
+      t = 0.5, r = 0.5,
+      b = 0.5, l = 0,
+      unit = "cm"
+    ),
+    plot.title = element_text(
+      colour = "black",
+      size = rel(3),
+      vjust = 0,
+      hjust = 0,
+      margin = margin(
+        t = 0.25, r = 0.25,
+        b = 0.5, l = 0.25,
+        unit = "cm"
+      )
+    ),
+    strip.background = element_rect(
+      fill = "white",
+      colour = "black",
+      size = 1
+    ),
+    strip.text = element_text(
+      colour = "black",
+      size = rel(1)
+    ),
+    complete = F
+  )
+
+theme_set(custom_theme)
 
 getwd()
 setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")
+set.seed(1642)
 
+#### Load data ####
 snpChip <- read_delim(
   "./Genotype_Database/90KsnpChipHapMap/AMsnpChipImputed.hmp.txt",
   "\t",
@@ -44,8 +131,8 @@ snpChip <- cbind(snpChip[, 1:12], hapgeno)
 rm(hapgeno)
 
 write.table(snpChip,
-  file = "./Genotype_Database/SelectedImputedBeagle.txt",
-  col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
+            file = "./Genotype_Database/SelectedImputedBeagle.txt",
+            col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
 )
 
 snpChip <- fread(
@@ -66,8 +153,8 @@ snpChip[snpChip == "."] <- NA
 snpChip <- snpChip[, c(1, 4, 5, 13:311)]
 
 write.table(snpChip,
-  file = "./Genotype_Database/SelectedImputedBeagleNumeric.txt",
-  col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
+            file = "./Genotype_Database/SelectedImputedBeagleNumeric.txt",
+            col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
 )
 
 snpChip <- fread(
@@ -94,23 +181,16 @@ glimpse(pheno17)
 glimpse(pheno18)
 glimpse(pheno19)
 glimpse(phenoLong)
-# pheno17$GRYLD<- as.numeric(pheno17$GRYLD)
-
-mean(pheno17$GRYLD)
-Matrix::mean(pheno18$GRYLD)
 
 phenoLong <- phenoLong %>%
   dplyr::rename(Plot_ID = entity_id) %>%
   tidylog::select(Plot_ID, Variety, block, rep, range, column)
 
-pheno17$Date <- as.Date(pheno17$Date, format = "%Y-%m-%d")
-pheno17$Date <- format(pheno17$Date, "%Y%m%d")
-pheno18$Date <- as.Date(pheno18$Date, format = "%Y-%m-%d")
-pheno18$Date <- format(pheno18$Date, "%Y%m%d")
-pheno19$Date <- as.Date(pheno19$Date, format = "%Y-%m-%d")
-pheno19$Date <- format(pheno19$Date, "%Y%m%d")
-
 pheno17 <- pheno17 %>%
+  mutate(
+    Date = as.Date(Date, format = "%Y-%m-%d"),
+    Date = format(Date, "%Y%m%d")
+  ) %>%
   unite("ID", c("ID", "Date")) %>%
   spread(key = ID, value = value) %>%
   tidylog::select(
@@ -118,11 +198,21 @@ pheno17 <- pheno17 %>%
     GNDVI_20170331:RedEdge_20170609
   ) %>%
   tidylog::inner_join(phenoLong) %>%
-  glimpse() %>%
   distinct() %>%
-  glimpse()
+  mutate(
+    Plot_ID = as.factor(Plot_ID),
+    Variety = as.factor(Variety),
+    block = as.factor(block),
+    rep = as.factor(rep),
+    range = as.factor(range),
+    column = as.factor(column)
+  )
 
 pheno18 <- pheno18 %>%
+  mutate(
+    Date = as.Date(Date, format = "%Y-%m-%d"),
+    Date = format(Date, "%Y%m%d")
+  ) %>%
   dplyr::rename(Plot_ID = entity_id) %>%
   unite("ID", c("ID", "Date")) %>%
   spread(key = ID, value = value) %>%
@@ -132,11 +222,21 @@ pheno18 <- pheno18 %>%
   ) %>%
   tidylog::inner_join(phenoLong) %>%
   tidylog::select(-starts_with("height_")) %>%
-  glimpse() %>%
   distinct() %>%
-  glimpse()
+  mutate(
+    Plot_ID = as.factor(Plot_ID),
+    Variety = as.factor(Variety),
+    block = as.factor(block),
+    rep = as.factor(rep),
+    range = as.factor(range),
+    column = as.factor(column)
+  )
 
 pheno19 <- pheno19 %>%
+  mutate(
+    Date = as.Date(Date, format = "%Y-%m-%d"),
+    Date = format(Date, "%Y%m%d")
+  ) %>%
   dplyr::rename(Plot_ID = entity_id) %>%
   unite("ID", c("ID", "Date")) %>%
   spread(key = ID, value = value) %>%
@@ -146,39 +246,15 @@ pheno19 <- pheno19 %>%
   ) %>%
   tidylog::inner_join(phenoLong) %>%
   tidylog::select(-starts_with("height_")) %>%
-  glimpse() %>%
   distinct() %>%
-  glimpse()
-
-# normalisedPheno17<-mvn(pheno17[,3:51], univariateTest = "SW", desc = T)
-# normalisedPheno17$univariateNormality
-# normalisedPheno17$multivariateNormality
-# normalisedPheno17$Descriptives
-# normalisedPheno18<-mvn(pheno18[,3:93], univariateTest = "SW", desc = T)
-# normalisedPheno18$univariateNormality
-# normalisedPheno18$multivariateNormality
-# normalisedPheno18$Descriptives
-
-pheno17$Plot_ID <- as.factor(pheno17$Plot_ID)
-pheno17$Variety <- as.factor(pheno17$Variety)
-pheno17$block <- as.factor(pheno17$block)
-pheno17$rep <- as.factor(pheno17$rep)
-pheno17$range <- as.factor(pheno17$range)
-pheno17$column <- as.factor(pheno17$column)
-
-pheno18$Plot_ID <- as.factor(pheno18$Plot_ID)
-pheno18$Variety <- as.factor(pheno18$Variety)
-pheno18$block <- as.factor(pheno18$block)
-pheno18$rep <- as.factor(pheno18$rep)
-pheno18$range <- as.factor(pheno18$range)
-pheno18$column <- as.factor(pheno18$column)
-
-pheno19$Plot_ID <- as.factor(pheno19$Plot_ID)
-pheno19$Variety <- as.factor(pheno19$Variety)
-pheno19$block <- as.factor(pheno19$block)
-pheno19$rep <- as.factor(pheno19$rep)
-pheno19$range <- as.factor(pheno19$range)
-pheno19$column <- as.factor(pheno19$column)
+  mutate(
+    Plot_ID = as.factor(Plot_ID),
+    Variety = as.factor(Variety),
+    block = as.factor(block),
+    rep = as.factor(rep),
+    range = as.factor(range),
+    column = as.factor(column)
+  )
 
 asreml.license.status()
 
@@ -197,7 +273,6 @@ snpLines <- snpMatrix17$rn
 snpMatrix17 <- snpMatrix17 %>%
   tidylog::select(-rn)
 
-par(mar = c(1, 1, 1, 1))
 mean(pheno17$GRYLD)
 
 t17 <- asreml(
@@ -215,51 +290,50 @@ dat17 <- blues %>%
 
 ##### Making it a function for all of the VI's 2017
 
-effectvars <- names(pheno17) %in% c(
-  "block", "rep", "Variety", "year",
-  "column", "range", "Plot_ID", "GRYLD"
-)
-traits <- colnames(pheno17[, !effectvars])
-traits
-fieldInfo <- pheno17 %>%
-  tidylog::select(Variety, rep, block, column, range)
-
-for (i in traits) {
-  print(paste("Working on trait", i))
-  j <- i
-
-  data <- cbind(fieldInfo, pheno17[, paste(i)])
-  names(data) <- c("Variety", "rep", "block", "column", "range", "Trait")
-  print(colnames(data))
-
-  t17 <- asreml(
-    fixed = Trait ~ 0 + Variety,
-    random = ~ rep + rep:block,
-    data = data
+calculatingBlues <- function(dat, saveFile, joinFile, ...) {
+  effectvars <- names(dat) %in% c(
+    "block", "rep", "Variety", "year",
+    "column", "range", "Plot_ID", "GRYLD"
   )
-  pdf(paste0(
-    "./Figures/AsremlPlots/ASREML_Blues17_",
-    i, ".pdf"
-  ))
-  plot(t17)
-
-  blues <- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
-  blues$rn <- str_remove(blues$rn, "Variety_")
-  colnames(blues)[colnames(blues) == "effect"] <- paste(i)
-  dat17 <- blues %>%
-    inner_join(dat17)
+  traits <- colnames(dat[, !effectvars])
+  traits
+  fieldInfo <- dat %>%
+    tidylog::select(Variety, rep, block, column, range)
+  
+  for (i in traits) {
+    print(paste("Working on trait", i))
+    j <- i
+    
+    data <- cbind(fieldInfo, dat[, paste(i)])
+    names(data) <- c("Variety", "rep", "block", "column", "range", "Trait")
+    print(colnames(data))
+    
+    t17 <- asreml(
+      fixed = Trait ~ 0 + Variety,
+      random = ~ rep + rep:block,
+      data = data
+    )
+    pdf(paste0(
+      saveFile,
+      i, ".pdf"
+    ))
+    plot(t17)
+    
+    blues <- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
+    blues$rn <- str_remove(blues$rn, "Variety_")
+    colnames(blues)[colnames(blues) == "effect"] <- paste(i)
+    joinFile <- blues %>%
+      inner_join(joinFile)
+    graphics.off()
+  }
+  return(joinFile)
 }
 
-# dat17[1:5,1:15]
-
-dev.off()
-graphics.off()
-
-beep()
+blues17<- calculatingBlues(dat = pheno17,
+                           saveFile = "./Figures/AsremlPlots/ASREML_Blues17_",
+                           joinFile = dat17)
 
 ##### Making it a function for all of the VI's 2018
-
-par(mar = c(1, 1, 1, 1))
 
 t18 <- asreml(
   fixed = GRYLD ~ 0 + Variety,
@@ -273,49 +347,11 @@ dat18 <- blues %>%
   rename(GRYLD = effect) %>%
   glimpse()
 
-effectvars <- names(pheno18) %in% c(
-  "block", "rep", "Variety", "year",
-  "column", "range", "Plot_ID", "GRYLD"
-)
-traits <- colnames(pheno18[, !effectvars])
-traits
-fieldInfo <- pheno18 %>%
-  tidylog::select(Variety, rep, block, column, range)
-
-for (i in traits) {
-  print(paste("Working on trait", i))
-  j <- i
-
-  data <- cbind(fieldInfo, pheno18[, paste(i)])
-  names(data) <- c("Variety", "rep", "block", "column", "range", "Trait")
-  print(colnames(data))
-
-  t18 <- asreml(
-    fixed = Trait ~ 0 + Variety,
-    random = ~ rep + rep:block,
-    data = data
-  )
-  pdf(paste0(
-    "./Figures/AsremlPlots/ASREML_Blues18_",
-    i, ".pdf"
-  ))
-  plot(t17)
-
-  blues <- setDT(as.data.frame(coef(t18)$fixed), keep.rownames = T)
-  blues$rn <- str_remove(blues$rn, "Variety_")
-  colnames(blues)[colnames(blues) == "effect"] <- paste(i)
-  dat18 <- blues %>%
-    inner_join(dat18)
-  dev.off()
-}
-
-dat18[1:5, 1:15]
-
-beep(2)
+blues18<- calculatingBlues(dat = pheno18,
+                           saveFile = "./Figures/AsremlPlots/ASREML_Blues18_",
+                           joinFile = dat18)
 
 ##### Making it a function for all of the VI's 2019
-
-par(mar = c(1, 1, 1, 1))
 
 t19 <- asreml(
   fixed = GRYLD ~ 0 + Variety,
@@ -329,59 +365,21 @@ dat19 <- blues %>%
   rename(GRYLD = effect) %>%
   glimpse()
 
-effectvars <- names(pheno19) %in% c(
-  "block", "rep", "Variety", "year",
-  "column", "range", "Plot_ID", "GRYLD"
+blues19<- calculatingBlues(dat = pheno19,
+                           saveFile = "./Figures/AsremlPlots/ASREML_Blues19_",
+                           joinFile = dat19)
+
+write.table(blues17, "./Phenotype_Database/Hyp10BLUEs_17.txt",
+            quote = F,
+            sep = "\t", row.names = FALSE, col.names = T
 )
-traits <- colnames(pheno19[, !effectvars])
-traits
-fieldInfo <- pheno19 %>%
-  tidylog::select(Variety, rep, block, column, range)
-
-for (i in traits) {
-  print(paste("Working on trait", i))
-  j <- i
-
-  data <- cbind(fieldInfo, pheno19[, paste(i)])
-  names(data) <- c("Variety", "rep", "block", "column", "range", "Trait")
-  print(colnames(data))
-
-  t19 <- asreml(
-    fixed = Trait ~ 0 + Variety,
-    random = ~ rep + rep:block,
-    data = data
-  )
-  pdf(paste0(
-    "./Figures/AsremlPlots/ASREML_Blues18_",
-    i, ".pdf"
-  ))
-  plot(t19)
-
-  blues <- setDT(as.data.frame(coef(t19)$fixed), keep.rownames = T)
-  blues$rn <- str_remove(blues$rn, "Variety_")
-  colnames(blues)[colnames(blues) == "effect"] <- paste(i)
-  dat19 <- blues %>%
-    inner_join(dat19)
-  dev.off()
-}
-
-dat19[1:5, 1:15]
-
-beep(2)
-
-par(mar = c(1, 1, 1, 1))
-
-write.table(dat17, "./Phenotype_Database/Hyp10BLUEs_17.txt",
-  quote = F,
-  sep = "\t", row.names = FALSE, col.names = T
+write.table(blues18, "./Phenotype_Database/Hyp10BLUEs_18.txt",
+            quote = F,
+            sep = "\t", row.names = FALSE, col.names = T
 )
-write.table(dat18, "./Phenotype_Database/Hyp10BLUEs_18.txt",
-  quote = F,
-  sep = "\t", row.names = FALSE, col.names = T
-)
-write.table(dat19, "./Phenotype_Database/Hyp10BLUEs_19.txt",
-  quote = F,
-  sep = "\t", row.names = FALSE, col.names = T
+write.table(blues19, "./Phenotype_Database/Hyp10BLUEs_19.txt",
+            quote = F,
+            sep = "\t", row.names = FALSE, col.names = T
 )
 dat17 <- fread("./Phenotype_Database/Hyp10BLUEs_17.txt", header = T)
 dat18 <- fread("./Phenotype_Database/Hyp10BLUEs_18.txt", header = T)
@@ -392,14 +390,7 @@ dat19 <- fread("./Phenotype_Database/Hyp10BLUEs_19.txt", header = T)
 dat17 %>%
   ggplot(aes(x = NDVI_20170512)) +
   geom_histogram(colour = "black", fill = "white") +
-  geom_vline(xintercept = mean(dat17$NDVI_20170512), linetype = 2) +
-  theme_bw() +
-  theme(
-    axis.text = element_text(colour = "black", size = rel(1.75)),
-    axis.title = element_text(colour = "black", size = rel(2)),
-    plot.title = element_text(size = rel(2.25)),
-    plot.subtitle = element_text(size = rel(1.5))
-  )
+  geom_vline(xintercept = mean(dat17$NDVI_20170512), linetype = 2) 
 
 ndvi0512_top <- dat17 %>%
   dplyr::arrange(desc(NDVI_20170512)) %>% # use desc() if you want highest to lowest
@@ -411,42 +402,27 @@ ndvi0512_top <- ndvi0512_top[1:round(0.2 * nrow(dat17)), ]
 
 dat17 %>%
   ggplot(aes(x = NDVI_20170512)) +
-  geom_histogram(colour = "black", fill = "white") +
+  geom_histogram(colour = "black", fill = "white", bins = 100) +
   geom_vline(xintercept = mean(dat17$NDVI_20170512), linetype = 2) +
   geom_vline(
     xintercept = mean(ndvi0512_top$NDVI_20170512), colour = "blue",
     linetype = 2
   ) +
   geom_vline(xintercept = min(ndvi0512_top$NDVI_20170512), colour = "blue") +
-  theme_bw() +
-  theme(
-    axis.text = element_text(colour = "black", size = rel(1.75)),
-    axis.title = element_text(colour = "black", size = rel(2)),
-    plot.title = element_text(size = rel(2.25)),
-    plot.subtitle = element_text(size = rel(1.5))
-  ) +
   labs(
     title = "Distribution of NDVI_20170512",
-    subtitle = "All lines - black, top 5% of NDVI_20170512 - blue"
+    subtitle = "All lines - black, top 20% of NDVI_20170512 - blue"
   )
 
 dat17 %>%
   ggplot(aes(x = GRYLD)) +
-  geom_histogram(colour = "black", fill = "white") +
-  geom_histogram(data = ndvi0512_top, aes(x = GRYLD), colour = "blue") +
+  geom_histogram(colour = "black", fill = "white", bins = 100) +
+  geom_histogram(data = ndvi0512_top, aes(x = GRYLD), colour = "blue",
+                 bins = 100) +
   geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2) +
   geom_vline(
     xintercept = mean(ndvi0512_top$GRYLD), linetype = 2,
     colour = "blue"
-  ) +
-  # geom_vline(xintercept = min(RE0512_top$GRYLD), colour = "blue") +
-  # geom_vline(xintercept = max(RE0512_top$GRYLD), colour = "blue") +
-  theme_bw() +
-  theme(
-    axis.text = element_text(colour = "black", size = rel(1.75)),
-    axis.title = element_text(colour = "black", size = rel(2)),
-    plot.title = element_text(size = rel(2.25)),
-    plot.subtitle = element_text(size = rel(1.5))
   ) +
   labs(
     title = "Distribution of GRYLD in 2016/2017",
@@ -461,8 +437,9 @@ ndviSelect <- ndvi0512_top %>%
 
 dat18 %>%
   ggplot(aes(x = GRYLD)) +
-  geom_histogram(colour = "black", fill = "white") +
-  geom_histogram(data = ndviSelect, aes(x = GRYLD.y), colour = "blue") +
+  geom_histogram(colour = "black", fill = "white", bins = 100) +
+  geom_histogram(data = ndviSelect, aes(x = GRYLD.y), colour = "blue", 
+                 bins = 100) +
   geom_vline(xintercept = mean(dat18$GRYLD), linetype = 2) +
   geom_vline(
     xintercept = mean(ndviSelect$GRYLD.y), linetype = 2,
@@ -472,13 +449,6 @@ dat18 %>%
     xintercept = mean(dat17$GRYLD), linetype = 2,
     colour = "#737373"
   ) +
-  theme_bw() +
-  theme(
-    axis.text = element_text(colour = "black", size = rel(1.75)),
-    axis.title = element_text(colour = "black", size = rel(2)),
-    plot.title = element_text(size = rel(2.25)),
-    plot.subtitle = element_text(size = rel(1.5))
-  ) +
   labs(
     title = "Distribution of GRYLD in 2017/2018",
     subtitle = "All lines - black, lines selected from NDVI_20170512 - blue, mean from 2016/2017 - grey"
@@ -486,8 +456,9 @@ dat18 %>%
 
 dat19 %>%
   ggplot(aes(x = GRYLD)) +
-  geom_histogram(colour = "black", fill = "white") +
-  geom_histogram(data = ndviSelect, aes(x = GRYLD), colour = "blue") +
+  geom_histogram(colour = "black", fill = "white", bins = 100) +
+  geom_histogram(data = ndviSelect, aes(x = GRYLD), colour = "blue",
+                 bins = 100) +
   geom_vline(xintercept = mean(dat19$GRYLD), linetype = 2) +
   geom_vline(
     xintercept = mean(ndviSelect$GRYLD), linetype = 2,
@@ -496,13 +467,6 @@ dat19 %>%
   geom_vline(
     xintercept = mean(dat17$GRYLD), linetype = 2,
     colour = "#737373"
-  ) +
-  theme_bw() +
-  theme(
-    axis.text = element_text(colour = "black", size = rel(1.75)),
-    axis.title = element_text(colour = "black", size = rel(2)),
-    plot.title = element_text(size = rel(2.25)),
-    plot.subtitle = element_text(size = rel(1.5))
   ) +
   labs(
     title = "Distribution of GRYLD in 2018/2019",
@@ -523,15 +487,8 @@ t.test(dat19$GRYLD, ndviSelect$GRYLD)
 # Check RedEdge because it's opposite
 dat17 %>%
   ggplot(aes(x = RedEdge_20170512)) +
-  geom_histogram(colour = "black", fill = "white") +
-  geom_vline(xintercept = mean(dat17$RedEdge_20170512), linetype = 2) +
-  theme_bw() +
-  theme(
-    axis.text = element_text(colour = "black", size = rel(1.75)),
-    axis.title = element_text(colour = "black", size = rel(2)),
-    plot.title = element_text(size = rel(2.25)),
-    plot.subtitle = element_text(size = rel(1.5))
-  )
+  geom_histogram(colour = "black", fill = "white", bins = 100) +
+  geom_vline(xintercept = mean(dat17$RedEdge_20170512), linetype = 2) 
 
 RE0512_top <- dat17 %>%
   dplyr::arrange(RedEdge_20170512) %>% # use desc() if you want highest to lowest
@@ -542,21 +499,13 @@ RE0512_top <- RE0512_top[1:round(0.2 * nrow(dat17)), ]
 
 dat17 %>%
   ggplot(aes(x = RedEdge_20170512)) +
-  geom_histogram(colour = "black", fill = "white") +
+  geom_histogram(colour = "black", fill = "white", bins = 100) +
   geom_vline(xintercept = mean(dat17$RedEdge_20170512), linetype = 2) +
   geom_vline(
     xintercept = mean(RE0512_top$RedEdge_20170512), colour = "blue",
     linetype = 2
   ) +
   geom_vline(xintercept = max(RE0512_top$RedEdge_20170512), colour = "blue") +
-  theme_bw() +
-  theme(
-    axis.text = element_text(colour = "black", size = rel(1.75)),
-    axis.title = element_text(colour = "black", size = rel(2)),
-    plot.title = element_text(size = rel(2.25)),
-    plot.subtitle = element_text(size = rel(1.5))
-  ) +
-  theme(axis.text = element_text(colour = "black")) +
   labs(
     title = "Distribution of RedEdge_20170512",
     subtitle = "All lines - black, lowest 5% of RedEdge_20170512 - blue"
@@ -564,23 +513,14 @@ dat17 %>%
 
 dat17 %>%
   ggplot(aes(x = GRYLD)) +
-  geom_histogram(colour = "black", fill = "white") +
-  geom_histogram(data = RE0512_top, aes(x = GRYLD), colour = "blue") +
+  geom_histogram(colour = "black", fill = "white", bins = 100) +
+  geom_histogram(data = RE0512_top, aes(x = GRYLD), colour = "blue",
+                 bins = 100) +
   geom_vline(xintercept = mean(dat17$GRYLD), linetype = 2) +
   geom_vline(
     xintercept = mean(RE0512_top$GRYLD), linetype = 2,
     colour = "blue"
   ) +
-  # geom_vline(xintercept = min(RE0512_top$GRYLD), colour = "blue") +
-  # geom_vline(xintercept = max(RE0512_top$GRYLD), colour = "blue") +
-  theme_bw() +
-  theme(
-    axis.text = element_text(colour = "black", size = rel(1.75)),
-    axis.title = element_text(colour = "black", size = rel(2)),
-    plot.title = element_text(size = rel(2.25)),
-    plot.subtitle = element_text(size = rel(1.5))
-  ) +
-  theme(axis.text = element_text(colour = "black")) +
   labs(
     title = "Distribution of GRYLD in 2016/2017",
     subtitle = "All lines - black, lines selected from RedEdge_20170512 - blue"
@@ -594,8 +534,9 @@ reSelect <- RE0512_top %>%
 
 dat18 %>%
   ggplot(aes(x = GRYLD)) +
-  geom_histogram(colour = "black", fill = "white") +
-  geom_histogram(data = reSelect, aes(x = GRYLD.y), colour = "blue") +
+  geom_histogram(colour = "black", fill = "white", bins = 100) +
+  geom_histogram(data = reSelect, aes(x = GRYLD.y), colour = "blue",
+                 bins = 100) +
   geom_vline(xintercept = mean(dat18$GRYLD), linetype = 2) +
   geom_vline(
     xintercept = mean(reSelect$GRYLD.y), linetype = 2,
@@ -620,8 +561,9 @@ dat18 %>%
 
 dat19 %>%
   ggplot(aes(x = GRYLD)) +
-  geom_histogram(colour = "black", fill = "white") +
-  geom_histogram(data = reSelect, aes(x = GRYLD), colour = "blue") +
+  geom_histogram(colour = "black", fill = "white", bins = 100) +
+  geom_histogram(data = reSelect, aes(x = GRYLD), colour = "blue",
+                 bins = 100) +
   geom_vline(xintercept = mean(dat19$GRYLD), linetype = 2) +
   geom_vline(
     xintercept = mean(reSelect$GRYLD), linetype = 2,
@@ -631,14 +573,6 @@ dat19 %>%
     xintercept = mean(dat17$GRYLD), linetype = 2,
     colour = "#737373"
   ) +
-  theme_bw() +
-  theme(
-    axis.text = element_text(colour = "black", size = rel(1.75)),
-    axis.title = element_text(colour = "black", size = rel(2)),
-    plot.title = element_text(size = rel(2.25)),
-    plot.subtitle = element_text(size = rel(1.5))
-  ) +
-  theme(axis.text = element_text(colour = "black")) +
   labs(
     title = "Distribution of GRYLD in 2018/2019",
     subtitle = "All lines - black, lines selected from RedEdge_20170512 - blue, mean from 2016/2017 - grey"
@@ -703,7 +637,6 @@ for (i in traits) {
   y <- dat17[[i]]
   y
   meRes <- mixed.solve(y = y, Z = snpMatrix17)
-  print(meRes$Vu)
   traitME_17[[i]] <- meRes$u
 }
 
@@ -725,7 +658,6 @@ for (i in traits) {
   y <- dat18[[i]]
   y
   meRes <- mixed.solve(y = y, Z = snpMatrix18)
-  print(meRes$Vu)
   traitME_18[[i]] <- meRes$u
 }
 
@@ -869,13 +801,13 @@ ggplot(data = traitME_17, aes(x = GRYLD)) +
   )
 
 write.table(traitME_17, "./Genotype_Database/traitMarkerEffects17.txt",
-  quote = F, sep = "\t", row.names = F, col.names = T
+            quote = F, sep = "\t", row.names = F, col.names = T
 )
 write.table(traitME_18, "./Genotype_Database/traitMarkerEffects18.txt",
-  quote = F, sep = "\t", row.names = F, col.names = T
+            quote = F, sep = "\t", row.names = F, col.names = T
 )
 write.table(traitME_19, "./Genotype_Database/traitMarkerEffects19.txt",
-  quote = F, sep = "\t", row.names = F, col.names = T
+            quote = F, sep = "\t", row.names = F, col.names = T
 )
 
 mean(pheno17$GRYLD)
@@ -911,13 +843,13 @@ t.test(dat18$GRYLD, dat19$GRYLD)
 
 ggplot() +
   geom_point(aes(x = mean(pheno17$GRYLD), y = mean(traitME_17$GRYLD)),
-    colour = "#008856"
+             colour = "#008856"
   ) +
   geom_point(aes(x = mean(pheno18$GRYLD), y = mean(traitME_18$GRYLD)),
-    colour = "#0067a5"
+             colour = "#0067a5"
   ) +
   geom_point(aes(x = mean(pheno19$GRYLD), y = mean(traitME_19$GRYLD)),
-    colour = "#604e97"
+             colour = "#604e97"
   ) +
   theme_bw() +
   theme(
@@ -934,13 +866,13 @@ ggplot() +
 
 ggplot() +
   geom_point(aes(x = mean(pheno17$GRYLD), y = var(traitME_17$GRYLD)),
-    colour = "#008856"
+             colour = "#008856"
   ) +
   geom_point(aes(x = mean(pheno18$GRYLD), y = var(traitME_18$GRYLD)),
-    colour = "#0067a5"
+             colour = "#0067a5"
   ) +
   geom_point(aes(x = mean(pheno19$GRYLD), y = var(traitME_19$GRYLD)),
-    colour = "#604e97"
+             colour = "#604e97"
   ) +
   theme_bw() +
   theme(
@@ -986,8 +918,8 @@ gryldME_chr20 <- gryldME[13527:14221, ]
 gryldME_chr21 <- gryldME[14222:14523, ]
 
 outCor <- rollapply(gryldME_chr1, 10,
-  by = 2,
-  function(x) c(cor(x)), by.column = F
+                    by = 2,
+                    function(x) c(cor(x)), by.column = F
 )
 
 outCor <- as.data.frame(outCor)
@@ -1318,13 +1250,13 @@ correlationME19 %>%
 ##### Converting Correlation matrix to a distance matrix ####
 
 distmat_17 <- distanceMatrix(as.matrix(traitME_17),
-  metric = "absolute pearson"
+                             metric = "absolute pearson"
 )
 distmat_18 <- distanceMatrix(as.matrix(traitME_18),
-  metric = "absolute pearson"
+                             metric = "absolute pearson"
 )
 distmat_19 <- distanceMatrix(as.matrix(traitME_19),
-  metric = "absolute pearson"
+                             metric = "absolute pearson"
 )
 
 pcoord_17 <- pcoa(distmat_17)
@@ -1344,7 +1276,7 @@ pcoOrd_17 <- pcoOrd_17 %>%
 pcoOrd_17[1, 2] <- "20170613"
 
 write.table(pcoOrd_17, "./Genotype_Database/PCOanalysisGeneticDistance_17.txt",
-  quote = F, sep = "\t", row.names = F, col.names = T
+            quote = F, sep = "\t", row.names = F, col.names = T
 )
 
 pcoOrd_17 %>%
@@ -1376,7 +1308,7 @@ pcoOrd_18 <- pcoOrd_18 %>%
 pcoOrd_18[1, 2] <- "20180615"
 
 write.table(pcoOrd_18, "./Genotype_Database/PCOanalysisGeneticDistance_18.txt",
-  quote = F, sep = "\t", row.names = F, col.names = T
+            quote = F, sep = "\t", row.names = F, col.names = T
 )
 
 pcoOrd_18 %>%
@@ -1443,7 +1375,7 @@ pcoOrd_19 <- pcoOrd_19 %>%
 pcoOrd_19[1, 2] <- "20190702"
 
 write.table(pcoOrd_19, "./Genotype_Database/PCOanalysisGeneticDistance_19.txt",
-  quote = F, sep = "\t", row.names = F, col.names = T
+            quote = F, sep = "\t", row.names = F, col.names = T
 )
 
 pcoOrd_19 %>%
@@ -1499,20 +1431,20 @@ colors <- c(
 )
 clus17 <- cutree(hClustering_17, 4)
 plot(as.phylo(hClustering_17),
-  tip.color = colors[clus17],
-  label.offset = 0.01, cex = 0.7, no.margin = T
+     tip.color = colors[clus17],
+     label.offset = 0.01, cex = 0.7, no.margin = T
 )
 
 clus18 <- cutree(hClustering_18, 5)
 plot(as.phylo(hClustering_18),
-  tip.color = colors[clus18],
-  label.offset = 0.01, cex = 0.7, no.margin = T
+     tip.color = colors[clus18],
+     label.offset = 0.01, cex = 0.7, no.margin = T
 )
 
 clus19 <- cutree(hClustering_19, 5)
 plot(as.phylo(hClustering_19),
-  tip.color = colors[clus19],
-  label.offset = 0.01, cex = 0.7, no.margin = T
+     tip.color = colors[clus19],
+     label.offset = 0.01, cex = 0.7, no.margin = T
 )
 
 ## Converting hclust to dendograms
@@ -1566,66 +1498,66 @@ p
 ## Neighbour-joining
 nj_17 <- nj(distmat_17)
 plot.phylo(nj_17,
-  type = "phylogram", use.edge.length = F,
-  node.pos = NULL, show.tip.label = TRUE, show.node.label = FALSE,
-  edge.color = "black", edge.width = 1, edge.lty = 1, font = 1,
-  cex = 0.75, adj = NULL, srt = 0, no.margin = T,
-  root.edge = FALSE, label.offset = 0.25, underscore = FALSE,
-  x.lim = NULL, y.lim = NULL, direction = "rightwards",
-  lab4ut = NULL, tip.color = "black", plot = TRUE,
-  rotate.tree = 0, open.angle = 0, node.depth = 1,
-  align.tip.label = T
+           type = "phylogram", use.edge.length = F,
+           node.pos = NULL, show.tip.label = TRUE, show.node.label = FALSE,
+           edge.color = "black", edge.width = 1, edge.lty = 1, font = 1,
+           cex = 0.75, adj = NULL, srt = 0, no.margin = T,
+           root.edge = FALSE, label.offset = 0.25, underscore = FALSE,
+           x.lim = NULL, y.lim = NULL, direction = "rightwards",
+           lab4ut = NULL, tip.color = "black", plot = TRUE,
+           rotate.tree = 0, open.angle = 0, node.depth = 1,
+           align.tip.label = T
 )
 
 
 nj_18 <- nj(distmat_18)
 plot.phylo(nj_18,
-  type = "phylogram", use.edge.length = F,
-  node.pos = NULL, show.tip.label = TRUE, show.node.label = FALSE,
-  edge.color = "black", edge.width = 1, edge.lty = 1, font = 1,
-  cex = 0.5, adj = NULL, srt = 0, no.margin = T,
-  root.edge = FALSE, label.offset = 0.25, underscore = FALSE,
-  x.lim = NULL, y.lim = NULL, direction = "rightwards",
-  lab4ut = NULL, tip.color = "black", plot = TRUE,
-  rotate.tree = 0, open.angle = 0, node.depth = 1,
-  align.tip.label = T
+           type = "phylogram", use.edge.length = F,
+           node.pos = NULL, show.tip.label = TRUE, show.node.label = FALSE,
+           edge.color = "black", edge.width = 1, edge.lty = 1, font = 1,
+           cex = 0.5, adj = NULL, srt = 0, no.margin = T,
+           root.edge = FALSE, label.offset = 0.25, underscore = FALSE,
+           x.lim = NULL, y.lim = NULL, direction = "rightwards",
+           lab4ut = NULL, tip.color = "black", plot = TRUE,
+           rotate.tree = 0, open.angle = 0, node.depth = 1,
+           align.tip.label = T
 )
 
 nj_19 <- nj(distmat_19)
 plot.phylo(nj_19,
-  type = "phylogram", use.edge.length = F,
-  node.pos = NULL, show.tip.label = TRUE, show.node.label = FALSE,
-  edge.color = "black", edge.width = 1, edge.lty = 1, font = 1,
-  cex = 0.5, adj = NULL, srt = 0, no.margin = T,
-  root.edge = FALSE, label.offset = 0.25, underscore = FALSE,
-  x.lim = NULL, y.lim = NULL, direction = "rightwards",
-  lab4ut = NULL, tip.color = "black", plot = TRUE,
-  rotate.tree = 0, open.angle = 0, node.depth = 1,
-  align.tip.label = T
+           type = "phylogram", use.edge.length = F,
+           node.pos = NULL, show.tip.label = TRUE, show.node.label = FALSE,
+           edge.color = "black", edge.width = 1, edge.lty = 1, font = 1,
+           cex = 0.5, adj = NULL, srt = 0, no.margin = T,
+           root.edge = FALSE, label.offset = 0.25, underscore = FALSE,
+           x.lim = NULL, y.lim = NULL, direction = "rightwards",
+           lab4ut = NULL, tip.color = "black", plot = TRUE,
+           rotate.tree = 0, open.angle = 0, node.depth = 1,
+           align.tip.label = T
 )
 
 gplots::heatmap.2(as.matrix(distmat_17),
-  margins = c(8, 8), trace = "none",
-  dendrogram = "both",
-  density.info = "density",
-  col = "viridis",
-  main = "Hierarchichal Clustering of additive genetic effects 2016/2017 season"
+                  margins = c(8, 8), trace = "none",
+                  dendrogram = "both",
+                  density.info = "density",
+                  col = "viridis",
+                  main = "Hierarchichal Clustering of additive genetic effects 2016/2017 season"
 )
 
 gplots::heatmap.2(as.matrix(distmat_18),
-  margins = c(8, 8), trace = "none",
-  dendrogram = "both",
-  density.info = "density",
-  col = "viridis",
-  main = "Hierarchichal Clustering of additive genetic effects 2017/2018 season"
+                  margins = c(8, 8), trace = "none",
+                  dendrogram = "both",
+                  density.info = "density",
+                  col = "viridis",
+                  main = "Hierarchichal Clustering of additive genetic effects 2017/2018 season"
 )
 
 gplots::heatmap.2(as.matrix(distmat_19),
-  margins = c(8, 8), trace = "none",
-  dendrogram = "both",
-  density.info = "density",
-  col = "viridis",
-  main = "Hierarchichal Clustering of additive genetic effects 2018/2019 season"
+                  margins = c(8, 8), trace = "none",
+                  dendrogram = "both",
+                  density.info = "density",
+                  col = "viridis",
+                  main = "Hierarchichal Clustering of additive genetic effects 2018/2019 season"
 )
 
 ## hierarchical clustering with significance
@@ -1638,15 +1570,15 @@ gplots::heatmap.2(as.matrix(distmat_19),
 #   nboot = 100000
 # )
 # beep(4)
-# 
+#
 # par(mar = c(0.5, 2, 2, 0.25))
-# 
+#
 # plot(pvClust_17_ward)
 # pvrect(pvClust_17_ward, alpha = 0.95)
 # par(mar = c(4, 4, 2, 0.25))
 # x <- seplot(pvClust_17_ward, identify = TRUE)
 # print(pvClust_17_ward, which = x)
-# 
+#
 # pvClust_17_ave <- pvclust(as.matrix(dat17[, 2:ncol(dat17)]),
 #   method.hclust = "average",
 #   method.dist = "abscor",
@@ -1654,15 +1586,15 @@ gplots::heatmap.2(as.matrix(distmat_19),
 #   nboot = 100000
 # )
 # beep(5)
-# 
+#
 # par(mar = c(0.5, 2, 2, 0.25))
-# 
+#
 # plot(pvClust_17_ave)
 # pvrect(pvClust_17_ave, alpha = 0.95)
 # par(mar = c(4, 4, 2, 0.25))
 # x <- seplot(pvClust_17_ave, identify = TRUE)
 # print(pvClust_17_ave, which = x)
-# 
+#
 # pvClust_17_com <- pvclust(as.matrix(dat17[, 2:ncol(dat17)]),
 #   method.hclust = "complete",
 #   method.dist = "abscor",
@@ -1670,15 +1602,15 @@ gplots::heatmap.2(as.matrix(distmat_19),
 #   nboot = 100000
 # )
 # beep(6)
-# 
+#
 # par(mar = c(0.5, 2, 2, 0.25))
-# 
+#
 # plot(pvClust_17_com)
 # pvrect(pvClust_17_com, alpha = 0.95)
 # par(mar = c(4, 4, 2, 0.25))
 # x <- seplot(pvClust_17_com, identify = TRUE)
 # print(pvClust_17_com, which = x)
-# 
+#
 # pvClust_18_ward <- pvclust(as.matrix(dat18[, 2:ncol(dat18)]),
 #   method.hclust = "ward.D2",
 #   method.dist = "abscor",
@@ -1686,15 +1618,15 @@ gplots::heatmap.2(as.matrix(distmat_19),
 #   nboot = 100000
 # )
 # beep(7)
-# 
+#
 # par(mar = c(0.5, 2, 2, 0.25))
-# 
+#
 # plot(pvClust_18_ward)
 # pvrect(pvClust_18_ward, alpha = 0.95)
 # par(mar = c(4, 4, 2, 0.25))
 # x <- seplot(pvClust_18_ward, identify = TRUE)
 # print(pvClust_18_ward, which = x)
-# 
+#
 # pvClust_18_ave <- pvclust(as.matrix(dat18[, 2:ncol(dat18)]),
 #   method.hclust = "average",
 #   method.dist = "abscor",
@@ -1702,15 +1634,15 @@ gplots::heatmap.2(as.matrix(distmat_19),
 #   nboot = 100000
 # )
 # beep(8)
-# 
+#
 # par(mar = c(0.5, 2, 2, 0.25))
-# 
+#
 # plot(pvClust_18_ave)
 # pvrect(pvClust_18_ave, alpha = 0.95)
 # par(mar = c(4, 4, 2, 0.25))
 # x <- seplot(pvClust_18_ave, identify = TRUE)
 # print(pvClust_18_ave, which = x)
-# 
+#
 # pvClust_18_com <- pvclust(as.matrix(dat18[, 2:ncol(dat18)]),
 #   method.hclust = "complete",
 #   method.dist = "abscor",
@@ -1718,9 +1650,9 @@ gplots::heatmap.2(as.matrix(distmat_19),
 #   nboot = 100000
 # )
 # beep(8)
-# 
+#
 # par(mar = c(0.5, 2, 2, 0.25))
-# 
+#
 # plot(pvClust_18_com)
 # pvrect(pvClust_18_com, alpha = 0.95)
 # par(mar = c(4, 4, 2, 0.25))
