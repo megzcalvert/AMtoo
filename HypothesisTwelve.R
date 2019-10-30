@@ -85,6 +85,11 @@ custom_theme <- theme_minimal() %+replace%
         unit = "cm"
       )
     ),
+    plot.subtitle = element_text(
+      colour = "black",
+      size = rel(2),
+      hjust = 0
+    ),
     strip.background = element_rect(
       fill = "white",
       colour = "black",
@@ -92,7 +97,7 @@ custom_theme <- theme_minimal() %+replace%
     ),
     strip.text = element_text(
       colour = "black",
-      size = rel(1)
+      size = rel(1.5)
     ),
     complete = F
   )
@@ -124,8 +129,8 @@ snpChip <- cbind(snpChip[, 1:12], hapgeno)
 rm(hapgeno)
 
 write.table(snpChip,
-  file = "./Genotype_Database/SelectedImputedBeagle.txt",
-  col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
+            file = "./Genotype_Database/SelectedImputedBeagle.txt",
+            col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
 )
 
 snpChip <- fread(
@@ -147,8 +152,8 @@ snpChip[snpChip == "."] <- NA
 snpChip <- snpChip[, c(1, 4, 5, 13:311)]
 
 write.table(snpChip,
-  file = "./Genotype_Database/SelectedImputedBeagleNumeric.txt",
-  col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
+            file = "./Genotype_Database/SelectedImputedBeagleNumeric.txt",
+            col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
 )
 
 snpChip <- fread(
@@ -234,8 +239,8 @@ m_valid17 <- snpMatrix17[Pheno_valid17$rn, ]
 yield <- (Pheno_train17[, "GRYLD"])
 covar <- (Pheno_train17[, "NDRE_20170505"])
 yield_answer <- mixed.solve(yield,
-  Z = m_train17, # X = covar,
-  SE = TRUE
+                            Z = m_train17, # X = covar,
+                            SE = TRUE
 )
 YLD <- yield_answer$u
 e <- as.matrix(YLD)
@@ -279,18 +284,18 @@ cvWithHistogram <- function(dat, columns_to_remove, cycles, saveFileFigures,
   cycles <- cycles
   accuracy <- matrix(nrow = cycles, ncol = length(traits))
   colnames(accuracy) <- traits
-
+  
   for (r in 1:cycles) {
     print(paste("Rep cycle: ", r))
-
+    
     Pheno_train <- dat %>%
       dplyr::sample_frac(0.8)
     Pheno_valid <- dat %>%
       anti_join(Pheno_train, by = "rn")
-
+    
     m_train <- snpMatrix[Pheno_train$rn, ]
     m_valid <- snpMatrix[Pheno_valid$rn, ]
-
+    
     for (i in traits) {
       print(paste(i))
       trait <- (Pheno_train[, paste(i)])
@@ -303,22 +308,22 @@ cvWithHistogram <- function(dat, columns_to_remove, cycles, saveFileFigures,
       pred_trait
       trait_valid <- Pheno_valid[, paste(i)]
       accuracy[r, paste(i)] <- (cor(pred_trait_valid, trait_valid,
-        use = "complete"
+                                    use = "complete"
       ))
       if (i != selectionTrait) {
         selectTrait <- dat %>%
           dplyr::select(rn, paste(selectionTrait))
-
+        
         topSelec <- setDT(pred_trait, keep.rownames = T)
         topSelec <- topSelec %>%
           dplyr::top_n(nrow(topSelec) * 0.25) %>%
           inner_join(selectTrait)
-
+        
         mT <- t.test(
           topSelec[, paste(selectionTrait)],
           dat[, paste(selectionTrait)]
         )
-
+        
         plot1 <- ggplot(
           data = pred_trait,
           mapping = aes_string(i)
@@ -339,7 +344,7 @@ cvWithHistogram <- function(dat, columns_to_remove, cycles, saveFileFigures,
             xintercept = mean(topSelec[, paste(i)]),
             colour = "red", linetype = 2
           )
-
+        
         plot2 <- ggplot(
           data = dat,
           mapping = aes_string(selectionTrait)
@@ -364,15 +369,15 @@ cvWithHistogram <- function(dat, columns_to_remove, cycles, saveFileFigures,
             colour = "red", linetype = 2
           ) +
           labs(subtitle = paste("T-test p-value = ", mT$p.value))
-
+        
         plots <- ggpubr::ggarrange(plot1, plot2)
         print(plots)
         ggpubr::ggexport(plots,
-          filename = paste0(
-            saveFileFigures,
-            identifier, "_", i, "_", r, ".png"
-          ),
-          width = 1000, height = 550
+                         filename = paste0(
+                           saveFileFigures,
+                           identifier, "_", i, "_", r, ".png"
+                         ),
+                         width = 1000, height = 550
         )
       }
       else {
@@ -393,8 +398,8 @@ accuracy17 <- cvWithHistogram(
 )
 
 write.csv(accuracy17,
-  "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy17.txt",
-  quote = F, row.names = F
+          "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy17.txt",
+          quote = F, row.names = F
 )
 colMeans(accuracy17)
 
@@ -432,8 +437,8 @@ accuracy18 <- cvWithHistogram(
 )
 
 write.csv(accuracy18,
-  "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy18.txt",
-  quote = F, row.names = F
+          "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy18.txt",
+          quote = F, row.names = F
 )
 colMeans(accuracy18)
 
@@ -470,8 +475,8 @@ accuracy19 <- cvWithHistogram(
   identifier = "Selection19"
 )
 write.csv(accuracy19,
-  "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy19.txt",
-  quote = F, row.names = F
+          "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy19.txt",
+          quote = F, row.names = F
 )
 colMeans(accuracy19)
 
@@ -523,8 +528,8 @@ m_valid19_18 <- snpMatrix19[Pheno_valid19_18$rn, ]
 ## 2017 predicting 2018
 yield <- (Pheno_train17_18[, "GRYLD"])
 yield_answer <- mixed.solve(yield,
-  Z = m_train17_18,
-  K = NULL, SE = FALSE, return.Hinv = FALSE
+                            Z = m_train17_18,
+                            K = NULL, SE = FALSE, return.Hinv = FALSE
 )
 YLD <- yield_answer$u
 e <- as.matrix(YLD)
@@ -537,8 +542,8 @@ cor.test(pred_yield_valid, yield_valid)
 ## 2017 predicting 2019
 yield <- (Pheno_train17_19[, "GRYLD"])
 yield_answer <- mixed.solve(yield,
-  Z = m_train17_19,
-  K = NULL, SE = FALSE, return.Hinv = FALSE
+                            Z = m_train17_19,
+                            K = NULL, SE = FALSE, return.Hinv = FALSE
 )
 YLD <- yield_answer$u
 e <- as.matrix(YLD)
@@ -546,13 +551,13 @@ pred_yield_valid <- m_valid19_17 %*% e
 pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
 pred_yield
 yield_valid <- Pheno_valid19_17[, "GRYLD"]
-tidy(cor.test(pred_yield_valid, yield_valid))
+cor.test(pred_yield_valid, yield_valid)
 
 ## 2018 predicting 2017
 yield <- (Pheno_train18_17[, "GRYLD"])
 yield_answer <- mixed.solve(yield,
-  Z = m_train18_17,
-  K = NULL, SE = FALSE, return.Hinv = FALSE
+                            Z = m_train18_17,
+                            K = NULL, SE = FALSE, return.Hinv = FALSE
 )
 YLD <- yield_answer$u
 e <- as.matrix(YLD)
@@ -560,13 +565,13 @@ pred_yield_valid <- m_valid17_18 %*% e
 pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
 pred_yield
 yield_valid <- Pheno_valid17_18[, "GRYLD"]
-tidy(cor.test(pred_yield_valid, yield_valid))
+cor.test(pred_yield_valid, yield_valid)
 
 ## 2018 predicting 2019
 yield <- (Pheno_train18_19[, "GRYLD"])
 yield_answer <- mixed.solve(yield,
-  Z = m_train18_19,
-  K = NULL, SE = FALSE, return.Hinv = FALSE
+                            Z = m_train18_19,
+                            K = NULL, SE = FALSE, return.Hinv = FALSE
 )
 YLD <- yield_answer$u
 e <- as.matrix(YLD)
@@ -579,8 +584,8 @@ cor.test(pred_yield_valid, yield_valid)
 ## 2019 predicting 2017
 yield <- (Pheno_train19_17[, "GRYLD"])
 yield_answer <- mixed.solve(yield,
-  Z = m_train19_17,
-  K = NULL, SE = FALSE, return.Hinv = FALSE
+                            Z = m_train19_17,
+                            K = NULL, SE = FALSE, return.Hinv = FALSE
 )
 YLD <- yield_answer$u
 e <- as.matrix(YLD)
@@ -588,13 +593,13 @@ pred_yield_valid <- m_valid17_19 %*% e
 pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
 pred_yield
 yield_valid <- Pheno_valid17_19[, "GRYLD"]
-tidy(cor.test(pred_yield_valid, yield_valid))
+cor.test(pred_yield_valid, yield_valid)
 
 ## 2019 predicting 2018
 yield <- (Pheno_train19_18[, "GRYLD"])
 yield_answer <- mixed.solve(yield,
-  Z = m_train19_18,
-  K = NULL, SE = FALSE, return.Hinv = FALSE
+                            Z = m_train19_18,
+                            K = NULL, SE = FALSE, return.Hinv = FALSE
 )
 YLD <- yield_answer$u
 e <- as.matrix(YLD)
@@ -619,7 +624,10 @@ gs17_100 <- gs17_100 %>%
   # group_by(Trait) %>%
   # summarise(average = mean(Accuracy), standardDeviation = sd(Accuracy)) %>%
   separate(Trait, c("Trait", "Date"), sep = "_") %>%
-  filter(Trait != "GRYLD")
+  filter(Trait != "RedEdge",
+         Trait != "NIR",
+         Trait != "GRVI",
+         Trait != "GRYLD")
 
 gs18_100 <- fread(
   "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy18.txt",
@@ -632,7 +640,11 @@ gs18_100 <- gs18_100 %>%
   # group_by(Trait) %>%
   # summarise(average = mean(Accuracy), standardDeviation = sd(Accuracy)) %>%
   separate(Trait, c("Trait", "Date"), sep = "_") %>%
-  filter(Trait != "GRYLD")
+  filter(Trait != "GRYLD",
+         Trait != "GRVI",
+         Trait != "Nir",
+         Trait != "RE",
+         Date >= "2018-02-01")
 
 gs19_100 <- fread(
   "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy19.txt",
@@ -645,21 +657,91 @@ gs19_100 <- gs19_100 %>%
   # group_by(Trait) %>%
   # summarise(average = mean(Accuracy), standardDeviation = sd(Accuracy)) %>%
   separate(Trait, c("Trait", "Date"), sep = "_") %>%
-  filter(Trait != "GRYLD")
+  filter(Trait != "GRYLD",
+         Trait != "Nir",
+         Trait != "RE",
+         Date >= "20190201")
 
 gs17_100$Date <- as.Date(gs17_100$Date, format = "%Y%m%d")
 gs18_100$Date <- as.Date(gs18_100$Date, format = "%Y%m%d")
 gs19_100$Date <- as.Date(gs19_100$Date, format = "%Y%m%d")
 
-ggplot(gs19_100, aes(x = Date, y = Accuracy)) +
-  geom_boxplot(aes(group = Date)) +
-  facet_wrap(~Trait, ncol = 2, scales = "free") +
-  theme_bw() +
-  theme(axis.text = element_text(colour = "black")) +
+p17<- ggplot(gs17_100, aes(x = Date, y = Accuracy)) +
+  geom_rect(xmin = as.Date("2017-03-28"),
+            xmax = as.Date("2017-06-13"),
+            ymin = (0.5026423 - 0.10890356),
+            ymax = (0.5026423 + 0.10890356),
+            fill = "#dadaeb") +
+  geom_boxplot(aes(group = Date), size = 1.25) +
+  geom_hline(
+    yintercept = 0.5026423, colour = "#810f7c",
+    size = 1.25, linetype = 2
+  ) +
+  facet_wrap(~Trait, ncol = 3, scales = "free") +
   coord_cartesian(ylim = c(-1, 1)) +
-  # scale_x_date(labels = "%m%d") +
+  scale_x_date(date_breaks = "10 days",
+               date_labels = "%m/%d") +
   labs(
-    title = "Genomic Prediction Accuracies",
-    subtitle = "2018/2019 season",
+    title = "Genomic Prediction Accuracies 2016/2017 season",
     y = "Average prediction accuracy"
   )
+
+p17
+
+p18<- ggplot(gs18_100, aes(x = Date, y = Accuracy)) +
+  geom_rect(xmin = as.Date("2018-03-28"),
+            xmax = as.Date("2018-06-15"),
+            ymin = (0.2750485117 - 0.11826655),
+            ymax = (0.2750485117 + 0.11826655),
+            fill = "#dadaeb") +
+  geom_boxplot(aes(group = Date), size = 1.25) +
+  geom_hline(
+    yintercept = 0.2750485117, colour = "#810f7c",
+    size = 1.25, linetype = 2
+  ) +
+  facet_wrap(~Trait, ncol = 3, scales = "free") +
+  coord_cartesian(ylim = c(-1, 1)) +
+  scale_x_date(date_breaks = "10 days",
+               date_labels = "%m/%d") +
+  labs(
+    title = "Genomic Prediction Accuracies 2017/2018 season",
+    y = "Average prediction accuracy"
+  )
+
+p18
+
+p19<- ggplot(gs19_100, aes(x = Date, y = Accuracy)) +
+  geom_rect(xmin = as.Date("2019-04-10"),
+            xmax = as.Date("2019-06-26"),
+            ymin = (0.5057405 - 0.08746278),
+            ymax = (0.5057405 + 0.08746278),
+            fill = "#dadaeb") +
+  geom_boxplot(aes(group = Date), size = 1.25) +
+  geom_hline(
+    yintercept = 0.5057405, colour = "#810f7c",
+    size = 1.25, linetype = 2
+  ) +
+  facet_wrap(~Trait, ncol = 3, scales = "free") +
+  coord_cartesian(ylim = c(-1, 1)) +
+  scale_x_date(date_breaks = "10 days",
+               date_labels = "%m/%d") +
+  labs(
+    title = "Genomic Prediction Accuracies 2018/2019 season",
+    y = "Average prediction accuracy"
+  )
+
+p19
+
+ggarrange(p17,p18,p19, ncol = 1)
+ggsave("./Figures/GPaccuracies_all.png", width = 25, height = 15)
+
+gryldBlues<- dat17 %>% 
+  tidylog::select(rn, GRYLD) %>% 
+  rename(GRYLD_17 = GRYLD) %>% 
+  left_join(dat18) %>% 
+  tidylog::select(rn, GRYLD_17, GRYLD) %>% 
+  rename(GRYLD_18 = GRYLD) %>% 
+  left_join(dat19) %>% 
+  tidylog::select(rn, GRYLD_17, GRYLD_18, GRYLD) 
+
+cor.test(gryldBlues$GRYLD,gryldBlues$GRYLD_18)

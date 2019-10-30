@@ -313,19 +313,19 @@ rrB4_17F<- snpPos %>%
   bind_cols(map_dfr(rrB4_17,4)) %>% 
   mutate(rs_number = as.character(rs_number),
          pos = as.numeric(pos)) %>% 
-  glimpse
+  arrange(chrom, pos)
 
 rrB4_18F<- snpPos %>% 
   bind_cols(map_dfr(rrB4_18,4)) %>% 
   mutate(rs_number = as.character(rs_number),
          pos = as.numeric(pos)) %>% 
-  glimpse
+  arrange(chrom, pos)
 
 rrB4_19F<- snpPos %>% 
   bind_cols(map_dfr(rrB4_19,4)) %>% 
   mutate(rs_number = as.character(rs_number),
          pos = as.numeric(pos)) %>% 
-  glimpse
+  arrange(chrom, pos)
 
 rrB4_17F[,4:ncol(rrB4_17F)]<- 1/(10^rrB4_17F[,4:ncol(rrB4_17F)])
 rrB4_18F[,4:ncol(rrB4_18F)]<- 1/(10^rrB4_18F[,4:ncol(rrB4_18F)])
@@ -345,11 +345,9 @@ names(gap4_17)<- traitNames
 
 gap4_17F<- gap4_17$GNDVI_20170331[,1:3] %>% 
   arrange(Chromosome,Position) %>% 
-  glimpse %>% 
   bind_cols(map_dfr(gap4_17,4)) %>% 
   dplyr::rename(chrom = Chromosome, pos = Position) %>% 
-  mutate(pos = as.numeric(pos)) %>% 
-  glimpse()
+  mutate(pos = as.numeric(pos)) 
 
 fileNames<- list.files(path = "./R/Gapit/HypothesisEleven/PC4_01_2018",
                        full.names = T,
@@ -363,11 +361,9 @@ names(gap4_18)<- traitNames
 
 gap4_18F<- gap4_18$GNDVI_20171120[,1:3] %>% 
   arrange(Chromosome,Position) %>% 
-  glimpse %>% 
   bind_cols(map_dfr(gap4_18,4)) %>% 
   dplyr::rename(chrom = Chromosome, pos = Position) %>% 
-  mutate(pos = as.numeric(pos)) %>% 
-  glimpse()
+  mutate(pos = as.numeric(pos)) 
 
 fileNames<- list.files(path = "./R/Gapit/HypothesisEleven/PC4_2019",
                        full.names = T,
@@ -381,11 +377,9 @@ names(gap4_19)<- traitNames
 
 gap4_19F<- gap4_19$GNDVI_20190103[,1:3] %>% 
   arrange(Chromosome,Position) %>% 
-  glimpse %>% 
   bind_cols(map_dfr(gap4_19,4)) %>% 
   dplyr::rename(chrom = Chromosome, pos = Position) %>% 
-  mutate(pos = as.numeric(pos)) %>% 
-  glimpse()
+  mutate(pos = as.numeric(pos))
 
 ##### Comparison plots between GWAS methods and PCs ####
 
@@ -416,6 +410,19 @@ don_rrB4_18 <- rrB4_18F %>%
   tidylog::select(-chr_len) %>%
   # Add this info to the initial dataset
   left_join(rrB4_18F, ., by=c("chrom"="chrom")) %>%
+  # Add a cumulative position of each SNP
+  arrange(chrom, pos) %>%
+  mutate( BPcum=pos+tot) 
+
+don_rrB4_19 <- rrB4_19F %>% 
+  # Compute chromosome size
+  group_by(chrom) %>% 
+  summarise(chr_len=max(pos)) %>% 
+  # Calculate cumulative position of each chromosome
+  mutate(tot=cumsum(chr_len)-chr_len) %>%
+  tidylog::select(-chr_len) %>%
+  # Add this info to the initial dataset
+  left_join(rrB4_19F, ., by=c("chrom"="chrom")) %>%
   # Add a cumulative position of each SNP
   arrange(chrom, pos) %>%
   mutate( BPcum=pos+tot) 
@@ -476,13 +483,13 @@ ggplot(don_rrB4_18, aes(x=BPcum)) +
        x = "Chromosome",
        y = "-log10(P)")
 
-ggplot(don_rrB4_18, aes(x=BPcum, colour = as.factor(don_rrB4_18$chrom))) +
+ggplot(don_rrB4_19, aes(x=BPcum, colour = as.factor(don_rrB4_19$chrom))) +
   # Show all points
   geom_point(aes(y=-log10(GRYLD)),
              alpha=0.5, size=1) +
   scale_color_manual(values = rep(c("#2ca25f", "#8856a7","#43a2ca"), 22 )) +
   # Significance Threshold
-  geom_hline(yintercept = -log10(0.05/nrow(don_rrB4_18)), linetype = 2) +
+  geom_hline(yintercept = -log10(0.05/nrow(don_rrB4_19)), linetype = 2) +
   geom_vline(xintercept = 6979839046, linetype = 3) +
   # custom X axis:
   scale_x_continuous( label = c("1A","1B","1D",
@@ -505,7 +512,8 @@ ggplot(don_rrB4_18, aes(x=BPcum, colour = as.factor(don_rrB4_18$chrom))) +
     plot.title = element_text(size = 18),
     plot.subtitle = element_text(size = 16)
   ) +
-  labs(title = "GWAS results GRYLD",
+  coord_cartesian(ylim = c(0,6.5)) +
+  labs(title = "GWAS results GRYLD 2018-2019",
        subtitle = "Bonferroni Threshold alpha = 0.05",
        x = "Chromosome",
        y = "-log10(P)") +

@@ -91,7 +91,7 @@ custom_theme <- theme_minimal() %+replace%
     ),
     strip.text = element_text(
       colour = "black",
-      size = rel(1)
+      size = rel(2)
     ),
     complete = F
   )
@@ -411,7 +411,6 @@ calcH2r <- function(dat, fill = NA, ...) {
 }
 
 calcH2r(pheno19)
-
 
 H2_2017 <- H2_2017 %>%
   separate(traits, c("Trait", "Date"), sep = "_")

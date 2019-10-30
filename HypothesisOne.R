@@ -491,8 +491,9 @@ pheno17 <- pheno_long %>%
   left_join(plotDates17,
     by = c("entity_id" = "plots17")
   ) %>%
-  tidylog::select(entity_id, phenotype_value, hddt17, numHddt17) %>%
-  mutate(hddt17 = as.Date(hddt17))
+  tidylog::select(entity_id, trait_id, phenotype_value, phenotype_person, 
+                  hddt17, numHddt17) %>%
+  mutate(hddt17 = as.Date(hddt17)) 
 
 pheno18 <- pheno_long %>%
   filter(year == "18") %>%
@@ -501,8 +502,8 @@ pheno18 <- pheno_long %>%
   left_join(plotDates18,
     by = c("entity_id" = "plots18")
   ) %>%
-  tidylog::select(entity_id, phenotype_value, hddt18, numHddt18) %>%
-  mutate(hddt18 = as.Date(hddt18))
+  tidylog::select(entity_id, trait_id, phenotype_value, hddt18, numHddt18) %>%
+  mutate(hddt18 = as.Date(hddt18)) 
 
 pheno19 <- pheno_long %>%
   filter(year == "19") %>%
@@ -511,8 +512,8 @@ pheno19 <- pheno_long %>%
   left_join(plotDates19,
             by = c("entity_id" = "plots19")
   ) %>%
-  tidylog::select(entity_id, phenotype_value, hddt19, numHddt19) %>%
-  mutate(hddt19 = as.Date(hddt19))
+  tidylog::select(entity_id, trait_id, phenotype_value, hddt19, numHddt19) %>%
+  mutate(hddt19 = as.Date(hddt19)) 
 
 str(pheno17)
 

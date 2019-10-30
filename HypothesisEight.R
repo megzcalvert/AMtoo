@@ -121,8 +121,8 @@ snpChip <- cbind(snpChip[, 1:12], hapgeno)
 rm(hapgeno)
 
 write.table(snpChip,
-  file = "./Genotype_Database/SelectedImputedBeagle.txt",
-  col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
+            file = "./Genotype_Database/SelectedImputedBeagle.txt",
+            col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
 )
 
 snpChip <- fread(
@@ -145,8 +145,8 @@ snpChip[snpChip == "."] <- NA
 snpChip <- snpChip[, c(1, 4, 5, 13:311)]
 
 write.table(snpChip,
-  file = "./Genotype_Database/SelectedImputedBeagleNumeric_outliers.txt",
-  col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
+            file = "./Genotype_Database/SelectedImputedBeagleNumeric_outliers.txt",
+            col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
 )
 
 snpChip <- fread(
@@ -167,38 +167,50 @@ pcaAM <- pcaMethods::pca(snpMatrix, nPcs = 15) # SVD PCA
 
 sumPCA <- as.data.frame(summary(pcaAM))
 
-lineInfo <- fread("./Phenotype_Database/LineDetailsAMPanel.txt",
-  header = T, check.names = F, sep = "	", data.table = F
-)
-lineInfo$Name <- tolower(lineInfo$Name)
-lineInfo$Name <- str_replace_all(lineInfo$Name, " ", "_")
-lineInfo$Name <- str_replace_all(lineInfo$Name, "-", "_")
-lineInfo$Name <- str_replace_all(lineInfo$Name, "'", "")
-
-program <- lineInfo[, c("Name", "Program")]
-
 Scores <- as.data.frame(pcaMethods::scores(pcaAM))
 Scores <- setDT(Scores, keep.rownames = TRUE)
-Scores <- left_join(Scores, program, by = c("rn" = "Name"))
-Scores$Program[is.na(Scores$Program)] <- "NA"
-Scores$Program <- as.factor(Scores$Program)
+
+## Function to add column based on another column 
+ff <- function(x, patterns, replacements = patterns, fill = NA, ...) {
+  stopifnot(length(patterns) == length(replacements))
+  
+  ans <- rep_len(as.character(fill), length(x))
+  empty <- seq_along(x)
+  
+  for (i in seq_along(patterns)) {
+    greps <- grepl(patterns[[i]], x[empty], ...)
+    ans[empty[greps]] <- replacements[[i]]
+    empty <- empty[!greps]
+  }
+  
+  return(ans)
+}
+
+# Adding an overall trial column
+Scores$annotation <- ff(Scores$rn,
+                        c(
+                          "jagger", "mt9513","tam107","tam107_r7"
+                        ),
+                        c(
+                          "Jagger","MT9513","TAM107",NA
+                        ),
+                        NA,
+                        ignore.case = TRUE
+)
+
+Scores[16,17] <- NA
 
 pca.plot <- function(x, p, q, ...) {
   plots <- ggplot(data = x, aes_string(x = p, y = q)) +
-    geom_point(position = "jitter", aes(colour = Program)) +
+    geom_point(position = "jitter") +
+    ggrepel::geom_label_repel(aes(label = annotation), 
+               label.padding = unit(0.5,"lines")) +
     theme(aspect.ratio = 1:1) +
     labs(
       title = paste0("PCA Plot ", p, " and ", q),
       x = paste(p, "R2 = ", (round(sumPCA[1, paste0(p)], 3)) * 100, "%"),
       y = paste(q, "R2 = ", (round(sumPCA[1, paste0(q)], 3)) * 100, "%")
-    ) +
-    scale_color_manual(values = c(
-      "#e6194B", "#3cb44b", "#a9a9a9", "#4363d8",
-      "#f58231", "#000000", "#42d4f4", "#f032e6",
-      "#fabebe",
-      "#469990", "#e6beff", "#9A6324",
-      "#800000", "#000075"
-    ))
+    )
   print(plots)
 }
 
@@ -210,14 +222,14 @@ pca.plot(Scores, "PC2", "PC4")
 pca.plot(Scores, "PC3", "PC4")
 
 ggarrange(pc1 + guides(colour = FALSE),
-  pc2 + guides(colour = FALSE),
-  ncol = 2
+          pc2 + guides(colour = FALSE),
+          ncol = 2
 )
 
 
 p <- plot_ly(Scores,
-  x = ~PC1, y = ~PC2, z = ~PC3,
-  color = ~Program, size = 2
+             x = ~PC1, y = ~PC2, z = ~PC3,
+             color = ~Program, size = 2
 ) %>%
   add_markers(size = 2) %>%
   layout(scene = list(
