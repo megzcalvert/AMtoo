@@ -258,7 +258,7 @@ phenoVI_19 <- phenoVI_19 %>%
   tidylog::select(-GRYLD, -year) %>%
   unite("trait_id", ID:Date, sep = "_") %>%
   pivot_wider(names_from = trait_id, values_from = value) %>%
-  tidylog::select(-Variety)
+  tidylog::select(-Variety) 
 
 gryld19 <- gryld19 %>%
   left_join(phenoVI_19, by = c("entity_id"))
@@ -285,8 +285,14 @@ coVariance_18 <- gryld18 %>%
   tidylog::select(-entity_id, -Variety, -rep, -rep1, -rep2)
 coVariance_18 <- cov(as.matrix(coVariance_18))
 
-coVariance_19 <- gryld19 %>%
-  tidylog::select(-entity_id, -Variety, -rep, -year, -rep1, -rep2)
-glimpse(coVariance_19)
-coVariance_19 <- as.matrix(coVariance_19)
-coVariance_19 <- cov(coVariance_19) #not working
+phenoVI_19 <- fread("./Phenotype_Database/pheno19_htpLong.txt")
+
+pheno19<- phenoVI_19 %>% 
+  tidylog::select(-year) %>% 
+  unite("trait_id", ID:Date, sep = "_") %>%
+  pivot_wider(names_from = trait_id, values_from = value) %>% 
+  tidylog::select(-entity_id,-Variety) %>% 
+  glimpse()
+
+coVariance_19<- cov(as.matrix(pheno19))
+
