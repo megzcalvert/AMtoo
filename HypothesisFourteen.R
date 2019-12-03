@@ -258,7 +258,7 @@ phenoVI_19 <- phenoVI_19 %>%
   tidylog::select(-GRYLD, -year) %>%
   unite("trait_id", ID:Date, sep = "_") %>%
   pivot_wider(names_from = trait_id, values_from = value) %>%
-  tidylog::select(-Variety) 
+  tidylog::select(-Variety)
 
 gryld19 <- gryld19 %>%
   left_join(phenoVI_19, by = c("entity_id"))
@@ -277,22 +277,86 @@ h2_19 <- fread("./Phenotype_Database/NarrowSenseHeritability_19.txt")
 
 ##### Variance and covariance for correlation ####
 
-coVariance_17 <- gryld17 %>%
+pheno17 <- gryld17 %>%
   tidylog::select(-entity_id, -Variety, -rep, -year, -rep1, -rep2)
-coVariance_17 <- cov(as.matrix(coVariance_17))
+coVariance_17 <- cov(as.matrix(pheno17))
 
-coVariance_18 <- gryld18 %>%
+pheno18 <- gryld18 %>%
   tidylog::select(-entity_id, -Variety, -rep, -rep1, -rep2)
-coVariance_18 <- cov(as.matrix(coVariance_18))
+coVariance_18 <- cov(as.matrix(pheno18))
 
 phenoVI_19 <- fread("./Phenotype_Database/pheno19_htpLong.txt")
 
-pheno19<- phenoVI_19 %>% 
-  tidylog::select(-year) %>% 
+pheno19 <- phenoVI_19 %>%
+  tidylog::select(-year) %>%
   unite("trait_id", ID:Date, sep = "_") %>%
-  pivot_wider(names_from = trait_id, values_from = value) %>% 
-  tidylog::select(-entity_id,-Variety) %>% 
+  pivot_wider(names_from = trait_id, values_from = value) %>%
+  tidylog::select(-entity_id, -Variety) %>%
   glimpse()
 
-coVariance_19<- cov(as.matrix(pheno19))
+coVariance_19 <- cov(as.matrix(pheno19))
 
+#### function for expected gain from selection of correlated traits ####
+
+expectedGain <- function(heritability, phenotypic, traitInterest, intensity) {
+  traits <- phenotypic %>%
+    tidylog::select(-traitInterest)
+  traits <- colnames(traits)
+  heritability <- heritability %>%
+    tidylog::select(trait_id, h2)
+  correlatedTrait <- traits
+  h2_interest <- heritability %>%
+    filter(trait_id == traitInterest) %>%
+    tidylog::select(h2)
+  h2_interest <- h2_interest[1, 1]
+  gainCorrelated <- tibble::tibble(correlatedTrait, h2_interest)
+  gainCorrelated <- add_column(gainCorrelated,
+    h2_correlated = NA,
+    geneticCorrelation = NA,
+    expectedGain = NA
+  )
+  for (i in traits) {
+    print(paste("Working on trait", i))
+    her <- heritability %>%
+      filter(trait_id == i) %>%
+      tidylog::select(h2)
+    her <- her[1, 1]
+    gainCorrelated[
+      match(i, gainCorrelated$correlatedTrait), "h2_correlated"
+    ] <- her
+    geneticCorrelation <- cov(phenotypic[, traitInterest], phenotypic[, i]) /
+      (sqrt(var(phenotypic[, traitInterest]) * var(phenotypic[, i])))
+    print(paste("genetic correlation ", geneticCorrelation))
+    gainCorrelated[
+      match(i, gainCorrelated$correlatedTrait), "geneticCorrelation"
+    ] <- geneticCorrelation
+    expectedGain<- intensity * sqrt(h2_interest) * sqrt(her) * 
+      geneticCorrelation * (sd(phenotypic[,i])/sqrt(length(phenotypic)))
+    gainCorrelated[
+      match(i, gainCorrelated$correlatedTrait), "expectedGain"
+      ] <- expectedGain
+  }
+  return(gainCorrelated)
+}
+
+gain17 <- expectedGain(
+  heritability = h2_17, phenotypic = pheno17,
+  traitInterest = "GRYLD", intensity = 0.2
+)
+
+gain18 <- expectedGain(
+  heritability = h2_18, phenotypic = pheno18,
+  traitInterest = "GRYLD", intensity = 0.2
+)
+
+gain19 <- expectedGain(
+  heritability = h2_19, phenotypic = pheno19,
+  traitInterest = "GRYLD", intensity = 0.2
+)
+
+write.table(gain17, "./Phenotype_Database/ExpectedGainSelection0.2_17.txt",
+            quote = FALSE, sep = "\t", row.names = FALSE)
+write.table(gain18, "./Phenotype_Database/ExpectedGainSelection0.2_18.txt",
+            quote = FALSE, sep = "\t", row.names = FALSE)
+write.table(gain19, "./Phenotype_Database/ExpectedGainSelection0.2_19.txt",
+            quote = FALSE, sep = "\t", row.names = FALSE)
