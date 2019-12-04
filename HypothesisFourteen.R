@@ -44,7 +44,7 @@ custom_theme <- theme_minimal() %+replace%
       color = "black",
       size = 0.5
     ),
-    legend.key.size = unit(4, "lines"),
+    legend.key.size = unit(2, "lines"),
     # legend.background = element_rect(fill = NULL, colour = NULL),
     # legend.box = NULL,
     legend.margin = margin(
@@ -298,7 +298,7 @@ coVariance_19 <- cov(as.matrix(pheno19))
 
 #### function for expected gain from selection of correlated traits ####
 
-expectedGain <- function(heritability, phenotypic, traitInterest, intensity) {
+expectedGainSelection <- function(heritability, phenotypic, traitInterest, intensity) {
   traits <- phenotypic %>%
     tidylog::select(-traitInterest)
   traits <- colnames(traits)
@@ -339,24 +339,133 @@ expectedGain <- function(heritability, phenotypic, traitInterest, intensity) {
   return(gainCorrelated)
 }
 
-gain17 <- expectedGain(
+gain17_2 <- expectedGainSelection(
   heritability = h2_17, phenotypic = pheno17,
   traitInterest = "GRYLD", intensity = 0.2
 )
 
-gain18 <- expectedGain(
+gain17_4 <- expectedGainSelection(
+  heritability = h2_17, phenotypic = pheno17,
+  traitInterest = "GRYLD", intensity = 0.4
+)
+
+gain17_6 <- expectedGainSelection(
+  heritability = h2_17, phenotypic = pheno17,
+  traitInterest = "GRYLD", intensity = 0.6
+)
+
+gain18_2 <- expectedGainSelection(
   heritability = h2_18, phenotypic = pheno18,
   traitInterest = "GRYLD", intensity = 0.2
 )
 
-gain19 <- expectedGain(
+gain18_4 <- expectedGainSelection(
+  heritability = h2_18, phenotypic = pheno18,
+  traitInterest = "GRYLD", intensity = 0.4
+)
+
+gain18_6 <- expectedGainSelection(
+  heritability = h2_18, phenotypic = pheno18,
+  traitInterest = "GRYLD", intensity = 0.6
+)
+
+gain19_2 <- expectedGainSelection(
   heritability = h2_19, phenotypic = pheno19,
   traitInterest = "GRYLD", intensity = 0.2
 )
 
-write.table(gain17, "./Phenotype_Database/ExpectedGainSelection0.2_17.txt",
+gain19_4 <- expectedGainSelection(
+  heritability = h2_19, phenotypic = pheno19,
+  traitInterest = "GRYLD", intensity = 0.4
+)
+
+gain19_6 <- expectedGainSelection(
+  heritability = h2_19, phenotypic = pheno19,
+  traitInterest = "GRYLD", intensity = 0.6
+)
+
+write.table(gain17_2, "./Phenotype_Database/ExpectedGainSelection_2_17.txt",
             quote = FALSE, sep = "\t", row.names = FALSE)
-write.table(gain18, "./Phenotype_Database/ExpectedGainSelection0.2_18.txt",
+write.table(gain17_4, "./Phenotype_Database/ExpectedGainSelection_4_17.txt",
             quote = FALSE, sep = "\t", row.names = FALSE)
-write.table(gain19, "./Phenotype_Database/ExpectedGainSelection0.2_19.txt",
+write.table(gain17_6, "./Phenotype_Database/ExpectedGainSelection_6_17.txt",
             quote = FALSE, sep = "\t", row.names = FALSE)
+write.table(gain18_2, "./Phenotype_Database/ExpectedGainSelection_2_18.txt",
+            quote = FALSE, sep = "\t", row.names = FALSE)
+write.table(gain18_4, "./Phenotype_Database/ExpectedGainSelection_4_18.txt",
+            quote = FALSE, sep = "\t", row.names = FALSE)
+write.table(gain18_6, "./Phenotype_Database/ExpectedGainSelection_6_18.txt",
+            quote = FALSE, sep = "\t", row.names = FALSE)
+write.table(gain19_2, "./Phenotype_Database/ExpectedGainSelection_2_19.txt",
+            quote = FALSE, sep = "\t", row.names = FALSE)
+write.table(gain19_4, "./Phenotype_Database/ExpectedGainSelection_4_19.txt",
+            quote = FALSE, sep = "\t", row.names = FALSE)
+write.table(gain19_6, "./Phenotype_Database/ExpectedGainSelection_6_19.txt",
+            quote = FALSE, sep = "\t", row.names = FALSE)
+
+gain17<- gain17_2 %>% 
+  mutate(intensity = as.factor(0.2)) %>% 
+  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) 
+gain17<- gain17_4 %>% 
+  mutate(intensity = as.factor(0.4)) %>% 
+  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>% 
+  bind_rows(gain17)
+gain17<- gain17_6 %>% 
+  mutate(intensity = as.factor(0.6)) %>% 
+  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>% 
+  bind_rows(gain17)
+
+gain18<- gain18_2 %>% 
+  mutate(intensity = as.factor(0.2)) %>% 
+  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) 
+gain18<- gain18_4 %>% 
+  mutate(intensity = as.factor(0.4)) %>% 
+  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>% 
+  bind_rows(gain18)
+gain18<- gain18_6 %>% 
+  mutate(intensity = as.factor(0.6)) %>% 
+  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>% 
+  bind_rows(gain18)
+
+gain19<- gain19_2 %>% 
+  mutate(intensity = as.factor(0.2)) %>% 
+  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) 
+gain19<- gain19_4 %>% 
+  mutate(intensity = as.factor(0.4)) %>% 
+  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>% 
+  bind_rows(gain19)
+gain19<- gain19_6 %>% 
+  mutate(intensity = as.factor(0.6)) %>% 
+  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>% 
+  bind_rows(gain19)
+
+plot17<- gain17 %>% 
+  ggplot(aes(x = phenotype_date, y = expectedGain, colour = intensity)) +
+  geom_point() +
+  facet_wrap(~trait_id, scales = "free_y") +
+  labs(title = "Expected gain in GRYLD from correlated phenotype 2016-2017")
+plot17
+
+plot18<- gain18 %>% 
+  ggplot(aes(x = phenotype_date, y = expectedGain, colour = intensity)) +
+  geom_point() +
+  facet_wrap(~trait_id, scales = "free_y") +
+  labs(title = "Expected gain in GRYLD from correlated phenotype 2017-2018")
+plot18
+
+plot19<- gain19 %>% 
+  ggplot(aes(x = phenotype_date, y = expectedGain, colour = intensity)) +
+  geom_point() +
+  facet_wrap(~trait_id, scales = "free_y") +
+  labs(title = "Expected gain in GRYLD from correlated phenotype 2018-2019")
+plot19
+
