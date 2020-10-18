@@ -1,13 +1,11 @@
 rm(list = objects())
 ls()
 
-library(MatrixModels)
 library(janitor)
 library(tidyverse)
 library(tidylog)
 library(readr)
 library(data.table)
-library(beepr)
 library(rrBLUP)
 library(broom)
 
@@ -129,8 +127,8 @@ snpChip <- cbind(snpChip[, 1:12], hapgeno)
 rm(hapgeno)
 
 write.table(snpChip,
-            file = "./Genotype_Database/SelectedImputedBeagle.txt",
-            col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
+  file = "./Genotype_Database/SelectedImputedBeagle.txt",
+  col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
 )
 
 snpChip <- fread(
@@ -152,8 +150,8 @@ snpChip[snpChip == "."] <- NA
 snpChip <- snpChip[, c(1, 4, 5, 13:311)]
 
 write.table(snpChip,
-            file = "./Genotype_Database/SelectedImputedBeagleNumeric.txt",
-            col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
+  file = "./Genotype_Database/SelectedImputedBeagleNumeric.txt",
+  col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
 )
 
 snpChip <- fread(
@@ -191,423 +189,365 @@ snpMatrix[1:5, 1:5]
 ## Keep only lines which have geno and pheno
 # 2017
 dat17 <- dat17 %>%
-  semi_join(snpMatrix, by = "rn")
+  semi_join(snpMatrix, by = "rn") %>%
+  arrange(var = "rn")
 
 snpMatrix17 <- snpMatrix %>%
-  semi_join(dat17, by = "rn")
-rownames(snpMatrix17) <- snpMatrix17[, 1]
-snpMatrix17[, 1] <- NULL
+  semi_join(dat17, by = "rn") %>%
+  arrange(var = "rn") %>%
+  column_to_rownames(var = "rn")
 
 snpMatrix17 <- as.matrix(snpMatrix17)
 
+snpMatrix17 <- snpMatrix17[match(
+  dat17$rn,
+  rownames(snpMatrix17)
+), ] # align markers
+
 # 2018
 dat18 <- dat18 %>%
-  semi_join(snpMatrix, by = "rn")
+  semi_join(snpMatrix, by = "rn") %>%
+  arrange(var = "rn")
 
 snpMatrix18 <- snpMatrix %>%
-  semi_join(dat18, by = "rn")
-rownames(snpMatrix18) <- snpMatrix18[, 1]
-snpMatrix18[, 1] <- NULL
+  semi_join(dat18, by = "rn") %>%
+  arrange(var = "rn") %>%
+  column_to_rownames(var = "rn")
 
 snpMatrix18 <- as.matrix(snpMatrix18)
+snpMatrix18 <- snpMatrix18[match(
+  dat18$rn,
+  rownames(snpMatrix18)
+), ] # align markers
 
 # 2019
 dat19 <- dat19 %>%
-  semi_join(snpMatrix, by = "rn")
+  semi_join(snpMatrix, by = "rn") %>%
+  arrange(var = "rn")
 
 snpMatrix19 <- snpMatrix %>%
-  semi_join(dat19, by = "rn")
-rownames(snpMatrix19) <- snpMatrix19[, 1]
-snpMatrix19[, 1] <- NULL
+  semi_join(dat19, by = "rn") %>%
+  arrange(var = "rn") %>%
+  column_to_rownames(var = "rn")
 
 snpMatrix19 <- as.matrix(snpMatrix19)
+snpMatrix19 <- snpMatrix19[match(
+  dat19$rn,
+  rownames(snpMatrix19)
+), ] # align markers
 
 ##### Defining the training and test populations ####
-# 2017
 # define the training and test populations
 # training-80% validation-20%
-Pheno_train17 <- dat17 %>%
-  dplyr::sample_frac(0.8)
-Pheno_valid17 <- dat17 %>%
-  anti_join(Pheno_train17, by = "rn")
+dat17 <- dat17 %>%
+  column_to_rownames(var = "rn")
+str(dat17)
 
-m_train17 <- snpMatrix17[Pheno_train17$rn, ]
-m_valid17 <- snpMatrix17[Pheno_valid17$rn, ]
+relationshipMat <- A.mat(snpMatrix17)
 
-##### Predicting Phenotypes ####
-## GRYLD
-yield <- (Pheno_train17[, "GRYLD"])
-covar <- (Pheno_train17[, "NDRE_20170505"])
-yield_answer <- mixed.solve(yield,
-                            Z = m_train17, # X = covar,
-                            SE = TRUE
+all(rownames(dat17) == rownames(relationshipMat))
+
+y <- dat17[, "GRYLD"]
+str(y)
+
+y.NA <- dat17[, "GRYLD"]
+mask <- sample(length(y), size = (0.2 * nrow(dat17)))
+y.NA[mask] <- NA
+
+# rrBLUP
+g.blup <- mixed.solve(y.NA, K = relationshipMat)
+#
+pdf(file = "./Figures/GP_gryld17_phenoVSpred_rrBlup.pdf")
+plot(g.blup$u, y,
+  xlab = "Phenotype",
+  ylab = "Pred. Gen. Value", cex = .8, bty = "L"
 )
-YLD <- yield_answer$u
-e <- as.matrix(YLD)
-pred_yield_valid <- m_valid17 %*% e
-pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
-pred_yield
-yield_valid <- Pheno_valid17[, "GRYLD"]
-YLD_accuracy <- cor(pred_yield_valid, yield_valid)
-YLD_accuracy
+points(x = y[mask], y = g.blup$u[mask], col = 2, cex = .8, pch = 19)
+legend("topleft",
+  legend = c("training", "testing"), bty = "n",
+  pch = c(1, 19), col = c("black", "red")
+)
+#
+ymasked <- y[mask]
+blupped <- g.blup$u[mask]
+#
+yunmasked <- y[-mask]
+unblupped <- g.blup$u[-mask]
+#
+YLD_accuracy_gryldA <- cor(ymasked, blupped)
+cor(x = yunmasked, y = unblupped)
+YLD_accuracy_gryldA
 
 ## VI
-ndvi0512 <- (Pheno_train17[, "NDVI_20170512"])
-ndvi0512_answer <- mixed.solve(ndvi0512, Z = m_train17, SE = TRUE)
-NDVI0512 <- ndvi0512_answer$u
-e <- as.matrix(NDVI0512)
-pred_ndvi0512_valid <- m_valid17 %*% e
-pred_ndvi0512 <- (pred_ndvi0512_valid[, 1]) + ndvi0512_answer$beta
-pred_ndvi0512
-ndvi0512_valid <- Pheno_valid17[, "NDVI_20170512"]
-NDVI_20170512_accuracy <- cor(pred_ndvi0512_valid, ndvi0512_valid)
-NDVI_20170512_accuracy
+y <- dat17[, "NDVI_20170512"]
+str(y)
 
-re0512 <- (Pheno_train17[, "RedEdge_20170512"])
-re0512_answer <- mixed.solve(re0512, Z = m_train17, SE = TRUE)
-RE0512 <- re0512_answer$u
-e <- as.matrix(RE0512)
-pred_re0512_valid <- m_valid17 %*% e
-pred_re0512 <- (pred_re0512_valid[, 1]) + re0512_answer$beta
-pred_re0512
-re0512_valid <- Pheno_valid17[, "RedEdge_20170512"]
-RedEdge_20170512_accuracy <- cor(pred_re0512_valid, re0512_valid)
-RedEdge_20170512_accuracy
+y.NA <- dat17[, "NDVI_20170512"]
+mask <- sample(length(y), size = (0.2 * nrow(dat17)))
+y.NA[mask] <- NA
+
+# rrBLUP
+g.blup <- mixed.solve(y.NA, K = relationshipMat)
+#
+pdf(file = "./Figures/GP_ndvi20170512_phenoVSpred_rrBlup.pdf")
+plot(g.blup$u, y,
+  xlab = "Phenotype",
+  ylab = "Pred. Gen. Value", cex = .8, bty = "L"
+)
+points(x = y[mask], y = g.blup$u[mask], col = 2, cex = .8, pch = 19)
+legend("topleft",
+  legend = c("training", "testing"), bty = "n",
+  pch = c(1, 19), col = c("black", "red")
+)
+#
+ymasked <- y[mask]
+blupped <- g.blup$u[mask]
+#
+yunmasked <- y[-mask]
+unblupped <- g.blup$u[-mask]
+#
+accuracy_ndvi0512 <- cor(ymasked, blupped)
+cor(x = yunmasked, y = unblupped)
+accuracy_ndvi0512
+
+y <- dat17[, "RedEdge_20170512"]
+str(y)
+
+y.NA <- dat17[, "NDVI_20170512"]
+mask <- sample(length(y), size = (0.2 * nrow(dat17)))
+y.NA[mask] <- NA
+
+# rrBLUP
+g.blup <- mixed.solve(y.NA, K = relationshipMat)
+#
+pdf(file = "./Figures/GP_re20170512_phenoVSpred_rrBlup.pdf")
+plot(g.blup$u, y,
+  xlab = "Phenotype",
+  ylab = "Pred. Gen. Value", cex = .8, bty = "L"
+)
+points(x = y[mask], y = g.blup$u[mask], col = 2, cex = .8, pch = 19)
+legend("topleft",
+  legend = c("training", "testing"), bty = "n",
+  pch = c(1, 19), col = c("black", "red")
+)
+#
+ymasked <- y[mask]
+blupped <- g.blup$u[mask]
+#
+yunmasked <- y[-mask]
+unblupped <- g.blup$u[-mask]
+#
+accuracy_re0512 <- cor(ymasked, blupped)
+cor(x = yunmasked, y = unblupped)
+accuracy_re0512
 
 ##### Cross-Validation 2017 ####
 
-cvWithHistogram <- function(dat, columns_to_remove, cycles, saveFileFigures,
-                            selectionTrait, snpMatrix, identifier, ...) {
-  effectvars <- names(dat) %in% columns_to_remove
-  traits <- colnames(dat[, !effectvars])
-  (traits)
-  cycles <- cycles
+genomicSelcectionCV <- function(dat, columnsToRemove, cycles, snpMatrix, ...) {
+  traits <- dat %>%
+    dplyr::select(!any_of(columnsToRemove)) %>%
+    colnames()
+
   accuracy <- matrix(nrow = cycles, ncol = length(traits))
   colnames(accuracy) <- traits
-  
+
   for (r in 1:cycles) {
     print(paste("Rep cycle: ", r))
-    
-    Pheno_train <- dat %>%
-      dplyr::sample_frac(0.8)
-    Pheno_valid <- dat %>%
-      anti_join(Pheno_train, by = "rn")
-    
-    m_train <- snpMatrix[Pheno_train$rn, ]
-    m_valid <- snpMatrix[Pheno_valid$rn, ]
-    
+
+    mask <- sample(nrow(dat), size = (0.2 * nrow(dat)))
+
+    relationshipMat <- A.mat(snpMatrix)
+
     for (i in traits) {
       print(paste(i))
-      trait <- (Pheno_train[, paste(i)])
-      trait_answer <- mixed.solve(trait, Z = m_train, SE = F)
-      TRT <- trait_answer$u
-      e <- as.matrix(TRT)
-      pred_trait_valid <- m_valid %*% e
-      pred_trait <- as.data.frame((pred_trait_valid[, 1]) + trait_answer$beta)
-      colnames(pred_trait) <- paste(i)
-      pred_trait
-      trait_valid <- Pheno_valid[, paste(i)]
-      accuracy[r, paste(i)] <- (cor(pred_trait_valid, trait_valid,
-                                    use = "complete"
+
+      y <- dat %>%
+        pull(i)
+
+      y.NA <- dat %>%
+        pull(i)
+      y.NA[mask] <- NA
+
+      g.blup <- mixed.solve(y.NA, K = relationshipMat)
+      ymasked <- y[mask]
+      blupped <- g.blup$u[mask]
+
+      yunmasked <- y[-mask]
+      unblupped <- g.blup$u[-mask]
+
+      accuracy[r, paste(i)] <- (cor(ymasked,
+        y = blupped,
+        use = "complete"
       ))
-      if (i != selectionTrait) {
-        selectTrait <- dat %>%
-          dplyr::select(rn, paste(selectionTrait))
-        
-        topSelec <- setDT(pred_trait, keep.rownames = T)
-        topSelec <- topSelec %>%
-          dplyr::top_n(nrow(topSelec) * 0.25) %>%
-          inner_join(selectTrait)
-        
-        mT <- t.test(
-          topSelec[, paste(selectionTrait)],
-          dat[, paste(selectionTrait)]
-        )
-        
-        plot1 <- ggplot(
-          data = pred_trait,
-          mapping = aes_string(i)
-        ) +
-          geom_histogram(
-            colour = "black",
-            fill = "white",
-            bins = 100
-          ) +
-          geom_vline(xintercept = mean(pred_trait[, paste(i)]), linetype = 2) +
-          geom_histogram(
-            data = topSelec,
-            mapping = aes_string(paste(i)),
-            colour = "red",
-            bins = 100
-          ) +
-          geom_vline(
-            xintercept = mean(topSelec[, paste(i)]),
-            colour = "red", linetype = 2
-          )
-        
-        plot2 <- ggplot(
-          data = dat,
-          mapping = aes_string(selectionTrait)
-        ) +
-          geom_histogram(
-            colour = "black",
-            fill = "white",
-            bins = 100
-          ) +
-          geom_vline(
-            xintercept = mean(dat[, paste(selectionTrait)]),
-            linetype = 2
-          ) +
-          geom_histogram(
-            data = topSelec,
-            mapping = aes_string(selectionTrait),
-            colour = "red",
-            bins = 100
-          ) +
-          geom_vline(
-            xintercept = mean(topSelec[, paste(selectionTrait)]),
-            colour = "red", linetype = 2
-          ) +
-          labs(subtitle = paste("T-test p-value = ", mT$p.value))
-        
-        plots <- ggpubr::ggarrange(plot1, plot2)
-        print(plots)
-        ggpubr::ggexport(plots,
-                         filename = paste0(
-                           saveFileFigures,
-                           identifier, "_", i, "_", r, ".png"
-                         ),
-                         width = 1000, height = 550
-        )
-      }
-      else {
-        print("GRYLD")
-      }
     }
   }
   return(accuracy)
 }
 
-accuracy17 <- cvWithHistogram(
-  dat = dat17, columns_to_remove = c("rn"),
+accuracy17 <- genomicSelcectionCV(
+  dat = dat17, columnsToRemove = c("rn"),
   cycles = 100,
-  saveFileFigures = "./Figures/Selection/",
-  selectionTrait = "GRYLD",
-  snpMatrix = snpMatrix17,
-  identifier = "Selection17"
+  snpMatrix = snpMatrix17
 )
 
 write.csv(accuracy17,
-          "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy17.txt",
-          quote = F, row.names = F
+  "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy17.txt",
+  quote = F, row.names = F
 )
 colMeans(accuracy17)
 
+### covariate
+
+relationshipMat <- A.mat(snpMatrix17)
+
+all(rownames(dat17) == rownames(relationshipMat))
+
+y <- dat17[, "GRYLD"]
+str(y)
+
+y.NA <- dat17[, "GRYLD"]
+mask <- sample(length(y), size = (0.2 * nrow(dat17)))
+y.NA[mask] <- NA
+
+# rrBLUP
+g.blup <- mixed.solve(y.NA, K = relationshipMat, X = dat17[, "NDVI_20170512"])
+#
+pdf(file = "./Figures/GP_gryld17covarNdvi20170512_phenoVSpred_rrBlup.pdf")
+plot(g.blup$u, y,
+  xlab = "Phenotype",
+  ylab = "Pred. Gen. Value", cex = .8, bty = "L"
+)
+points(x = y[mask], y = g.blup$u[mask], col = 2, cex = .8, pch = 19)
+legend("topleft",
+  legend = c("training", "testing"), bty = "n",
+  pch = c(1, 19), col = c("black", "red")
+)
+#
+ymasked <- y[mask]
+blupped <- g.blup$u[mask]
+#
+yunmasked <- y[-mask]
+unblupped <- g.blup$u[-mask]
+#
+YLD_accuracy_gryldA <- cor(ymasked, blupped)
+cor(x = yunmasked, y = unblupped)
+YLD_accuracy_gryldA
+
+covariateCV <- function(dat, snpMat, mainTrait, cycles, ...) {
+  
+  traits <- dat %>%
+    select(-all_of(mainTrait))
+  traits <- colnames(traits)
+
+  acc <- matrix(nrow = cycles, ncol = length(traits) + 1)
+  colnames(acc) <- c("GRYLD_alone", traits)
+
+  for (i in 1:cycles) {
+    print(paste("Cycles: ", i))
+    
+    y <- dat %>% 
+      pull(mainTrait)
+    y.NA <- dat %>% 
+      pull(mainTrait)
+    mask <- sample(length(y), size = (0.2 * nrow(dat)))
+    y.NA[mask] <- NA
+    
+    relationshipMat<- A.mat(snpMat)
+
+    trt_answer <- mixed.solve(y.NA,
+      K = relationshipMat,
+      SE = TRUE
+    )
+
+    pred <- trt_answer$u
+    trt_accuracy <- cor(y[mask], pred[mask])
+    print(trt_accuracy)
+    acc[i, 1] <- trt_accuracy
+
+    for (t in traits) {
+      print(paste(t))
+
+      covar <- dat[, t]
+
+      trt_covar1_answer <- mixed.solve(y.NA,
+        K = relationshipMat,
+        X = covar,
+        SE = TRUE
+      )
+
+      pred_covar1 <- trt_covar1_answer$u
+      trt_covar1_accuracy <- cor(y[mask], pred_covar1[mask])
+      print(trt_covar1_accuracy)
+      acc[i, t] <- trt_covar1_accuracy
+    }
+  }
+  return(acc)
+}
+
+covariate17 <- covariateCV(
+  dat = dat17, snpMat = snpMatrix17,
+  mainTrait = "GRYLD", cycles = 100
+)
+
+write.csv(covariate17,
+  "./R/rrBlup/HypothesisTwelve/GS_80_100_accuracy17_covariate.txt",
+  quote = F, row.names = F
+)
+colMeans(covariate17)
+
 # 2018
-Pheno_train18 <- dat18 %>%
-  dplyr::sample_frac(0.8)
-Pheno_valid18 <- dat18 %>%
-  anti_join(Pheno_train18, by = "rn")
-
-m_train18 <- snpMatrix18[Pheno_train18$rn, ]
-m_valid18 <- snpMatrix18[Pheno_valid18$rn, ]
-
-##### Predicting Phenotypes 2018 ####
-## GRYLD
-yield <- (Pheno_train18[, "GRYLD"])
-yield_answer <- mixed.solve(yield, Z = m_train18, SE = TRUE)
-YLD <- yield_answer$u
-e <- as.matrix(YLD)
-pred_yield_valid <- m_valid18 %*% e
-pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
-pred_yield
-yield_valid <- Pheno_valid18[, "GRYLD"]
-YLD_accuracy <- cor(pred_yield_valid, yield_valid)
-YLD_accuracy
-
-##### Cross-Validation 2018 ####
-
-accuracy18 <- cvWithHistogram(
-  dat = dat18, columns_to_remove = c("rn"),
+accuracy18 <- genomicSelcectionCV(
+  dat = dat18, columnsToRemove = c("rn"),
   cycles = 100,
-  saveFileFigures = "./Figures/Selection/",
-  selectionTrait = "GRYLD",
-  snpMatrix = snpMatrix18,
-  identifier = "Selection18"
+  snpMatrix = snpMatrix18
 )
 
 write.csv(accuracy18,
-          "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy18.txt",
-          quote = F, row.names = F
+  "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy18.txt",
+  quote = F, row.names = F
 )
 colMeans(accuracy18)
 
-# 2019
-Pheno_train19 <- dat19 %>%
-  dplyr::sample_frac(0.8)
-Pheno_valid19 <- dat19 %>%
-  anti_join(Pheno_train19, by = "rn")
+dat18<- dat18 %>% 
+  column_to_rownames(var = "rn")
 
-m_train19 <- snpMatrix19[Pheno_train19$rn, ]
-m_valid19 <- snpMatrix19[Pheno_valid19$rn, ]
-
-##### Predicting Phenotypes 2019 ####
-## GRYLD
-yield <- (Pheno_train19[, "GRYLD"])
-yield_answer <- mixed.solve(yield, Z = m_train19, SE = TRUE)
-YLD <- yield_answer$u
-e <- as.matrix(YLD)
-pred_yield_valid <- m_valid19 %*% e
-pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
-pred_yield
-yield_valid <- Pheno_valid19[, "GRYLD"]
-YLD_accuracy <- cor(pred_yield_valid, yield_valid)
-YLD_accuracy
-
-##### Cross-Validation 2019 ####
-
-accuracy19 <- cvWithHistogram(
-  dat = dat19, columns_to_remove = c("rn"),
-  cycles = 100,
-  saveFileFigures = "./Figures/Selection/",
-  selectionTrait = "GRYLD",
-  snpMatrix = snpMatrix19,
-  identifier = "Selection19"
+covariate18 <- covariateCV(
+  dat = dat18, snpMat = snpMatrix18,
+  mainTrait = "GRYLD", cycles = 100
 )
+
+write.csv(covariate18,
+  "./R/rrBlup/HypothesisTwelve/GS_80_100_accuracy18_covariate.txt",
+  quote = F, row.names = F
+)
+colMeans(covariate18)
+
+# 2019
+accuracy19 <- genomicSelcectionCV(
+  dat = dat19, columnsToRemove = c("rn"),
+  cycles = 100,
+  snpMatrix = snpMatrix19
+)
+
 write.csv(accuracy19,
-          "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy19.txt",
-          quote = F, row.names = F
+  "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy19.txt",
+  quote = F, row.names = F
 )
 colMeans(accuracy19)
 
-##### Predicting across years #####
+dat19<- dat19 %>% 
+  column_to_rownames(var = "rn")
 
-# 2017 for 2018
-Pheno_train17_18 <- dat17 %>%
-  tidylog::semi_join(dat18, by = "rn")
-Pheno_valid17_18 <- dat17 %>%
-  tidylog::semi_join(dat18, by = "rn")
-m_train17_18 <- snpMatrix17[Pheno_train17_18$rn, ]
-m_valid17_18 <- snpMatrix17[Pheno_valid17_18$rn, ]
-# 2017 for 2019
-Pheno_train17_19 <- dat17 %>%
-  tidylog::semi_join(dat19, by = "rn")
-Pheno_valid17_19 <- dat17 %>%
-  tidylog::semi_join(dat19, by = "rn")
-m_train17_19 <- snpMatrix17[Pheno_train17_19$rn, ]
-m_valid17_19 <- snpMatrix17[Pheno_valid17_19$rn, ]
-# 2018 for 2017
-Pheno_valid18_17 <- dat18 %>%
-  tidylog::semi_join(dat17, by = "rn")
-Pheno_train18_17 <- dat18 %>%
-  tidylog::semi_join(dat17, by = "rn")
-m_valid18_17 <- snpMatrix18[Pheno_valid18_17$rn, ]
-m_train18_17 <- snpMatrix18[Pheno_train18_17$rn, ]
-# 2018 for 2019
-Pheno_valid18_19 <- dat18 %>%
-  tidylog::semi_join(dat19, by = "rn")
-Pheno_train18_19 <- dat18 %>%
-  tidylog::semi_join(dat19, by = "rn")
-m_valid18_19 <- snpMatrix18[Pheno_valid18_19$rn, ]
-m_train18_19 <- snpMatrix18[Pheno_train18_19$rn, ]
-# 2019 for 2017
-Pheno_valid19_17 <- dat19 %>%
-  tidylog::semi_join(dat17, by = "rn")
-Pheno_train19_17 <- dat19 %>%
-  tidylog::semi_join(dat17, by = "rn")
-m_valid19_17 <- snpMatrix19[Pheno_valid19_17$rn, ]
-m_train19_17 <- snpMatrix19[Pheno_train19_17$rn, ]
-# 2019 for 2018
-Pheno_valid19_18 <- dat19 %>%
-  tidylog::semi_join(dat18, by = "rn")
-Pheno_train19_18 <- dat19 %>%
-  tidylog::semi_join(dat18, by = "rn")
-m_train19_18 <- snpMatrix19[Pheno_train19_18$rn, ]
-m_valid19_18 <- snpMatrix19[Pheno_valid19_18$rn, ]
-
-## 2017 predicting 2018
-yield <- (Pheno_train17_18[, "GRYLD"])
-yield_answer <- mixed.solve(yield,
-                            Z = m_train17_18,
-                            K = NULL, SE = FALSE, return.Hinv = FALSE
+covariate19 <- covariateCV(
+  dat = dat19, snpMat = snpMatrix19,
+  mainTrait = "GRYLD", cycles = 100
 )
-YLD <- yield_answer$u
-e <- as.matrix(YLD)
-pred_yield_valid <- m_valid18_17 %*% e
-pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
-pred_yield
-yield_valid <- Pheno_valid18_17[, "GRYLD"]
-cor.test(pred_yield_valid, yield_valid)
 
-## 2017 predicting 2019
-yield <- (Pheno_train17_19[, "GRYLD"])
-yield_answer <- mixed.solve(yield,
-                            Z = m_train17_19,
-                            K = NULL, SE = FALSE, return.Hinv = FALSE
+write.csv(covariate19,
+  "./R/rrBlup/HypothesisTwelve/GS_80_100_accuracy19_covariate.txt",
+  quote = F, row.names = F
 )
-YLD <- yield_answer$u
-e <- as.matrix(YLD)
-pred_yield_valid <- m_valid19_17 %*% e
-pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
-pred_yield
-yield_valid <- Pheno_valid19_17[, "GRYLD"]
-cor.test(pred_yield_valid, yield_valid)
-
-## 2018 predicting 2017
-yield <- (Pheno_train18_17[, "GRYLD"])
-yield_answer <- mixed.solve(yield,
-                            Z = m_train18_17,
-                            K = NULL, SE = FALSE, return.Hinv = FALSE
-)
-YLD <- yield_answer$u
-e <- as.matrix(YLD)
-pred_yield_valid <- m_valid17_18 %*% e
-pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
-pred_yield
-yield_valid <- Pheno_valid17_18[, "GRYLD"]
-cor.test(pred_yield_valid, yield_valid)
-
-## 2018 predicting 2019
-yield <- (Pheno_train18_19[, "GRYLD"])
-yield_answer <- mixed.solve(yield,
-                            Z = m_train18_19,
-                            K = NULL, SE = FALSE, return.Hinv = FALSE
-)
-YLD <- yield_answer$u
-e <- as.matrix(YLD)
-pred_yield_valid <- m_valid19_18 %*% e
-pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
-pred_yield
-yield_valid <- Pheno_valid19_18[, "GRYLD"]
-cor.test(pred_yield_valid, yield_valid)
-
-## 2019 predicting 2017
-yield <- (Pheno_train19_17[, "GRYLD"])
-yield_answer <- mixed.solve(yield,
-                            Z = m_train19_17,
-                            K = NULL, SE = FALSE, return.Hinv = FALSE
-)
-YLD <- yield_answer$u
-e <- as.matrix(YLD)
-pred_yield_valid <- m_valid17_19 %*% e
-pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
-pred_yield
-yield_valid <- Pheno_valid17_19[, "GRYLD"]
-cor.test(pred_yield_valid, yield_valid)
-
-## 2019 predicting 2018
-yield <- (Pheno_train19_18[, "GRYLD"])
-yield_answer <- mixed.solve(yield,
-                            Z = m_train19_18,
-                            K = NULL, SE = FALSE, return.Hinv = FALSE
-)
-YLD <- yield_answer$u
-e <- as.matrix(YLD)
-pred_yield_valid <- m_valid18_19 %*% e
-pred_yield <- (pred_yield_valid[, 1]) + yield_answer$beta
-pred_yield
-yield_valid <- Pheno_valid18_19[, "GRYLD"]
-cor.test(pred_yield_valid, yield_valid)
+colMeans(covariate19)
 
 ###############################################################################
 #### Examining results ####
@@ -617,131 +557,250 @@ gs17_100 <- fread(
   "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy17.txt",
   header = T
 )
-
-gs17_100 <- gs17_100 %>%
-  mutate(Rep = row.names(gs17_100)) %>%
-  gather(key = "Trait", value = "Accuracy", RedEdge_20170609:GRYLD) %>%
-  # group_by(Trait) %>%
-  # summarise(average = mean(Accuracy), standardDeviation = sd(Accuracy)) %>%
-  separate(Trait, c("Trait", "Date"), sep = "_") %>%
-  filter(Trait != "RedEdge",
-         Trait != "NIR",
-         Trait != "GRVI",
-         Trait != "GRYLD")
+gs17_covar_100 <- fread(
+  "./R/rrBlup/HypothesisTwelve/GS_80_100_accuracy17_covariate.txt",
+  header = T
+)
 
 gs18_100 <- fread(
   "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy18.txt",
   header = T
 )
-
-gs18_100 <- gs18_100 %>%
-  mutate(Rep = row.names(gs18_100)) %>%
-  gather(key = "Trait", value = "Accuracy", RE_20180613:GRYLD) %>%
-  # group_by(Trait) %>%
-  # summarise(average = mean(Accuracy), standardDeviation = sd(Accuracy)) %>%
-  separate(Trait, c("Trait", "Date"), sep = "_") %>%
-  filter(Trait != "GRYLD",
-         Trait != "GRVI",
-         Trait != "Nir",
-         Trait != "RE",
-         Date >= "2018-02-01")
+gs18_covar_100 <- fread(
+  "./R/rrBlup/HypothesisTwelve/GS_80_100_accuracy18_covariate.txt",
+  header = T
+)
 
 gs19_100 <- fread(
   "./R/rrBlup/HypothesisTwelve/GenomicSelection_80_100_accuracy19.txt",
   header = T
 )
+gs19_covar_100 <- fread(
+  "./R/rrBlup/HypothesisTwelve/GS_80_100_accuracy19_covariate.txt",
+  header = T
+)
 
-gs19_100 <- gs19_100 %>%
-  mutate(Rep = row.names(gs19_100)) %>%
-  gather(key = "Trait", value = "Accuracy", RE_20190624:GRYLD) %>%
-  # group_by(Trait) %>%
-  # summarise(average = mean(Accuracy), standardDeviation = sd(Accuracy)) %>%
-  separate(Trait, c("Trait", "Date"), sep = "_") %>%
-  filter(Trait != "GRYLD",
-         Trait != "Nir",
-         Trait != "RE",
-         Date >= "20190201")
+gs17_100<- gs17_100 %>% 
+  mutate(Cycle = row_number()) %>% 
+  select(Cycle, GRYLD, everything()) %>%  
+  pivot_longer(cols = RedEdge_20170609:GNDVI_20170331,
+               names_to = "trait_id",
+               values_to = "Correlation") %>% 
+  separate(trait_id, into = c("trait_id","phenotype_date"),
+           sep = "_") %>% 
+  mutate(phenotype_date = replace_na(phenotype_date, "20170613"),
+    phenotype_date = as.Date(phenotype_date, format = "%Y%m%d"))
 
-gs17_100$Date <- as.Date(gs17_100$Date, format = "%Y%m%d")
-gs18_100$Date <- as.Date(gs18_100$Date, format = "%Y%m%d")
-gs19_100$Date <- as.Date(gs19_100$Date, format = "%Y%m%d")
+gs17_covar_100<- gs17_covar_100 %>% 
+  mutate(Cycle = row_number()) %>% 
+  select(Cycle, GRYLD_alone, everything()) %>%  
+  pivot_longer(cols = RedEdge_20170602:GNDVI_20170331,
+               names_to = "trait_id",
+               values_to = "Correlation") %>% 
+  separate(trait_id, into = c("trait_id","phenotype_date"),
+           sep = "_") %>% 
+  mutate(phenotype_date = replace_na(phenotype_date, "20170613"),
+         phenotype_date = as.Date(phenotype_date, format = "%Y%m%d"))
 
-p17<- ggplot(gs17_100, aes(x = Date, y = Accuracy)) +
-  geom_rect(xmin = as.Date("2017-03-28"),
-            xmax = as.Date("2017-06-13"),
-            ymin = (0.5026423 - 0.10890356),
-            ymax = (0.5026423 + 0.10890356),
-            fill = "#dadaeb") +
-  geom_boxplot(aes(group = Date), size = 1.25) +
-  geom_hline(
-    yintercept = 0.5026423, colour = "#810f7c",
-    size = 1.25, linetype = 2
+gs18_100<- gs18_100 %>% 
+  mutate(Cycle = row_number()) %>% 
+  select(Cycle, GRYLD, everything()) %>%  
+  pivot_longer(cols = RE_20180613:GNDVI_20171120,
+               names_to = "trait_id",
+               values_to = "Correlation") %>% 
+  separate(trait_id, into = c("trait_id","phenotype_date"),
+           sep = "_") %>% 
+  mutate(phenotype_date = replace_na(phenotype_date, "20180615"),
+         phenotype_date = as.Date(phenotype_date, format = "%Y%m%d"))
+
+gs18_covar_100<- gs18_covar_100 %>% 
+  mutate(Cycle = row_number()) %>% 
+  select(Cycle, GRYLD_alone, everything()) %>%  
+  pivot_longer(cols = RE_20180613:GNDVI_20171120,
+               names_to = "trait_id",
+               values_to = "Correlation") %>% 
+  separate(trait_id, into = c("trait_id","phenotype_date"),
+           sep = "_") %>% 
+  mutate(phenotype_date = replace_na(phenotype_date, "20180615"),
+         phenotype_date = as.Date(phenotype_date, format = "%Y%m%d"))
+
+colnames(gs19_100)
+
+gs19_100<- gs19_100 %>% 
+  mutate(Cycle = row_number()) %>% 
+  select(Cycle, GRYLD, everything()) %>%  
+  pivot_longer(cols = RE_20190624:GNDVI_20190103,
+               names_to = "trait_id",
+               values_to = "Correlation") %>% 
+  separate(trait_id, into = c("trait_id","phenotype_date"),
+           sep = "_") %>% 
+  mutate(phenotype_date = replace_na(phenotype_date, "20190627"),
+         phenotype_date = as.Date(phenotype_date, format = "%Y%m%d"))
+
+gs19_covar_100<- gs19_covar_100 %>% 
+  mutate(Cycle = row_number()) %>% 
+  select(Cycle, GRYLD_alone, everything()) %>%  
+  pivot_longer(cols = RE_20190624:GNDVI_20190103,
+               names_to = "trait_id",
+               values_to = "Correlation") %>% 
+  separate(trait_id, into = c("trait_id","phenotype_date"),
+           sep = "_") %>% 
+  mutate(phenotype_date = replace_na(phenotype_date, "20190627"),
+         phenotype_date = as.Date(phenotype_date, format = "%Y%m%d"))
+
+## Figures
+gs17_fig<- ggplot(data = gs17_100,
+                  mapping = aes(x = phenotype_date,
+                                y = Correlation,
+                                group = phenotype_date)) +
+  geom_rect(ymin = mean(gs17_100$GRYLD) - sd(gs17_100$GRYLD),
+            ymax = mean(gs17_100$GRYLD) + sd(gs17_100$GRYLD),
+            xmin = as.Date("2017-03-31"),
+            xmax = as.Date("2017-06-09"),
+            colour = "#bdbdbd",
+            fill = "#bdbdbd") +
+  geom_hline(yintercept = mean(gs17_100$GRYLD),
+             colour = "blue",
+             linetype = 2) +
+  geom_jitter(alpha = 0.05) +
+  geom_violin(fill = NA,
+              draw_quantiles = c(0.25, 0.5, 0.75)) +
+  facet_wrap(~trait_id, scales = "free") +
+  coord_cartesian(ylim = c(-1,1)) +
+  scale_x_date(
+    date_labels = "%m/%d",
+    date_breaks = "2 weeks"
   ) +
-  facet_wrap(~Trait, ncol = 3, scales = "free") +
-  coord_cartesian(ylim = c(-1, 1)) +
-  scale_x_date(date_breaks = "10 days",
-               date_labels = "%m/%d") +
-  labs(
-    title = "Genomic Prediction Accuracies 2016/2017 season",
-    y = "Average prediction accuracy"
-  )
+  labs(title = "2016/2017 Season",
+       subtitle = "No covariate")
+gs17_fig
 
-p17
-
-p18<- ggplot(gs18_100, aes(x = Date, y = Accuracy)) +
-  geom_rect(xmin = as.Date("2018-03-28"),
-            xmax = as.Date("2018-06-15"),
-            ymin = (0.2750485117 - 0.11826655),
-            ymax = (0.2750485117 + 0.11826655),
-            fill = "#dadaeb") +
-  geom_boxplot(aes(group = Date), size = 1.25) +
-  geom_hline(
-    yintercept = 0.2750485117, colour = "#810f7c",
-    size = 1.25, linetype = 2
+gs17_covar_fig<- ggplot(data = gs17_covar_100,
+                  mapping = aes(x = phenotype_date,
+                                y = Correlation,
+                                group = phenotype_date)) +
+  geom_rect(ymin = mean(gs17_covar_100$GRYLD_alone) - sd(gs17_covar_100$GRYLD_alone),
+            ymax = mean(gs17_covar_100$GRYLD_alone) + sd(gs17_covar_100$GRYLD_alone),
+            xmin = as.Date("2017-03-31"),
+            xmax = as.Date("2017-06-09"),
+            colour = "#bdbdbd",
+            fill = "#bdbdbd") +
+  geom_hline(yintercept = mean(gs17_covar_100$GRYLD_alone),
+             colour = "blue",
+             linetype = 2) +
+  geom_jitter(alpha = 0.05) +
+  geom_violin(fill = NA,
+              draw_quantiles = c(0.25, 0.5, 0.75)) +
+  facet_wrap(~trait_id, scales = "free") +
+  coord_cartesian(ylim = c(-1,1)) +
+  scale_x_date(
+    date_labels = "%m/%d",
+    date_breaks = "2 weeks"
   ) +
-  facet_wrap(~Trait, ncol = 3, scales = "free") +
-  coord_cartesian(ylim = c(-1, 1)) +
-  scale_x_date(date_breaks = "10 days",
-               date_labels = "%m/%d") +
-  labs(
-    title = "Genomic Prediction Accuracies 2017/2018 season",
-    y = "Average prediction accuracy"
-  )
+  labs(title = "2016/2017 Season",
+       subtitle = "GP for GRYLD, VI as covariate")
+gs17_covar_fig
 
-p18
-
-p19<- ggplot(gs19_100, aes(x = Date, y = Accuracy)) +
-  geom_rect(xmin = as.Date("2019-04-10"),
-            xmax = as.Date("2019-06-26"),
-            ymin = (0.5057405 - 0.08746278),
-            ymax = (0.5057405 + 0.08746278),
-            fill = "#dadaeb") +
-  geom_boxplot(aes(group = Date), size = 1.25) +
-  geom_hline(
-    yintercept = 0.5057405, colour = "#810f7c",
-    size = 1.25, linetype = 2
+gs18_fig<- ggplot(data = gs18_100,
+                  mapping = aes(x = phenotype_date,
+                                y = Correlation,
+                                group = phenotype_date)) +
+  geom_rect(ymin = mean(gs18_100$GRYLD) - sd(gs18_100$GRYLD),
+            ymax = mean(gs18_100$GRYLD) + sd(gs18_100$GRYLD),
+            xmin = as.Date("2017-11-20"),
+            xmax = as.Date("2018-06-13"),
+            colour = "#bdbdbd",
+            fill = "#bdbdbd") +
+  geom_hline(yintercept = mean(gs18_100$GRYLD),
+             colour = "blue",
+             linetype = 2) +
+  geom_jitter(alpha = 0.05) +
+  geom_violin(fill = NA,
+              draw_quantiles = c(0.25, 0.5, 0.75)) +
+  facet_wrap(~trait_id, scales = "free") +
+  coord_cartesian(ylim = c(-1,1)) +
+  scale_x_date(
+    date_labels = "%m/%d",
+    date_breaks = "2 weeks"
   ) +
-  facet_wrap(~Trait, ncol = 3, scales = "free") +
-  coord_cartesian(ylim = c(-1, 1)) +
-  scale_x_date(date_breaks = "10 days",
-               date_labels = "%m/%d") +
-  labs(
-    title = "Genomic Prediction Accuracies 2018/2019 season",
-    y = "Average prediction accuracy"
-  )
+  labs(title = "2017/2018 Season",
+       subtitle = "No covariate")
+gs18_fig
 
-p19
+gs18_covar_fig<- ggplot(data = gs18_covar_100,
+                        mapping = aes(x = phenotype_date,
+                                      y = Correlation,
+                                      group = phenotype_date)) +
+  geom_rect(ymin = mean(gs18_covar_100$GRYLD_alone) - sd(gs18_covar_100$GRYLD_alone),
+            ymax = mean(gs18_covar_100$GRYLD_alone) + sd(gs18_covar_100$GRYLD_alone),
+            xmin = as.Date("2017-11-20"),
+            xmax = as.Date("2018-06-13"),
+            colour = "#bdbdbd",
+            fill = "#bdbdbd") +
+  geom_hline(yintercept = mean(gs18_covar_100$GRYLD_alone),
+             colour = "blue",
+             linetype = 2) +
+  geom_jitter(alpha = 0.05) +
+  geom_violin(fill = NA,
+              draw_quantiles = c(0.25, 0.5, 0.75)) +
+  facet_wrap(~trait_id, scales = "free") +
+  coord_cartesian(ylim = c(-1,1)) +
+  scale_x_date(
+    date_labels = "%m/%d",
+    date_breaks = "2 weeks"
+  ) +
+  labs(title = "2017/2018 Season",
+       subtitle = "GP for GRYLD, VI as covariate")
+gs18_covar_fig
 
-ggarrange(p17,p18,p19, ncol = 1)
-ggsave("./Figures/GPaccuracies_all.png", width = 25, height = 15)
+gs19_fig<- ggplot(data = gs19_100,
+                  mapping = aes(x = phenotype_date,
+                                y = Correlation,
+                                group = phenotype_date)) +
+  geom_rect(ymin = mean(gs19_100$GRYLD) - sd(gs19_100$GRYLD),
+            ymax = mean(gs19_100$GRYLD) + sd(gs19_100$GRYLD),
+            xmin = as.Date("2019-01-03"),
+            xmax = as.Date("2019-06-24"),
+            colour = "#bdbdbd",
+            fill = "#bdbdbd") +
+  geom_hline(yintercept = mean(gs19_100$GRYLD),
+             colour = "blue",
+             linetype = 2) +
+  geom_jitter(alpha = 0.05) +
+  geom_violin(fill = NA,
+              draw_quantiles = c(0.25, 0.5, 0.75)) +
+  facet_wrap(~trait_id, scales = "free") +
+  coord_cartesian(ylim = c(-1,1)) +
+  scale_x_date(
+    date_labels = "%m/%d",
+    date_breaks = "2 weeks"
+  ) +
+  labs(title = "2018/2019 Season",
+       subtitle = "No covariate")
+gs19_fig
 
-gryldBlues<- dat17 %>% 
-  tidylog::select(rn, GRYLD) %>% 
-  rename(GRYLD_17 = GRYLD) %>% 
-  left_join(dat18) %>% 
-  tidylog::select(rn, GRYLD_17, GRYLD) %>% 
-  rename(GRYLD_18 = GRYLD) %>% 
-  left_join(dat19) %>% 
-  tidylog::select(rn, GRYLD_17, GRYLD_18, GRYLD) 
-
-cor.test(gryldBlues$GRYLD,gryldBlues$GRYLD_18)
+gs19_covar_fig<- ggplot(data = gs19_covar_100,
+                        mapping = aes(x = phenotype_date,
+                                      y = Correlation,
+                                      group = phenotype_date)) +
+  geom_rect(ymin = mean(gs19_covar_100$GRYLD_alone) - sd(gs19_covar_100$GRYLD_alone),
+            ymax = mean(gs19_covar_100$GRYLD_alone) + sd(gs19_covar_100$GRYLD_alone),
+            xmin = as.Date("2019-01-03"),
+            xmax = as.Date("2019-06-24"),
+            colour = "#bdbdbd",
+            fill = "#bdbdbd") +
+  geom_hline(yintercept = mean(gs19_covar_100$GRYLD_alone),
+             colour = "blue",
+             linetype = 2) +
+  geom_jitter(alpha = 0.05) +
+  geom_violin(fill = NA,
+              draw_quantiles = c(0.25, 0.5, 0.75)) +
+  facet_wrap(~trait_id, scales = "free") +
+  coord_cartesian(ylim = c(-1,1)) +
+  scale_x_date(
+    date_labels = "%m/%d",
+    date_breaks = "2 weeks"
+  ) +
+  labs(title = "2018/2019 Season",
+       subtitle = "GP for GRYLD, VI as covariate")
+gs19_covar_fig

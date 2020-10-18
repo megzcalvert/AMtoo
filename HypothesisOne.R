@@ -158,6 +158,19 @@ pheno_long <- readRDS("./Phenotype_Database/Pheno171819.RDS")
 
 glimpse(pheno_long)
 
+snpChip <- read_delim(
+  "./Genotype_Database/90KsnpChipHapMap/AMsnpChipImputed.hmp.txt",
+  "\t",
+  escape_double = FALSE, trim_ws = TRUE
+)
+snpChip <- snpChip %>%
+  clean_names()
+
+snpLines <- as.data.frame(colnames(snpChip[, 13:ncol(snpChip)]))
+colnames(snpLines) <- "Variety"
+
+rm(snpChip)
+
 # What lines are in the data and how often
 iniNames <- tabyl(pheno_long$Variety)
 names(iniNames)[1:2] <- c("Variety", "Count")
@@ -190,8 +203,8 @@ ff <- function(x, patterns, replacements = patterns, fill = NA, ...) {
 
 # Adding a year column based on the entity_id
 pheno_long$year <- ff(pheno_long$entity_id,
-  c("17ASH", "18ASH", "19RKY"),
-  c("17", "18", "19"),
+  c("17ASH", "18ASH", "19RKY", "20ASH"),
+  c("17", "18", "19", "20"),
   "NA",
   ignore.case = TRUE
 )
@@ -218,7 +231,8 @@ pheno_long <- pheno_long %>%
   filter(!is.na(Variety)) %>%
   filter(rep != 0) %>%
   filter(!is.na(rep)) %>%
-  filter(trait_id != "NOTES")
+  filter(trait_id != "NOTES") %>%
+  semi_join(snpLines, by = "Variety")
 
 finalNames <- tabyl(pheno_long$Variety)
 
@@ -366,7 +380,7 @@ head.dates <- data.frame(
 )
 
 ## first example
-test.plot <- "18ASH30001"
+test.plot <- "18ASH30003"
 
 sample <- pheno_pcthead[pheno_pcthead$entity_id == test.plot, ]
 sample$phenotype_value <- as.numeric(sample$phenotype_value)
@@ -412,7 +426,7 @@ head.dates <- data.frame(
 )
 
 ## first example
-test.plot <- "19RKY00728"
+test.plot <- "19RKY00002"
 
 sample <- pheno_pcthead[pheno_pcthead$entity_id == test.plot, ]
 sample$phenotype_value <- as.numeric(sample$phenotype_value)
@@ -458,10 +472,13 @@ write.table(plotDates18, "./Phenotype_Database/HDDT2018.txt",
   col.names = T, row.names = F, sep = "\t", quote = F
 )
 write.table(plotDates19, "./Phenotype_Database/HDDT2019.txt",
+  col.names = T, row.names = F, sep = "\t", quote = F
+)
+write.table(plotDates20, "./Phenotype_Database/HDDT2020.txt",
             col.names = T, row.names = F, sep = "\t", quote = F
 )
 write.table(pheno_long,
-  file = "./Phenotype_Database/Pheno_Long171819.txt",
+  file = "./Phenotype_Database/Pheno_Long17181920.txt",
   col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
 )
 write.table(pheno_awns,
@@ -471,11 +488,11 @@ write.table(pheno_awns,
 
 rm(
   hddt17, hddt18, head.dates, iniNames, modNames, n, pheno_long, pheno_pcthead,
-  sample, test, vis.logistic, i, plots, plots17, plots18, plots19, getPred, 
+  sample, test, vis.logistic, i, plots, plots17, plots18, plots19, getPred,
   runLogReg, test.plot
 )
 
-pheno_long <- fread("./Phenotype_Database/Pheno_Long171819.txt", header = T)
+pheno_long <- fread("./Phenotype_Database/Pheno_Long17181920.txt", header = T)
 plotDates17 <- fread("./Phenotype_Database/HDDT2017.txt")
 plotDates18 <- fread("./Phenotype_Database/HDDT2018.txt")
 plotDates19 <- fread("./Phenotype_Database/HDDT2019.txt")
@@ -491,9 +508,11 @@ pheno17 <- pheno_long %>%
   left_join(plotDates17,
     by = c("entity_id" = "plots17")
   ) %>%
-  tidylog::select(entity_id, trait_id, phenotype_value, phenotype_person, 
-                  hddt17, numHddt17) %>%
-  mutate(hddt17 = as.Date(hddt17)) 
+  tidylog::select(
+    entity_id, trait_id, phenotype_value, phenotype_person,
+    hddt17, numHddt17
+  ) %>%
+  mutate(hddt17 = as.Date(hddt17))
 
 pheno18 <- pheno_long %>%
   filter(year == "18") %>%
@@ -503,17 +522,17 @@ pheno18 <- pheno_long %>%
     by = c("entity_id" = "plots18")
   ) %>%
   tidylog::select(entity_id, trait_id, phenotype_value, hddt18, numHddt18) %>%
-  mutate(hddt18 = as.Date(hddt18)) 
+  mutate(hddt18 = as.Date(hddt18))
 
 pheno19 <- pheno_long %>%
   filter(year == "19") %>%
   filter(trait_id == "GRYLD") %>%
   dplyr::arrange(entity_id) %>%
   left_join(plotDates19,
-            by = c("entity_id" = "plots19")
+    by = c("entity_id" = "plots19")
   ) %>%
   tidylog::select(entity_id, trait_id, phenotype_value, hddt19, numHddt19) %>%
-  mutate(hddt19 = as.Date(hddt19)) 
+  mutate(hddt19 = as.Date(hddt19))
 
 str(pheno17)
 
@@ -530,9 +549,10 @@ ggplot(pheno17, aes(x = hddt17, y = phenotype_value)) +
     x = "HDDT",
     title = "GRYLD vs HDDT 2016/2017"
   ) +
+  coord_cartesian(ylim = c(0, 13)) +
   annotate("text",
-    x = as.Date("2017-05-13"), y = 6.5,
-    label = "italic(r) == -0.468",
+    x = as.Date("2017-05-13"), y = 10,
+    label = "italic(r) == -0.399",
     parse = TRUE, size = 8
   )
 
@@ -546,9 +566,10 @@ ggplot(pheno18, aes(x = hddt18, y = phenotype_value)) +
     x = "HDDT",
     title = "GRYLD vs HDDT 2017/2018"
   ) +
+  coord_cartesian(ylim = c(0, 13)) +
   annotate("text",
-    x = as.Date("2018-05-19"), y = 5,
-    label = "italic(r) == 0.0008",
+    x = as.Date("2018-05-19"), y = 10,
+    label = "italic(r) == -0.0529",
     parse = TRUE, size = 8
   )
 
@@ -562,15 +583,17 @@ ggplot(pheno19, aes(x = hddt19, y = phenotype_value)) +
     x = "HDDT",
     title = "GRYLD vs HDDT 2018/2019"
   ) +
+  coord_cartesian(ylim = c(0, 13)) +
   annotate("text",
-           x = as.Date("2019-05-23"), y = 9.5,
-           label = "italic(r) == -0.510",
-           parse = TRUE, size = 8
+    x = as.Date("2019-05-23"), y = 10,
+    label = "italic(r) == -0.491",
+    parse = TRUE, size = 8
   )
 
 tidy(cor.test(pheno17$numHddt17, pheno17$phenotype_value))
 tidy(cor.test(pheno18$numHddt18, pheno18$phenotype_value))
 tidy(cor.test(pheno19$numHddt19, pheno19$phenotype_value))
+tidy(cor.test(pheno20$numHddt20, pheno20$phenotype_value))
 
 linReg2017 <- lm(phenotype_value ~ numHddt17, data = pheno17)
 summary(linReg2017)
@@ -632,14 +655,14 @@ cutoff <- 4 / ((nrow(pheno19) - length(linReg2019$coefficients) - 2))
 plot(linReg2019, which = 4, cook.levels = cutoff)
 # Influence Plot
 influencePlot(linReg2019,
-              id.method = "identify",
-              main = "Influence Plot",
-              sub = "Circle size is proportial to Cook's Distance"
+  id.method = "identify",
+  main = "Influence Plot",
+  sub = "Circle size is proportial to Cook's Distance"
 )
 
 # Non-normality
 
-sresid <- studres(linReg2017)
+sresid <- MASS::studres(linReg2017)
 hist(sresid,
   freq = FALSE,
   main = "Distribution of Studentized Residuals"
@@ -648,7 +671,7 @@ xfit <- seq(min(sresid), max(sresid), length = 40)
 yfit <- dnorm(xfit)
 lines(xfit, yfit)
 
-sresid <- studres(linReg2018)
+sresid <- MASS::studres(linReg2018)
 hist(sresid,
   freq = FALSE,
   main = "Distribution of Studentized Residuals"
@@ -657,10 +680,10 @@ xfit <- seq(min(sresid), max(sresid), length = 40)
 yfit <- dnorm(xfit)
 lines(xfit, yfit)
 
-sresid <- studres(linReg2019)
+sresid <- MASS::studres(linReg2019)
 hist(sresid,
-     freq = FALSE,
-     main = "Distribution of Studentized Residuals"
+  freq = FALSE,
+  main = "Distribution of Studentized Residuals"
 )
 xfit <- seq(min(sresid), max(sresid), length = 40)
 yfit <- dnorm(xfit)
@@ -690,7 +713,6 @@ crPlots(linReg2019)
 durbinWatsonTest(linReg2017)
 durbinWatsonTest(linReg2018)
 durbinWatsonTest(linReg2019)
-
 
 gvmodel <- gvlma(linReg2017)
 summary(gvmodel)

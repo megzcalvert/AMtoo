@@ -166,7 +166,7 @@ nested17 %>%
     date_labels = "%d%b"
   ) +
   labs(title = "Correlation with CI 2017") +
-  ylab("Pearson correlation co-efficient") 
+  ylab("Pearson correlation co-efficient")
 
 nested18 %>%
   ggplot(aes(x = Date, y = estimate, color = ID)) +
@@ -181,7 +181,7 @@ nested18 %>%
     date_labels = "%d%b"
   ) +
   labs(title = "Correlation with CI 2018") +
-  ylab("Pearson correlation co-efficient") 
+  ylab("Pearson correlation co-efficient")
 
 nested19 %>%
   ggplot(aes(x = Date, y = estimate, color = ID)) +
@@ -196,7 +196,7 @@ nested19 %>%
     date_labels = "%d%b"
   ) +
   labs(title = "Correlation with CI 2019") +
-  ylab("Pearson correlation co-efficient") 
+  ylab("Pearson correlation co-efficient")
 
 write.table(nested17, "./Phenotype_Database/Correlation_VI_2017.txt",
   sep = "\t", quote = F, row.names = F, col.names = T

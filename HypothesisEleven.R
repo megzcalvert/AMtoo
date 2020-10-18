@@ -7,7 +7,6 @@ library(tidylog)
 library(readr)
 library(data.table)
 library(asreml)
-library(beepr)
 library(rrBLUP)
 library(Hmisc)
 library(MVN)
@@ -73,15 +72,28 @@ pheno17<- fread("./Phenotype_Database/pheno17_htpLong.txt")
 pheno18<- fread("./Phenotype_Database/pheno18_htpLong.txt")
 pheno19<- fread("./Phenotype_Database/pheno19_htpLong.txt")
 phenoLong<- fread("./Phenotype_Database/Pheno_Long171819.txt")
+pheno_awns<- fread("./Phenotype_Database/Pheno_LongAwns.txt")
+hddt17<- fread("./Phenotype_Database/HDDT2017.txt")
+hddt18<- fread("./Phenotype_Database/HDDT2018.txt")
+hddt19<- fread("./Phenotype_Database/HDDT2019.txt")
 
 glimpse(pheno17)
 glimpse(pheno18)
 glimpse(pheno19)
 glimpse(phenoLong)
+glimpse(pheno_awns)
 
+pheno_awns<- pheno_awns %>% 
+  tidylog::select(Variety, phenotype_value) %>% 
+  tidylog::distinct() %>% 
+  arrange(Variety) %>% 
+  tidylog::rename(rn = Variety) %>% 
+  tidylog::mutate(Awned = if_else(phenotype_value == "Awned", 1, 0)) 
+  
 phenoLong<- phenoLong %>% 
   dplyr::rename(Plot_ID = entity_id) %>% 
-  tidylog::select(Plot_ID,Variety,block,rep,range,column)
+  tidylog::select(Plot_ID,Variety,block,rep,range,column) %>% 
+  arrange(Variety)
 
 pheno17$Date<- as.Date(pheno17$Date,format = "%Y-%m-%d")
 pheno17$Date<- format(pheno17$Date, "%Y%m%d")
@@ -96,9 +108,12 @@ pheno17<- pheno17 %>%
   tidylog::select(Plot_ID,Variety,GRYLD,
                   GNDVI_20170331:RedEdge_20170609) %>% 
   tidylog::inner_join(phenoLong) %>% 
+  tidylog::inner_join(hddt17, by = c("Plot_ID" = "plots17")) %>% 
+  tidylog::select(-hddt17) %>% 
   glimpse() %>% 
   distinct() %>% 
-  glimpse()
+  glimpse() %>% 
+  arrange(Variety)
 
 pheno18<- pheno18 %>% 
   dplyr::rename(Plot_ID = entity_id)  %>% 
@@ -107,9 +122,12 @@ pheno18<- pheno18 %>%
   tidylog::select(Plot_ID,Variety,GRYLD,
                   GNDVI_20171120:RE_20180613) %>% 
   tidylog::inner_join(phenoLong) %>% 
+  tidylog::inner_join(hddt18, by = c("Plot_ID" = "plots18")) %>% 
+  tidylog::select(-hddt18) %>% 
   glimpse() %>% 
   distinct() %>% 
-  glimpse()
+  glimpse() %>% 
+  arrange(Variety)
 
 pheno19<- pheno19 %>% 
   dplyr::rename(Plot_ID = entity_id)  %>% 
@@ -118,9 +136,12 @@ pheno19<- pheno19 %>%
   tidylog::select(Plot_ID,Variety,GRYLD,
                   GNDVI_20190103:RE_20190624) %>% 
   tidylog::inner_join(phenoLong) %>% 
+  tidylog::inner_join(hddt19, by = c("Plot_ID" = "plots19")) %>% 
+  tidylog::select(-hddt19) %>% 
   glimpse() %>% 
   distinct() %>% 
-  glimpse()
+  glimpse() %>% 
+  arrange(Variety)
 
 pheno17$Plot_ID<- as.factor(pheno17$Plot_ID)
 pheno17$Variety<- as.factor(pheno17$Variety)
@@ -223,30 +244,36 @@ asreml.license.status()
 
 set.seed(1962)
 
+dat<- pheno17 %>% 
+  dplyr::select(GRYLD, Variety, rep, block)
+
 t17<- asreml(fixed = GRYLD ~ 0 + Variety,
              random = ~ rep + rep:block,
-             data = pheno17)
+             data = dat)
 plot(t17)
 blues<- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
 blues$rn<- str_remove(blues$rn,"Variety_")
 dat17<- blues %>% 
-  rename(GRYLD = effect) %>% 
+  tidylog::rename(GRYLD = effect) %>% 
   glimpse() 
 
 ##### Generating all 2017 VI BLUEs
 
-effectvars <- names(pheno17) %in% c("block", "rep", "Variety", "year", 
+effectvars <-  c("block", "rep", "Variety", "year", 
                                     "column","range", "Plot_ID","GRYLD")
-traits <- colnames(pheno17[ , !effectvars])
+traits <- pheno17 %>% 
+  dplyr::select(!any_of(effectvars)) %>% 
+  colnames()
 traits
 fieldInfo<- pheno17 %>% 
   tidylog::select(Variety, rep, block, column, range)
 
 for (i in traits) {
   print(paste("Working on trait", i))
-  j<- i
+  j<- pheno17 %>% 
+    pull(i)
   
-  data<- cbind(fieldInfo, pheno17[,paste(i)])
+  data<- cbind(fieldInfo, j)
   names(data)<- c("Variety","rep","block","column","range","Trait")
   print(colnames(data))
   
@@ -262,35 +289,37 @@ for (i in traits) {
   
 }
 
-beep(2)
-
 dat17[1:5,1:15]
 
 #### All of 2018
+dat<- pheno18 %>% 
+  dplyr::select(GRYLD,Variety,rep,block) %>% 
+  arrange(Variety)
+
 t18<- asreml(fixed = GRYLD ~ 0 + Variety,
              random = ~ rep + rep:block,
-             data = pheno18)
+             data = dat)
 plot(t18)
 blues<- setDT(as.data.frame(coef(t18)$fixed), keep.rownames = T)
 blues$rn<- str_remove(blues$rn,"Variety_")
 dat18<- blues %>% 
-  rename(GRYLD = effect) %>% 
+  tidylog::rename(GRYLD = effect) %>% 
   glimpse() 
 
 ##### Generating all 2018 VI BLUEs
 
-effectvars <- names(pheno18) %in% c("block", "rep", "Variety", "year", 
-                                    "column","range", "Plot_ID","GRYLD")
-traits <- colnames(pheno18[ , !effectvars])
+traits <- pheno18 %>% 
+  dplyr::select(!any_of(effectvars)) %>% 
+  colnames()
 traits
 fieldInfo<- pheno18 %>% 
   tidylog::select(Variety, rep, block, column, range)
 
 for (i in traits) {
   print(paste("Working on trait", i))
-  j<- i
-  
-  data<- cbind(fieldInfo, pheno18[,paste(i)])
+  j<- pheno18 %>% 
+    pull(i)
+  data<- cbind(fieldInfo, j)
   names(data)<- c("Variety","rep","block","column","range","Trait")
   print(colnames(data))
   
@@ -306,35 +335,40 @@ for (i in traits) {
   
 }
 
-beep(2)
-
 dat18[1:5,1:15]
 
 #### All of 2019
+dat<- pheno19 %>% 
+  dplyr::select(GRYLD,Variety,rep,block) %>% 
+  arrange(Variety)
+
 t19<- asreml(fixed = GRYLD ~ 0 + Variety,
              random = ~ rep + rep:block,
-             data = pheno19)
+             data = dat)
 plot(t19)
 blues<- setDT(as.data.frame(coef(t19)$fixed), keep.rownames = T)
 blues$rn<- str_remove(blues$rn,"Variety_")
 dat19<- blues %>% 
-  rename(GRYLD = effect) %>% 
+  tidylog::rename(GRYLD = effect) %>% 
   glimpse() 
 
 ##### Generating all 2019 VI BLUEs
 
-effectvars <- names(pheno19) %in% c("block", "rep", "Variety", "year", 
-                                    "column","range", "Plot_ID","GRYLD")
-traits <- colnames(pheno19[ , !effectvars])
+traits <- pheno19 %>% 
+  dplyr::select(!any_of(effectvars)) %>% 
+  colnames()
 traits
+
 fieldInfo<- pheno19 %>% 
   tidylog::select(Variety, rep, block, column, range)
 
 for (i in traits) {
   print(paste("Working on trait", i))
-  j<- i
+  j<- pheno19 %>% 
+    pull(i)
   
-  data<- cbind(fieldInfo, pheno19[,paste(i)])
+  data<- cbind(fieldInfo, j)
+
   names(data)<- c("Variety","rep","block","column","range","Trait")
   print(colnames(data))
   
@@ -350,8 +384,6 @@ for (i in traits) {
   
 }
 
-beep(2)
-
 dat19[1:5,1:15]
 
 snpChip[1:10,1:10]
@@ -360,20 +392,58 @@ snpMatrix[1:10,1:10]
 snpLines<- setDT(
   as.data.frame(colnames(snpChip[,3:ncol(snpChip)])))
 colnames(snpLines)<- "rn"
-dat17<- semi_join(dat17,snpLines, by = "rn")
+dat17<- semi_join(dat17,snpLines, by = "rn") %>% 
+  dplyr::arrange(var = "rn")
 colnames(dat17)[colnames(dat17)=="rn"] <- "Taxa"
 
-dat18<- semi_join(dat18,snpLines, by = "rn")
+dat18<- semi_join(dat18,snpLines, by = "rn") %>% 
+ dplyr::arrange(var = "rn")
 colnames(dat18)[colnames(dat18)=="rn"] <- "Taxa"
 
-dat19<- semi_join(dat19,snpLines, by = "rn")
+dat19<- semi_join(dat19,snpLines, by = "rn") %>% 
+  dplyr::arrange(var = "rn")
 colnames(dat19)[colnames(dat19)=="rn"] <- "Taxa"
+
+pheno_awns<- pheno_awns %>% 
+  dplyr::select(phenotype_value,rn) %>% 
+  distinct() 
+
+#Function to add a column based on a portion of text in another column
+ff = function(x, patterns, replacements = patterns, fill = NA, ...)
+{
+  stopifnot(length(patterns) == length(replacements))
+  
+  ans = rep_len(as.character(fill), length(x))    
+  empty = seq_along(x)
+  
+  for(i in seq_along(patterns)) {
+    greps = grepl(patterns[[i]], x[empty], ...)
+    ans[empty[greps]] = replacements[[i]]  
+    empty = empty[!greps]
+  }
+  
+  return(ans)
+}
+
+#Adding a year column based on the entity_id
+pheno_awns$phenotype_value<- ff(pheno_awns$phenotype_value, 
+                                c("Awned","Awnless"), 
+                                c("1", "0"),
+                     "NA", ignore.case = TRUE)
+
+dat_awns<- semi_join(pheno_awns,snpLines) %>% 
+  mutate(phenotype_value = as.numeric(phenotype_value)) %>% 
+  tidylog::select(rn, phenotype_value) %>% 
+  dplyr::arrange(var = "rn")
+colnames(dat_awns)[colnames(dat_awns)=="rn"] <- "Taxa"
 
 write.table(dat17,file = "./Phenotype_Database/ASREMLBlup_2017.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
 write.table(dat18,file = "./Phenotype_Database/ASREMLBlup_2018.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
 write.table(dat19,file = "./Phenotype_Database/ASREMLBlup_2019.txt",quote = F,
+            sep = "\t",row.names = F,col.names = T)
+write.table(dat_awns,file = "./Phenotype_Database/ASREMLBlup_awns.txt",quote = F,
             sep = "\t",row.names = F,col.names = T)
 
 numberedCols<- paste(1:(ncol(myGD)-1), sep = ",")
@@ -389,16 +459,6 @@ write.table(myGM,"./R/Gapit/HypothesisEleven/myGM.txt",sep = "\t", quote = F,
             col.names = T, row.names = F)
 
 ##### GAPIT Trial ####
-
-BiocManager::install("multtest")
-BiocManager::install("snpStats")
-
-install.packages("gplots")
-install.packages("LDheatmap")
-install.packages("genetics")
-install.packages("ape")
-install.packages("EMMREML")
-install.packages("scatterplot3d")
 
 library(multtest)
 library(readr)
@@ -420,27 +480,51 @@ setwd("~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/")
 
 #Step 1: Set working directory and import data
 myY <- read.table(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2019.txt", head = TRUE)
-myY[1:10,1:10]
+  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2017.txt", head = TRUE)
+myY[1:10,]
 
 myGD <- read.table("./myGD.txt", head = TRUE)
+myGD<- myGD %>% 
+  dplyr::arrange(var = "Taxa")
 myGD[1:5,1:5]
+
 myGM <- read.table("./myGM.txt", head = TRUE)
 myGM[1:5,]
 
+getwd()
 setwd(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/PC3_2019")
+  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/PC4_01_2017/")
+
+# #Step 2: Run GAPIT 
+myGAPIT <- GAPIT(
+  Y = myY,
+  GD = myGD,
+  GM = myGM ,
+  PCA.total = 4,
+  cutOff = 0.05
+)
+
+## 2018
+myY <- read.table(
+  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2018.txt", head = TRUE)
+myY[1:10,]
+
+setwd(
+  "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/PC4_01_2018/")
 
 #Step 2: Run GAPIT 
 myGAPIT <- GAPIT(
   Y = myY,
   GD = myGD,
   GM = myGM ,
-  PCA.total = 3,
+  PCA.total = 4,
   cutOff = 0.05
 )
 
-beep(1)
+## 2019
+myY <- read.table(
+  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2019.txt", head = TRUE)
+myY[1:10,]
 
 setwd(
   "~/Dropbox/Research_Poland_Lab/AM Panel/R/Gapit/HypothesisEleven/PC4_2019")
@@ -453,40 +537,3 @@ myGAPIT <- GAPIT(
   PCA.total = 4,
   cutOff = 0.05
 )
-
-beep(1)
-
-
-myY <- read.table(
-  "~/Dropbox/Research_Poland_Lab/AM Panel/Phenotype_Database/ASREMLBlup_2019.txt", 
-  head = TRUE)
-myY[1:10,1:10]
-
-myGD <- read.table("./myGD.txt", head = TRUE)
-myGD[1:5,1:5]
-myGM <- read.table("./myGM.txt", head = TRUE)
-myGM[1:5,]
-
-#Step 2: Run GAPIT 
-myGAPIT <- GAPIT(
-  Y = myY,
-  GD = myGD,
-  GM = myGM ,
-  PCA.total = 3,
-  #Model.selection = TRUE,
-  kinship.cluster = "average",
-  kinship.group = "Mean",
-  group.from = 299,
-  group.to = 299
-)
-
-par(mfcol = c(1,2))
-
-
-tnoKnoPC<- GWAS(dat17[,c("rn","GRYLD")],geno = snpChip, fixed = NULL, K = NULL, 
-                n.PC = 0, min.MAF = 0.05, n.core = 1, P3D = TRUE, plot = TRUE)
-
-K = A.mat(snpMatrix)
-
-tKnoPC<- GWAS(dat17[,c("rn","GRYLD")],geno = snpChip, fixed = NULL, K = K, 
-              n.PC = 0, min.MAF = 0.05, n.core = 1, P3D = TRUE, plot = TRUE)

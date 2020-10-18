@@ -171,7 +171,8 @@ snpMatrix <- t(snpChip[, c(-1, -2, -3)])
 snpMatrix %>% glimpse()
 snpMatrix[1:10, 1:10]
 
-snpMatrix <- setDT(as.data.frame(snpMatrix), keep.rownames = T)
+snpMatrix <- setDT(as.data.frame(snpMatrix), keep.rownames = T) %>% 
+  arrange(rn)
 snpMatrix[1:10, 1:10]
 
 ##### Phenotypes ####
@@ -180,6 +181,9 @@ pheno17 <- fread("./Phenotype_Database/pheno17_htpLong.txt")
 pheno18 <- fread("./Phenotype_Database/pheno18_htpLong.txt")
 pheno19 <- fread("./Phenotype_Database/pheno19_htpLong.txt")
 phenoLong <- fread("./Phenotype_Database/Pheno_Long171819.txt")
+hddt17<- fread("./Phenotype_Database/HDDT2017.txt")
+hddt18<- fread("./Phenotype_Database/HDDT2018.txt")
+hddt19<- fread("./Phenotype_Database/HDDT2019.txt")
 
 glimpse(pheno17)
 glimpse(pheno18)
@@ -188,7 +192,8 @@ glimpse(phenoLong)
 
 phenoLong <- phenoLong %>%
   dplyr::rename(Plot_ID = entity_id) %>%
-  tidylog::select(Plot_ID, Variety, block, rep, range, column)
+  tidylog::select(Plot_ID, Variety, block, rep, range, column) %>% 
+  arrange(Variety)
 
 pheno17 <- pheno17 %>%
   mutate(
@@ -202,6 +207,8 @@ pheno17 <- pheno17 %>%
     GNDVI_20170331:RedEdge_20170609
   ) %>%
   tidylog::inner_join(phenoLong) %>%
+  tidylog::inner_join(hddt17, by = c("Plot_ID" = "plots17")) %>% 
+  tidylog::select(-hddt17) %>% 
   distinct() %>%
   mutate(
     Plot_ID = as.factor(Plot_ID),
@@ -210,7 +217,8 @@ pheno17 <- pheno17 %>%
     rep = as.factor(rep),
     range = as.factor(range),
     column = as.factor(column)
-  )
+  ) %>% 
+  arrange(Variety)
 
 pheno18 <- pheno18 %>%
   mutate(
@@ -225,7 +233,9 @@ pheno18 <- pheno18 %>%
     GNDVI_20171120:RE_20180613
   ) %>%
   tidylog::inner_join(phenoLong) %>%
-  tidylog::select(-starts_with("height_")) %>%
+  tidylog::inner_join(hddt18, by = c("Plot_ID" = "plots18")) %>% 
+  tidylog::select(-starts_with("height_"),
+                  -hddt18) %>%
   distinct() %>%
   mutate(
     Plot_ID = as.factor(Plot_ID),
@@ -234,7 +244,8 @@ pheno18 <- pheno18 %>%
     rep = as.factor(rep),
     range = as.factor(range),
     column = as.factor(column)
-  )
+  ) %>% 
+  arrange(Variety)
 
 pheno19 <- pheno19 %>%
   mutate(
@@ -249,7 +260,9 @@ pheno19 <- pheno19 %>%
     GNDVI_20190103:RE_20190624
   ) %>%
   tidylog::inner_join(phenoLong) %>%
-  tidylog::select(-starts_with("height_")) %>%
+  tidylog::inner_join(hddt19, by = c("Plot_ID" = "plots19")) %>% 
+  tidylog::select(-starts_with("height_"),
+                  -hddt19) %>%
   distinct() %>%
   mutate(
     Plot_ID = as.factor(Plot_ID),
@@ -258,7 +271,8 @@ pheno19 <- pheno19 %>%
     rep = as.factor(rep),
     range = as.factor(range),
     column = as.factor(column)
-  )
+  ) %>% 
+  arrange(Variety)
 
 asreml.license.status()
 
@@ -267,39 +281,50 @@ asreml.license.status()
 set.seed(1962)
 
 pheno17 <- pheno17 %>%
-  semi_join(snpMatrix, by = c("Variety" = "rn"))
+  semi_join(snpMatrix, by = c("Variety" = "rn")) %>% 
+  arrange(Variety)
 
 snpMatrix17 <- snpMatrix %>%
-  semi_join(pheno17, by = c("rn" = "Variety"))
+  semi_join(pheno17, by = c("rn" = "Variety")) %>% 
+  arrange(rn)
 snpMatrix17[1:5, 1:5]
 
 snpLines <- snpMatrix17$rn
 snpMatrix17 <- snpMatrix17 %>%
-  tidylog::select(-rn)
+  column_to_rownames(var = "rn")
+
+dim(pheno17)
+dim(snpMatrix17)
 
 mean(pheno17$GRYLD)
+
+dat<- pheno17 %>% 
+  tidylog::select(Variety,rep,block,GRYLD)
 
 t17 <- asreml(
   fixed = GRYLD ~ 0 + Variety,
   random = ~ rep + rep:block,
-  data = pheno17
+  data = dat
 )
 summary(t17)
 plot(t17)
 blues <- setDT(as.data.frame(coef(t17)$fixed), keep.rownames = T)
 blues$rn <- str_remove(blues$rn, "Variety_")
 dat17 <- blues %>%
-  rename(GRYLD = effect) %>%
+  dplyr::rename(GRYLD = effect) %>%
   glimpse()
 
 ##### Making it a function for all of the VI's 2017
 
 calculatingBlues <- function(dat, saveFile, joinFile, ...) {
-  effectvars <- names(dat) %in% c(
+  drop <- c(
     "block", "rep", "Variety", "year",
     "column", "range", "Plot_ID", "GRYLD"
   )
-  traits <- colnames(dat[, !effectvars])
+  effectvars <- dat %>% 
+    dplyr::select(!any_of(drop))
+  
+  traits <- colnames(effectvars)
   traits
   fieldInfo <- dat %>%
     tidylog::select(Variety, rep, block, column, range)
@@ -308,7 +333,10 @@ calculatingBlues <- function(dat, saveFile, joinFile, ...) {
     print(paste("Working on trait", i))
     j <- i
     
-    data <- cbind(fieldInfo, dat[, paste(i)])
+    traitData<- dat %>% 
+      pull(i)
+    
+    data <- cbind(fieldInfo, traitData)
     names(data) <- c("Variety", "rep", "block", "column", "range", "Trait")
     print(colnames(data))
     
@@ -340,17 +368,19 @@ blues17 <- calculatingBlues(
 )
 
 ##### Making it a function for all of the VI's 2018
+dat<- pheno18 %>% 
+  tidylog::select(GRYLD, Variety, rep, block)
 
 t18 <- asreml(
   fixed = GRYLD ~ 0 + Variety,
   random = ~ rep + rep:block,
-  data = pheno18
+  data = dat
 )
 plot(t18)
 blues <- setDT(as.data.frame(coef(t18)$fixed), keep.rownames = T)
 blues$rn <- str_remove(blues$rn, "Variety_")
 dat18 <- blues %>%
-  rename(GRYLD = effect) %>%
+  tidylog::rename(GRYLD = effect) %>%
   glimpse()
 
 blues18 <- calculatingBlues(
@@ -360,18 +390,20 @@ blues18 <- calculatingBlues(
 )
 
 ##### Making it a function for all of the VI's 2019
+dat<- pheno19 %>% 
+  tidylog::select(GRYLD, Variety, rep, block)
 
 t19 <- asreml(
   fixed = GRYLD ~ 0 + Variety,
   random = ~ rep + rep:block,
-  data = pheno19
+  data = dat
 )
 summary(t19)
 plot(t19)
 blues <- setDT(as.data.frame(coef(t19)$fixed), keep.rownames = T)
 blues$rn <- str_remove(blues$rn, "Variety_")
 dat19 <- blues %>%
-  rename(GRYLD = effect) %>%
+  tidylog::rename(GRYLD = effect) %>%
   glimpse()
 
 blues19 <- calculatingBlues(
@@ -607,29 +639,37 @@ t.test(reSelect$GRYLD.x, ndviSelect$GRYLD.x)
 snpMatrix[1:5, 1:5]
 
 dat17 <- dat17 %>%
-  semi_join(snpMatrix, by = "rn")
+  semi_join(snpMatrix, by = "rn") %>% 
+  arrange(rn)
 
 snpMatrix17 <- snpMatrix %>%
-  semi_join(dat17, by = "rn") %>%
-  tidylog::select(-rn)
+  semi_join(dat17, by = "rn") %>% 
+  arrange(rn) %>%
+  column_to_rownames(var = "rn")
+
+all(dat17$rn == rownames(snpMatrix17))
 
 snpMatrix17 <- as.matrix(snpMatrix17)
 
 dat18 <- dat18 %>%
-  semi_join(snpMatrix, by = "rn")
+  semi_join(snpMatrix, by = "rn") %>% 
+  arrange(rn)
 
 snpMatrix18 <- snpMatrix %>%
-  semi_join(dat18, by = "rn") %>%
-  tidylog::select(-rn)
+  semi_join(dat18, by = "rn")  %>% 
+  arrange(rn) %>%
+  column_to_rownames(var = "rn")
 
 snpMatrix18 <- as.matrix(snpMatrix18)
 
 dat19 <- dat19 %>%
-  semi_join(snpMatrix, by = "rn")
+  semi_join(snpMatrix, by = "rn") %>% 
+  arrange(rn)
 
 snpMatrix19 <- snpMatrix %>%
-  semi_join(dat19, by = "rn") %>%
-  tidylog::select(-rn)
+  semi_join(dat19, by = "rn")  %>% 
+  arrange(rn) %>%
+  column_to_rownames(var = "rn")
 
 snpMatrix19 <- as.matrix(snpMatrix19)
 
@@ -676,7 +716,6 @@ for (i in traits) {
   traitME_18[[i]] <- meRes$u
 }
 
-beep(3)
 dev.list()
 graphics.off()
 
@@ -701,7 +740,6 @@ for (i in traits) {
   traitME_19[[i]] <- meRes$u
 }
 
-beep(3)
 dev.list()
 graphics.off()
 
@@ -884,7 +922,7 @@ gryldME_chr19 <- gryldME[12628:13526, ]
 gryldME_chr20 <- gryldME[13527:14221, ]
 gryldME_chr21 <- gryldME[14222:14523, ]
 
-outCor <- rollapply(gryldME_chr1, 10,
+outCor <- zoo::rollapply(gryldME_chr1, 10,
                     by = 2,
                     function(x) c(cor(x)), by.column = F
 )

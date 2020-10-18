@@ -6,13 +6,15 @@ library(data.table)
 library(tidyverse)
 library(janitor)
 require(lubridate)
+library(lme4)
 library(car)
 library(tidylog)
 library(broom)
 library(readxl)
-library(lme4)
 library(Hmisc)
 library(psych)
+library(gvlma)
+library(ggpubr)
 
 ##### Set up work space ####
 #### Theme set
@@ -114,8 +116,8 @@ pheno <- fread("./Phenotype_Database/Pheno_Long171819.txt")
 phenoGryld <- pheno %>%
   filter(!str_detect(entity_id, "19RKY7")) %>%
   filter(trait_id == "GRYLD") %>%
-  filter(phenotype_value > 0) %>% # checking for strange
-  filter(phenotype_value < 10) %>% # checking for strange
+  filter(phenotype_value >= 0) %>% # checking for strange
+  filter(phenotype_value < 15) %>% # checking for strange
   tidylog::select(entity_id, phenotype_value, Variety, year) %>%
   dplyr::rename(GRYLD = phenotype_value)
 
@@ -219,6 +221,7 @@ correlationPlots <- function(dat, htp, path, xaxis, value, year, ...) {
   for (i in htp) {
     d <- dat %>%
       filter(ID == paste(i))
+
     thisPlot <- ggplot(
       data = d,
       mapping = aes_string(
@@ -228,16 +231,20 @@ correlationPlots <- function(dat, htp, path, xaxis, value, year, ...) {
     ) +
       geom_point(size = 1) +
       geom_smooth(method = "lm") +
-      facet_wrap(~Date, scales = "free") +
+      stat_cor(
+        method = "pearson", label.x.npc = "left",
+        label.y.npc = "bottom"
+      ) +
+      facet_wrap(~Date, scales = "fixed") +
       labs(
         x = xaxis, y = paste(i),
         title = paste0(i, " vs ", xaxis, " ", year)
       )
 
-    thisPlot
+    print(thisPlot)
     plotList[[i]] <- thisPlot
     ggsave(paste0(i, "_", year, ".png"), thisPlot,
-      path = path, width = 24,
+      path = path, width = 27,
       height = 20,
       units = "cm"
     )
@@ -332,6 +339,26 @@ htp17long <- as_tibble(htp17long)
 # check analysis
 fit <- lm(htp17Wide$GRYLD ~ htp17Wide$`GNDVI_2017-03-31`, data = htp17Wide)
 summary(fit)
+outlierTest(fit)
+plot(fit)
+
+# Influential Observations
+# added variable plots
+avPlot(fit, variable = "htp17Wide$`GNDVI_2017-03-31`")
+# Cook's D plot
+# identify D values > 4/(n-k-1)
+cutoff <- 4 / ((nrow(htp17Wide) - length(fit$coefficients) - 2))
+plot(fit, which = 4, cook.levels = cutoff)
+# Influence Plot
+influencePlot(fit,
+  id.method = "identify",
+  main = "Influence Plot",
+  sub = "Circle size is proportial to Cook's Distance"
+)
+
+gvmodel <- gvlma(fit)
+summary(gvmodel)
+plot(gvmodel, onepage = FALSE)
 
 reg17GNDVI <- htp17long %>%
   tidylog::filter(ID == "GNDVI") %>%
@@ -343,15 +370,56 @@ reg17GNDVI <- htp17long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  tidylog::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "GNDVI") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg17GNDVI[[2]][[1]])
+outlierTest(reg17GNDVI[[2]][[2]])
+outlierTest(reg17GNDVI[[2]][[3]])
+outlierTest(reg17GNDVI[[2]][[4]])
+outlierTest(reg17GNDVI[[2]][[5]])
+outlierTest(reg17GNDVI[[2]][[6]])
+outlierTest(reg17GNDVI[[2]][[7]])
+outlierTest(reg17GNDVI[[2]][[8]])
+ncvTest(reg17GNDVI[[2]][[1]])
+ncvTest(reg17GNDVI[[2]][[2]])
+ncvTest(reg17GNDVI[[2]][[3]])
+ncvTest(reg17GNDVI[[2]][[4]])
+ncvTest(reg17GNDVI[[2]][[5]])
+ncvTest(reg17GNDVI[[2]][[6]])
+ncvTest(reg17GNDVI[[2]][[7]])
+ncvTest(reg17GNDVI[[2]][[8]])
+gvmodel <- gvlma(reg17GNDVI[[2]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GNDVI[[2]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GNDVI[[2]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GNDVI[[2]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GNDVI[[2]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GNDVI[[2]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GNDVI[[2]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GNDVI[[2]][[8]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg17GRVI <- htp17long %>%
   tidylog::filter(ID == "GRVI") %>%
@@ -363,15 +431,56 @@ reg17GRVI <- htp17long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  tidylog::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "GRVI") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg17GRVI[[2]][[1]])
+outlierTest(reg17GRVI[[2]][[2]])
+outlierTest(reg17GRVI[[2]][[3]])
+outlierTest(reg17GRVI[[2]][[4]])
+outlierTest(reg17GRVI[[2]][[5]])
+outlierTest(reg17GRVI[[2]][[6]])
+outlierTest(reg17GRVI[[2]][[7]])
+outlierTest(reg17GRVI[[2]][[8]])
+ncvTest(reg17GRVI[[2]][[1]])
+ncvTest(reg17GRVI[[2]][[2]])
+ncvTest(reg17GRVI[[2]][[3]])
+ncvTest(reg17GRVI[[2]][[4]])
+ncvTest(reg17GRVI[[2]][[5]])
+ncvTest(reg17GRVI[[2]][[6]])
+ncvTest(reg17GRVI[[2]][[7]])
+ncvTest(reg17GRVI[[2]][[8]])
+gvmodel <- gvlma(reg17GRVI[[2]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GRVI[[2]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GRVI[[2]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GRVI[[2]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GRVI[[2]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GRVI[[2]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GRVI[[2]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17GRVI[[2]][[8]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg17NDVI <- htp17long %>%
   tidylog::filter(ID == "NDVI") %>%
@@ -383,15 +492,56 @@ reg17NDVI <- htp17long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  tidylog::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "NDVI") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg17NDVI[[2]][[1]])
+outlierTest(reg17NDVI[[2]][[2]])
+outlierTest(reg17NDVI[[2]][[3]])
+outlierTest(reg17NDVI[[2]][[4]])
+outlierTest(reg17NDVI[[2]][[5]])
+outlierTest(reg17NDVI[[2]][[6]])
+outlierTest(reg17NDVI[[2]][[7]])
+outlierTest(reg17NDVI[[2]][[8]])
+ncvTest(reg17NDVI[[2]][[1]])
+ncvTest(reg17NDVI[[2]][[2]])
+ncvTest(reg17NDVI[[2]][[3]])
+ncvTest(reg17NDVI[[2]][[4]])
+ncvTest(reg17NDVI[[2]][[5]])
+ncvTest(reg17NDVI[[2]][[6]])
+ncvTest(reg17NDVI[[2]][[7]])
+ncvTest(reg17NDVI[[2]][[8]])
+gvmodel <- gvlma(reg17NDVI[[2]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDVI[[2]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDVI[[2]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDVI[[2]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDVI[[2]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDVI[[2]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDVI[[2]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDVI[[2]][[8]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg17NDRE <- htp17long %>%
   tidylog::filter(ID == "NDRE") %>%
@@ -403,15 +553,56 @@ reg17NDRE <- htp17long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "NDRE") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg17NDRE[[2]][[1]])
+outlierTest(reg17NDRE[[2]][[2]])
+outlierTest(reg17NDRE[[2]][[3]])
+outlierTest(reg17NDRE[[2]][[4]])
+outlierTest(reg17NDRE[[2]][[5]])
+outlierTest(reg17NDRE[[2]][[6]])
+outlierTest(reg17NDRE[[2]][[7]])
+outlierTest(reg17NDRE[[2]][[8]])
+ncvTest(reg17NDRE[[2]][[1]])
+ncvTest(reg17NDRE[[2]][[2]])
+ncvTest(reg17NDRE[[2]][[3]])
+ncvTest(reg17NDRE[[2]][[4]])
+ncvTest(reg17NDRE[[2]][[5]])
+ncvTest(reg17NDRE[[2]][[6]])
+ncvTest(reg17NDRE[[2]][[7]])
+ncvTest(reg17NDRE[[2]][[8]])
+gvmodel <- gvlma(reg17NDRE[[2]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDRE[[2]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDRE[[2]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDRE[[2]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDRE[[2]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDRE[[2]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDRE[[2]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NDRE[[2]][[8]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg17NIR <- htp17long %>%
   tidylog::filter(ID == "NIR") %>%
@@ -423,15 +614,56 @@ reg17NIR <- htp17long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "NIR") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg17NIR[[2]][[1]])
+outlierTest(reg17NIR[[2]][[2]])
+outlierTest(reg17NIR[[2]][[3]])
+outlierTest(reg17NIR[[2]][[4]])
+outlierTest(reg17NIR[[2]][[5]])
+outlierTest(reg17NIR[[2]][[6]])
+outlierTest(reg17NIR[[2]][[7]])
+outlierTest(reg17NIR[[2]][[8]])
+ncvTest(reg17NIR[[2]][[1]])
+ncvTest(reg17NIR[[2]][[2]])
+ncvTest(reg17NIR[[2]][[3]])
+ncvTest(reg17NIR[[2]][[4]])
+ncvTest(reg17NIR[[2]][[5]])
+ncvTest(reg17NIR[[2]][[6]])
+ncvTest(reg17NIR[[2]][[7]])
+ncvTest(reg17NIR[[2]][[8]])
+gvmodel <- gvlma(reg17NIR[[2]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NIR[[2]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NIR[[2]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NIR[[2]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NIR[[2]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NIR[[2]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NIR[[2]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17NIR[[2]][[8]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg17RE <- htp17long %>%
   tidylog::filter(ID == "RedEdge") %>%
@@ -443,20 +675,80 @@ reg17RE <- htp17long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "RE") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg17RE[[2]][[1]])
+outlierTest(reg17RE[[2]][[2]])
+outlierTest(reg17RE[[2]][[3]])
+outlierTest(reg17RE[[2]][[4]])
+outlierTest(reg17RE[[2]][[5]])
+outlierTest(reg17RE[[2]][[6]])
+outlierTest(reg17RE[[2]][[7]])
+outlierTest(reg17RE[[2]][[8]])
+ncvTest(reg17RE[[2]][[1]])
+ncvTest(reg17RE[[2]][[2]])
+ncvTest(reg17RE[[2]][[3]])
+ncvTest(reg17RE[[2]][[4]])
+ncvTest(reg17RE[[2]][[5]])
+ncvTest(reg17RE[[2]][[6]])
+ncvTest(reg17RE[[2]][[7]])
+ncvTest(reg17RE[[2]][[8]])
+gvmodel <- gvlma(reg17RE[[2]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17RE[[2]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17RE[[2]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17RE[[2]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17RE[[2]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17RE[[2]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17RE[[2]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg17RE[[2]][[8]])
+summary(gvmodel)
+plot(gvmodel)
 
 htp18Long <- as_tibble(htp18Long)
 # check analysis
 fit <- lm(htp18Wide$GRYLD ~ htp18Wide$`20171120_GNDVI`)
 summary(fit)
+outlierTest(fit)
+plot(fit)
+# Influential Observations
+# added variable plots
+avPlot(fit, variable = "htp18Wide$`20171120_GNDVI`")
+# Cook's D plot
+# identify D values > 4/(n-k-1)
+cutoff <- 4 / ((nrow(htp18Wide) - length(fit$coefficients) - 2))
+plot(fit, which = 4, cook.levels = cutoff)
+# Influence Plot
+influencePlot(fit,
+  id.method = "identify",
+  main = "Influence Plot",
+  sub = "Circle size is proportial to Cook's Distance"
+)
+
+gvmodel <- gvlma(fit)
+summary(gvmodel)
+plot(gvmodel)
 
 reg18GNDVI <- htp18Long %>%
   tidylog::filter(ID == "GNDVI") %>%
@@ -468,15 +760,91 @@ reg18GNDVI <- htp18Long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data, -year) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "GNDVI") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg18GNDVI[[2]][[1]])
+outlierTest(reg18GNDVI[[2]][[2]])
+outlierTest(reg18GNDVI[[2]][[3]])
+outlierTest(reg18GNDVI[[2]][[4]])
+outlierTest(reg18GNDVI[[2]][[5]])
+outlierTest(reg18GNDVI[[2]][[6]])
+outlierTest(reg18GNDVI[[2]][[7]])
+outlierTest(reg18GNDVI[[2]][[8]])
+outlierTest(reg18GNDVI[[2]][[9]])
+outlierTest(reg18GNDVI[[2]][[10]])
+outlierTest(reg18GNDVI[[2]][[11]])
+outlierTest(reg18GNDVI[[2]][[12]])
+outlierTest(reg18GNDVI[[2]][[13]])
+outlierTest(reg18GNDVI[[2]][[14]])
+outlierTest(reg18GNDVI[[2]][[15]])
+ncvTest(reg18GNDVI[[2]][[1]])
+ncvTest(reg18GNDVI[[2]][[2]])
+ncvTest(reg18GNDVI[[2]][[3]])
+ncvTest(reg18GNDVI[[2]][[4]])
+ncvTest(reg18GNDVI[[2]][[5]])
+ncvTest(reg18GNDVI[[2]][[6]])
+ncvTest(reg18GNDVI[[2]][[7]])
+ncvTest(reg18GNDVI[[2]][[8]])
+ncvTest(reg18GNDVI[[2]][[9]])
+ncvTest(reg18GNDVI[[2]][[10]])
+ncvTest(reg18GNDVI[[2]][[11]])
+ncvTest(reg18GNDVI[[2]][[12]])
+ncvTest(reg18GNDVI[[2]][[13]])
+ncvTest(reg18GNDVI[[2]][[14]])
+ncvTest(reg18GNDVI[[2]][[15]])
+gvmodel <- gvlma(reg18GNDVI[[2]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[8]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[9]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[10]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[11]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[12]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[13]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[14]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GNDVI[[2]][[15]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg18GRVI <- htp18Long %>%
   tidylog::filter(ID == "GRVI") %>%
@@ -488,15 +856,91 @@ reg18GRVI <- htp18Long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data, -year) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "GRVI") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg18GRVI[[2]][[1]])
+outlierTest(reg18GRVI[[2]][[2]])
+outlierTest(reg18GRVI[[2]][[3]])
+outlierTest(reg18GRVI[[2]][[4]])
+outlierTest(reg18GRVI[[2]][[5]])
+outlierTest(reg18GRVI[[2]][[6]])
+outlierTest(reg18GRVI[[2]][[7]])
+outlierTest(reg18GRVI[[2]][[8]])
+outlierTest(reg18GRVI[[2]][[9]])
+outlierTest(reg18GRVI[[2]][[10]])
+outlierTest(reg18GRVI[[2]][[11]])
+outlierTest(reg18GRVI[[2]][[12]])
+outlierTest(reg18GRVI[[2]][[13]])
+outlierTest(reg18GRVI[[2]][[14]])
+outlierTest(reg18GRVI[[2]][[15]])
+ncvTest(reg18GRVI[[2]][[1]])
+ncvTest(reg18GRVI[[2]][[2]])
+ncvTest(reg18GRVI[[2]][[3]])
+ncvTest(reg18GRVI[[2]][[4]])
+ncvTest(reg18GRVI[[2]][[5]])
+ncvTest(reg18GRVI[[2]][[6]])
+ncvTest(reg18GRVI[[2]][[7]])
+ncvTest(reg18GRVI[[2]][[8]])
+ncvTest(reg18GRVI[[2]][[9]])
+ncvTest(reg18GRVI[[2]][[10]])
+ncvTest(reg18GRVI[[2]][[11]])
+ncvTest(reg18GRVI[[2]][[12]])
+ncvTest(reg18GRVI[[2]][[13]])
+ncvTest(reg18GRVI[[2]][[14]])
+ncvTest(reg18GRVI[[2]][[15]])
+gvmodel <- gvlma(reg18GRVI[[2]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[8]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[9]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[10]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[11]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[12]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[13]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[14]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18GRVI[[2]][[15]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg18NDVI <- htp18Long %>%
   tidylog::filter(ID == "NDVI") %>%
@@ -508,15 +952,91 @@ reg18NDVI <- htp18Long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "NDVI") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg18NDVI[[3]][[1]])
+outlierTest(reg18NDVI[[3]][[2]])
+outlierTest(reg18NDVI[[3]][[3]])
+outlierTest(reg18NDVI[[3]][[4]])
+outlierTest(reg18NDVI[[3]][[5]])
+outlierTest(reg18NDVI[[3]][[6]])
+outlierTest(reg18NDVI[[3]][[7]])
+outlierTest(reg18NDVI[[3]][[8]])
+outlierTest(reg18NDVI[[3]][[9]])
+outlierTest(reg18NDVI[[3]][[10]])
+outlierTest(reg18NDVI[[3]][[11]])
+outlierTest(reg18NDVI[[3]][[12]])
+outlierTest(reg18NDVI[[3]][[13]])
+outlierTest(reg18NDVI[[3]][[14]])
+outlierTest(reg18NDVI[[3]][[15]])
+ncvTest(reg18NDVI[[3]][[1]])
+ncvTest(reg18NDVI[[3]][[2]])
+ncvTest(reg18NDVI[[3]][[3]])
+ncvTest(reg18NDVI[[3]][[4]])
+ncvTest(reg18NDVI[[3]][[5]])
+ncvTest(reg18NDVI[[3]][[6]])
+ncvTest(reg18NDVI[[3]][[7]])
+ncvTest(reg18NDVI[[3]][[8]])
+ncvTest(reg18NDVI[[3]][[9]])
+ncvTest(reg18NDVI[[3]][[10]])
+ncvTest(reg18NDVI[[3]][[11]])
+ncvTest(reg18NDVI[[3]][[12]])
+ncvTest(reg18NDVI[[3]][[13]])
+ncvTest(reg18NDVI[[3]][[14]])
+ncvTest(reg18NDVI[[3]][[15]])
+gvmodel <- gvlma(reg18NDVI[[3]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[8]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[9]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[10]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[11]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[12]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[13]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[14]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDVI[[3]][[15]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg18NDRE <- htp18Long %>%
   tidylog::filter(ID == "NDRE") %>%
@@ -528,15 +1048,91 @@ reg18NDRE <- htp18Long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "NDRE") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg18NDRE[[3]][[1]])
+outlierTest(reg18NDRE[[3]][[2]])
+outlierTest(reg18NDRE[[3]][[3]])
+outlierTest(reg18NDRE[[3]][[4]])
+outlierTest(reg18NDRE[[3]][[5]])
+outlierTest(reg18NDRE[[3]][[6]])
+outlierTest(reg18NDRE[[3]][[7]])
+outlierTest(reg18NDRE[[3]][[8]])
+outlierTest(reg18NDRE[[3]][[9]])
+outlierTest(reg18NDRE[[3]][[10]])
+outlierTest(reg18NDRE[[3]][[11]])
+outlierTest(reg18NDRE[[3]][[12]])
+outlierTest(reg18NDRE[[3]][[13]])
+outlierTest(reg18NDRE[[3]][[14]])
+outlierTest(reg18NDRE[[3]][[15]])
+ncvTest(reg18NDRE[[3]][[1]])
+ncvTest(reg18NDRE[[3]][[2]])
+ncvTest(reg18NDRE[[3]][[3]])
+ncvTest(reg18NDRE[[3]][[4]])
+ncvTest(reg18NDRE[[3]][[5]])
+ncvTest(reg18NDRE[[3]][[6]])
+ncvTest(reg18NDRE[[3]][[7]])
+ncvTest(reg18NDRE[[3]][[8]])
+ncvTest(reg18NDRE[[3]][[9]])
+ncvTest(reg18NDRE[[3]][[10]])
+ncvTest(reg18NDRE[[3]][[11]])
+ncvTest(reg18NDRE[[3]][[12]])
+ncvTest(reg18NDRE[[3]][[13]])
+ncvTest(reg18NDRE[[3]][[14]])
+ncvTest(reg18NDRE[[3]][[15]])
+gvmodel <- gvlma(reg18NDRE[[3]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[8]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[9]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[10]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[11]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[12]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[13]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[14]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NDRE[[3]][[15]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg18NIR <- htp18Long %>%
   tidylog::filter(ID == "Nir") %>%
@@ -548,15 +1144,91 @@ reg18NIR <- htp18Long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "NIR") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg18NIR[[3]][[1]])
+outlierTest(reg18NIR[[3]][[2]])
+outlierTest(reg18NIR[[3]][[3]])
+outlierTest(reg18NIR[[3]][[4]])
+outlierTest(reg18NIR[[3]][[5]])
+outlierTest(reg18NIR[[3]][[6]])
+outlierTest(reg18NIR[[3]][[7]])
+outlierTest(reg18NIR[[3]][[8]])
+outlierTest(reg18NIR[[3]][[9]])
+outlierTest(reg18NIR[[3]][[10]])
+outlierTest(reg18NIR[[3]][[11]])
+outlierTest(reg18NIR[[3]][[12]])
+outlierTest(reg18NIR[[3]][[13]])
+outlierTest(reg18NIR[[3]][[14]])
+outlierTest(reg18NIR[[3]][[15]])
+ncvTest(reg18NIR[[3]][[1]])
+ncvTest(reg18NIR[[3]][[2]])
+ncvTest(reg18NIR[[3]][[3]])
+ncvTest(reg18NIR[[3]][[4]])
+ncvTest(reg18NIR[[3]][[5]])
+ncvTest(reg18NIR[[3]][[6]])
+ncvTest(reg18NIR[[3]][[7]])
+ncvTest(reg18NIR[[3]][[8]])
+ncvTest(reg18NIR[[3]][[9]])
+ncvTest(reg18NIR[[3]][[10]])
+ncvTest(reg18NIR[[3]][[11]])
+ncvTest(reg18NIR[[3]][[12]])
+ncvTest(reg18NIR[[3]][[13]])
+ncvTest(reg18NIR[[3]][[14]])
+ncvTest(reg18NIR[[3]][[15]])
+gvmodel <- gvlma(reg18NIR[[3]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[8]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[9]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[10]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[11]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[12]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[13]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[14]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18NIR[[3]][[15]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg18RE <- htp18Long %>%
   tidylog::filter(ID == "RE") %>%
@@ -568,15 +1240,91 @@ reg18RE <- htp18Long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "RE") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg18RE[[3]][[1]])
+outlierTest(reg18RE[[3]][[2]])
+outlierTest(reg18RE[[3]][[3]])
+outlierTest(reg18RE[[3]][[4]])
+outlierTest(reg18RE[[3]][[5]])
+outlierTest(reg18RE[[3]][[6]])
+outlierTest(reg18RE[[3]][[7]])
+outlierTest(reg18RE[[3]][[8]])
+outlierTest(reg18RE[[3]][[9]])
+outlierTest(reg18RE[[3]][[10]])
+outlierTest(reg18RE[[3]][[11]])
+outlierTest(reg18RE[[3]][[12]])
+outlierTest(reg18RE[[3]][[13]])
+outlierTest(reg18RE[[3]][[14]])
+outlierTest(reg18RE[[3]][[15]])
+ncvTest(reg18RE[[3]][[1]])
+ncvTest(reg18RE[[3]][[2]])
+ncvTest(reg18RE[[3]][[3]])
+ncvTest(reg18RE[[3]][[4]])
+ncvTest(reg18RE[[3]][[5]])
+ncvTest(reg18RE[[3]][[6]])
+ncvTest(reg18RE[[3]][[7]])
+ncvTest(reg18RE[[3]][[8]])
+ncvTest(reg18RE[[3]][[9]])
+ncvTest(reg18RE[[3]][[10]])
+ncvTest(reg18RE[[3]][[11]])
+ncvTest(reg18RE[[3]][[12]])
+ncvTest(reg18RE[[3]][[13]])
+ncvTest(reg18RE[[3]][[14]])
+ncvTest(reg18RE[[3]][[15]])
+gvmodel <- gvlma(reg18RE[[3]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[8]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[9]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[10]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[11]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[12]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[13]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[14]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg18RE[[3]][[15]])
+summary(gvmodel)
+plot(gvmodel)
 
 htp19Long <- as_tibble(htp19Long)
 # check analysis
@@ -593,35 +1341,86 @@ reg19GNDVI <- htp19Long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data, -year) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "GNDVI") %>%
   unite("VI_date", c("VI", "Date"))
 
-reg19GRVI <- htp19Long %>%
-  tidylog::filter(ID == "GRVI") %>%
-  tidylog::select(-Variety, -entity_id, -ID) %>%
-  nest(data = c(value, GRYLD)) %>%
-  mutate(
-    test = map(data, ~ lm(.x$GRYLD ~ .x$value)),
-    glanced = map(test, glance),
-    tidied = map(test, tidy)
-  ) %>%
-  unnest(c(glanced)) %>%
-  rename(
-    F_statistic = statistic,
-    Ftest_pvalue = p.value
-  ) %>%
-  unnest(c(tidied)) %>%
-  select(-data, -test) %>%
-  filter(term != "(Intercept)") %>%
-  add_column(VI = "GRVI") %>%
-  unite("VI_date", c("VI", "Date"))
+outlierTest(reg19GNDVI[[2]][[1]])
+outlierTest(reg19GNDVI[[2]][[2]])
+outlierTest(reg19GNDVI[[2]][[3]])
+outlierTest(reg19GNDVI[[2]][[4]])
+outlierTest(reg19GNDVI[[2]][[5]])
+outlierTest(reg19GNDVI[[2]][[6]])
+outlierTest(reg19GNDVI[[2]][[7]])
+outlierTest(reg19GNDVI[[2]][[8]])
+outlierTest(reg19GNDVI[[2]][[9]])
+outlierTest(reg19GNDVI[[2]][[10]])
+outlierTest(reg19GNDVI[[2]][[11]])
+outlierTest(reg19GNDVI[[2]][[12]])
+outlierTest(reg19GNDVI[[2]][[13]])
+outlierTest(reg19GNDVI[[2]][[14]])
+ncvTest(reg19GNDVI[[2]][[1]])
+ncvTest(reg19GNDVI[[2]][[2]])
+ncvTest(reg19GNDVI[[2]][[3]])
+ncvTest(reg19GNDVI[[2]][[4]])
+ncvTest(reg19GNDVI[[2]][[5]])
+ncvTest(reg19GNDVI[[2]][[6]])
+ncvTest(reg19GNDVI[[2]][[7]])
+ncvTest(reg19GNDVI[[2]][[8]])
+ncvTest(reg19GNDVI[[2]][[9]])
+ncvTest(reg19GNDVI[[2]][[10]])
+ncvTest(reg19GNDVI[[2]][[11]])
+ncvTest(reg19GNDVI[[2]][[12]])
+ncvTest(reg19GNDVI[[2]][[13]])
+ncvTest(reg19GNDVI[[2]][[14]])
+gvmodel <- gvlma(reg19GNDVI[[2]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19GNDVI[[2]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19GNDVI[[2]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19GNDVI[[2]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19GNDVI[[2]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19GNDVI[[2]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19GNDVI[[2]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19GNDVI[[2]][[8]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19GNDVI[[2]][[9]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19GNDVI[[2]][[10]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19GNDVI[[2]][[11]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19GNDVI[[2]][[12]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19GNDVI[[2]][[13]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19GNDVI[[2]][[14]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg19NDVI <- htp19Long %>%
   tidylog::filter(ID == "NDVI") %>%
@@ -633,15 +1432,86 @@ reg19NDVI <- htp19Long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data, -year) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "NDVI") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg19NDVI[[2]][[1]])
+outlierTest(reg19NDVI[[2]][[2]])
+outlierTest(reg19NDVI[[2]][[3]])
+outlierTest(reg19NDVI[[2]][[4]])
+outlierTest(reg19NDVI[[2]][[5]])
+outlierTest(reg19NDVI[[2]][[6]])
+outlierTest(reg19NDVI[[2]][[7]])
+outlierTest(reg19NDVI[[2]][[8]])
+outlierTest(reg19NDVI[[2]][[9]])
+outlierTest(reg19NDVI[[2]][[10]])
+outlierTest(reg19NDVI[[2]][[11]])
+outlierTest(reg19NDVI[[2]][[12]])
+outlierTest(reg19NDVI[[2]][[13]])
+outlierTest(reg19NDVI[[2]][[14]])
+ncvTest(reg19NDVI[[2]][[1]])
+ncvTest(reg19NDVI[[2]][[2]])
+ncvTest(reg19NDVI[[2]][[3]])
+ncvTest(reg19NDVI[[2]][[4]])
+ncvTest(reg19NDVI[[2]][[5]])
+ncvTest(reg19NDVI[[2]][[6]])
+ncvTest(reg19NDVI[[2]][[7]])
+ncvTest(reg19NDVI[[2]][[8]])
+ncvTest(reg19NDVI[[2]][[9]])
+ncvTest(reg19NDVI[[2]][[10]])
+ncvTest(reg19NDVI[[2]][[11]])
+ncvTest(reg19NDVI[[2]][[12]])
+ncvTest(reg19NDVI[[2]][[13]])
+ncvTest(reg19NDVI[[2]][[14]])
+gvmodel <- gvlma(reg19NDVI[[2]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDVI[[2]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDVI[[2]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDVI[[2]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDVI[[2]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDVI[[2]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDVI[[2]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDVI[[2]][[8]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDVI[[2]][[9]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDVI[[2]][[10]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDVI[[2]][[11]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDVI[[2]][[12]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDVI[[2]][[13]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDVI[[2]][[14]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg19NDRE <- htp19Long %>%
   tidylog::filter(ID == "NDRE") %>%
@@ -653,15 +1523,86 @@ reg19NDRE <- htp19Long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data, -year) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "NDRE") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg19NDRE[[2]][[1]])
+outlierTest(reg19NDRE[[2]][[2]])
+outlierTest(reg19NDRE[[2]][[3]])
+outlierTest(reg19NDRE[[2]][[4]])
+outlierTest(reg19NDRE[[2]][[5]])
+outlierTest(reg19NDRE[[2]][[6]])
+outlierTest(reg19NDRE[[2]][[7]])
+outlierTest(reg19NDRE[[2]][[8]])
+outlierTest(reg19NDRE[[2]][[9]])
+outlierTest(reg19NDRE[[2]][[10]])
+outlierTest(reg19NDRE[[2]][[11]])
+outlierTest(reg19NDRE[[2]][[12]])
+outlierTest(reg19NDRE[[2]][[13]])
+outlierTest(reg19NDRE[[2]][[14]])
+ncvTest(reg19NDRE[[2]][[1]])
+ncvTest(reg19NDRE[[2]][[2]])
+ncvTest(reg19NDRE[[2]][[3]])
+ncvTest(reg19NDRE[[2]][[4]])
+ncvTest(reg19NDRE[[2]][[5]])
+ncvTest(reg19NDRE[[2]][[6]])
+ncvTest(reg19NDRE[[2]][[7]])
+ncvTest(reg19NDRE[[2]][[8]])
+ncvTest(reg19NDRE[[2]][[9]])
+ncvTest(reg19NDRE[[2]][[10]])
+ncvTest(reg19NDRE[[2]][[11]])
+ncvTest(reg19NDRE[[2]][[12]])
+ncvTest(reg19NDRE[[2]][[13]])
+ncvTest(reg19NDRE[[2]][[14]])
+gvmodel <- gvlma(reg19NDRE[[2]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDRE[[2]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDRE[[2]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDRE[[2]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDRE[[2]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDRE[[2]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDRE[[2]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDRE[[2]][[8]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDRE[[2]][[9]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDRE[[2]][[10]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDRE[[2]][[11]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDRE[[2]][[12]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDRE[[2]][[13]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NDRE[[2]][[14]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg19NIR <- htp19Long %>%
   tidylog::filter(ID == "Nir") %>%
@@ -673,15 +1614,86 @@ reg19NIR <- htp19Long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "NIR") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg19NIR[[3]][[1]])
+outlierTest(reg19NIR[[3]][[2]])
+outlierTest(reg19NIR[[3]][[3]])
+outlierTest(reg19NIR[[3]][[4]])
+outlierTest(reg19NIR[[3]][[5]])
+outlierTest(reg19NIR[[3]][[6]])
+outlierTest(reg19NIR[[3]][[7]])
+outlierTest(reg19NIR[[3]][[8]])
+outlierTest(reg19NIR[[3]][[9]])
+outlierTest(reg19NIR[[3]][[10]])
+outlierTest(reg19NIR[[3]][[11]])
+outlierTest(reg19NIR[[3]][[12]])
+outlierTest(reg19NIR[[3]][[13]])
+outlierTest(reg19NIR[[3]][[14]])
+ncvTest(reg19NIR[[3]][[1]])
+ncvTest(reg19NIR[[3]][[2]])
+ncvTest(reg19NIR[[3]][[3]])
+ncvTest(reg19NIR[[3]][[4]])
+ncvTest(reg19NIR[[3]][[5]])
+ncvTest(reg19NIR[[3]][[6]])
+ncvTest(reg19NIR[[3]][[7]])
+ncvTest(reg19NIR[[3]][[8]])
+ncvTest(reg19NIR[[3]][[9]])
+ncvTest(reg19NIR[[3]][[10]])
+ncvTest(reg19NIR[[3]][[11]])
+ncvTest(reg19NIR[[3]][[12]])
+ncvTest(reg19NIR[[3]][[13]])
+ncvTest(reg19NIR[[3]][[14]])
+gvmodel <- gvlma(reg19NIR[[3]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NIR[[3]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NIR[[3]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NIR[[3]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NIR[[3]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NIR[[3]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NIR[[3]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NIR[[3]][[8]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NIR[[3]][[9]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NIR[[3]][[10]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NIR[[3]][[11]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NIR[[3]][[12]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NIR[[3]][[13]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19NIR[[3]][[14]])
+summary(gvmodel)
+plot(gvmodel)
 
 reg19RE <- htp19Long %>%
   tidylog::filter(ID == "RE") %>%
@@ -693,20 +1705,88 @@ reg19RE <- htp19Long %>%
     tidied = map(test, tidy)
   ) %>%
   unnest(c(glanced)) %>%
-  rename(
+  dplyr::rename(
     F_statistic = statistic,
     Ftest_pvalue = p.value
   ) %>%
   unnest(c(tidied)) %>%
-  select(-data, -test) %>%
+  select(-data) %>%
   filter(term != "(Intercept)") %>%
   add_column(VI = "RE") %>%
   unite("VI_date", c("VI", "Date"))
+
+outlierTest(reg19RE[[3]][[1]])
+outlierTest(reg19RE[[3]][[2]])
+outlierTest(reg19RE[[3]][[3]])
+outlierTest(reg19RE[[3]][[4]])
+outlierTest(reg19RE[[3]][[5]])
+outlierTest(reg19RE[[3]][[6]])
+outlierTest(reg19RE[[3]][[7]])
+outlierTest(reg19RE[[3]][[8]])
+outlierTest(reg19RE[[3]][[9]])
+outlierTest(reg19RE[[3]][[10]])
+outlierTest(reg19RE[[3]][[11]])
+outlierTest(reg19RE[[3]][[12]])
+outlierTest(reg19RE[[3]][[13]])
+
+ncvTest(reg19RE[[3]][[1]])
+ncvTest(reg19RE[[3]][[2]])
+ncvTest(reg19RE[[3]][[3]])
+ncvTest(reg19RE[[3]][[4]])
+ncvTest(reg19RE[[3]][[5]])
+ncvTest(reg19RE[[3]][[6]])
+ncvTest(reg19RE[[3]][[7]])
+ncvTest(reg19RE[[3]][[8]])
+ncvTest(reg19RE[[3]][[9]])
+ncvTest(reg19RE[[3]][[10]])
+ncvTest(reg19RE[[3]][[11]])
+ncvTest(reg19RE[[3]][[12]])
+ncvTest(reg19RE[[3]][[13]])
+gvmodel <- gvlma(reg19RE[[3]][[1]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19RE[[3]][[2]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19RE[[3]][[3]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19RE[[3]][[4]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19RE[[3]][[5]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19RE[[3]][[6]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19RE[[3]][[7]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19RE[[3]][[8]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19RE[[3]][[9]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19RE[[3]][[10]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19RE[[3]][[11]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19RE[[3]][[12]])
+summary(gvmodel)
+plot(gvmodel)
+gvmodel <- gvlma(reg19RE[[3]][[13]])
+summary(gvmodel)
+plot(gvmodel)
 
 VarGryldVI17 <- bind_rows(
   reg17GNDVI, reg17GRVI, reg17NDRE, reg17NDVI, reg17NIR,
   reg17RE
 ) %>%
+  select(-test) %>%
   separate(VI_date, c("VI", "Date"), sep = "_") %>%
   glimpse()
 
@@ -714,6 +1794,7 @@ VarGryldVI18 <- bind_rows(
   reg18GNDVI, reg18GRVI, reg18NDRE, reg18NDVI,
   reg18NIR, reg18RE
 ) %>%
+  select(-test) %>%
   separate(VI_date, c("VI", "Date"), sep = "_") %>%
   glimpse()
 
@@ -721,6 +1802,7 @@ VarGryldVI19 <- bind_rows(
   reg19GNDVI, reg19NDRE, reg19NDVI,
   reg19NIR, reg19RE
 ) %>%
+  select(-test) %>%
   separate(VI_date, c("VI", "Date"), sep = "_") %>%
   glimpse()
 
@@ -736,6 +1818,7 @@ VarGryldVI17 %>%
   facet_wrap(~VI, scales = "free") +
   scale_color_gradient(low = "#e41a1c", high = "#000000") +
   theme(plot.subtitle = element_text(size = rel(1.75))) +
+  coord_cartesian(ylim = c(0, 1)) +
   labs(
     title = bquote(R^2 ~ " for linear regression models explaining GRYLD"),
     subtitle = "2016/2017 season"
@@ -747,6 +1830,7 @@ VarGryldVI18 %>%
   facet_wrap(~VI, scales = "free") +
   scale_color_gradient(low = "#e41a1c", high = "#000000") +
   theme(plot.subtitle = element_text(size = rel(1.75))) +
+  coord_cartesian(ylim = c(0, 1)) +
   labs(
     title = bquote(R^2 ~ " for linear regression models explaining GRYLD"),
     subtitle = "2017/2018 season"
@@ -758,6 +1842,7 @@ VarGryldVI19 %>%
   facet_wrap(~VI, scales = "free") +
   scale_color_gradient(low = "#e41a1c", high = "#000000") +
   theme(plot.subtitle = element_text(size = rel(1.75))) +
+  coord_cartesian(ylim = c(0, 1)) +
   labs(
     title = bquote(R^2 ~ " for linear regression models explaining GRYLD"),
     subtitle = "2018/2019 season"

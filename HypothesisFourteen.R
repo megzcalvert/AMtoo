@@ -117,6 +117,7 @@ unique(pheno$trait_id)
 
 pheno <- pheno %>%
   filter(trait_id == "GRYLD") %>%
+  arrange(Variety) %>%
   tidylog::select(
     -phenotype_date, -phenotype_person,
     -block, -range, -column, -trait_id
@@ -128,13 +129,16 @@ pheno <- pheno %>%
   )
 
 gryld17 <- pheno %>%
-  filter(year == "17")
+  filter(year == "17") %>%
+  arrange(Variety)
 
 gryld18 <- pheno %>%
-  filter(year == "18")
+  filter(year == "18") %>%
+  arrange(Variety)
 
 gryld19 <- pheno %>%
-  filter(year == "19")
+  filter(year == "19") %>%
+  arrange(Variety)
 
 snpChip <- fread(
   file = "./Genotype_Database/SelectedImputedBeagleNumeric.txt",
@@ -142,16 +146,20 @@ snpChip <- fread(
 )
 
 snpMatrix <- t(snpChip[, c(-1, -2, -3)])
-kinMat <- A.mat(snpMatrix)
 
 snpMatrix <- setDT(as.data.frame(snpMatrix), keep.rownames = T)
 
 ## 2017
 gryld17 <- gryld17 %>%
-  semi_join(snpMatrix, by = c("Variety" = "rn"))
+  semi_join(snpMatrix, by = c("Variety" = "rn")) %>%
+  arrange(Variety)
 
 snpMatrix17 <- snpMatrix %>%
-  semi_join(gryld17, by = c("rn" = "Variety"))
+  semi_join(gryld17, by = c("rn" = "Variety")) %>%
+  arrange(rn) %>%
+  column_to_rownames(var = "rn")
+
+kinMat <- A.mat(as.matrix(snpMatrix17))
 
 gryld_h2 <- marker_h2(
   data.vector = gryld17$GRYLD,
@@ -167,17 +175,19 @@ phenoVI_17 <- phenoVI_17 %>%
   tidylog::select(-GRYLD) %>%
   unite("trait_id", ID:Date, sep = "_") %>%
   pivot_wider(names_from = trait_id, values_from = value) %>%
+  arrange(Variety) %>%
   tidylog::select(-Variety)
 
 gryld17 <- gryld17 %>%
-  left_join(phenoVI_17, by = c("entity_id" = "Plot_ID"))
+  left_join(phenoVI_17, by = c("entity_id" = "Plot_ID")) %>%
+  arrange(Variety)
 
 #### Heritability Function ####
-h2_function <- function(dat, kinshipMat, ...) {
-  effectvars <- names(dat) %in% c(
-    "entity_id", "Variety", "rep", "year", "rep1", "rep2"
-  )
-  traits <- colnames(dat[, !effectvars])
+h2_function <- function(dat, snpMat, ...) {
+  effectvars <- c("entity_id", "Variety", "rep", "year", "rep1", "rep2")
+  traits <- dat %>%
+    tidylog::select(-any_of(effectvars))
+  traits <- colnames(traits)
   traits
 
   a <- c("VarAdditive", "VarEnvironment", "h2", "logLik")
@@ -188,11 +198,20 @@ h2_function <- function(dat, kinshipMat, ...) {
     print(paste("Working on trait", i))
     h2_dat <- dat %>%
       tidylog::select("entity_id", "Variety", "rep1", "rep2", paste(i))
+    names(h2_dat)[names(h2_dat) == paste(i)] <- "trait"
+
+    snpMatrixUse <- snpMat %>%
+      semi_join(h2_dat, by = c("rn" = "Variety")) %>%
+      arrange(rn) %>%
+      column_to_rownames(var = "rn")
+
+    kinMat <- A.mat(as.matrix(snpMatrixUse))
+
     h2 <- marker_h2(
-      data.vector = h2_dat[, 5],
-      geno.vector = h2_dat[, 2],
+      data.vector = h2_dat$trait,
+      geno.vector = h2_dat$Variety,
       covariates = h2_dat[, 3:4],
-      K = kinshipMat,
+      K = kinMat,
       max.iter = 150
     )
 
@@ -203,7 +222,7 @@ h2_function <- function(dat, kinshipMat, ...) {
   return(h2_all)
 }
 
-h2_17 <- h2_function(dat = gryld17, kinshipMat = kinMat)
+h2_17 <- h2_function(dat = gryld17, snpMat = snpMatrix)
 
 h2_17 <- setDT(as.data.frame(t(h2_17)), keep.rownames = T)
 names(h2_17) <- c("trait_id", "VarAdditive", "VarEnvironment", "h2", "logLik")
@@ -216,24 +235,28 @@ h2_17 <- fread("./Phenotype_Database/NarrowSenseHeritability_17.txt")
 
 ## 2018
 gryld18 <- gryld18 %>%
-  semi_join(snpMatrix, by = c("Variety" = "rn"))
+  semi_join(snpMatrix, by = c("Variety" = "rn")) %>%
+  arrange(Variety)
 
 snpMatrix18 <- snpMatrix %>%
-  semi_join(gryld18, by = c("rn" = "Variety"))
+  semi_join(gryld18, by = c("rn" = "Variety")) %>%
+  arrange(rn)
 
 phenoVI_18 <- fread("./Phenotype_Database/pheno18_htpLong.txt")
 phenoVI_18 <- phenoVI_18 %>%
   tidylog::select(-GRYLD) %>%
   unite("trait_id", ID:Date, sep = "_") %>%
   pivot_wider(names_from = trait_id, values_from = value) %>%
+  arrange(Variety) %>%
   tidylog::select(-Variety)
 
 gryld18 <- gryld18 %>%
   left_join(phenoVI_18, by = c("entity_id")) %>%
+  arrange(Variety) %>%
   tidylog::select(-year.x, -year.y)
 colnames(gryld18)
 
-h2_18 <- h2_function(dat = gryld18, kinshipMat = kinMat)
+h2_18 <- h2_function(dat = gryld18, snpMat = snpMatrix)
 
 h2_18 <- setDT(as.data.frame(t(h2_18)), keep.rownames = T)
 names(h2_18) <- c("trait_id", "VarAdditive", "VarEnvironment", "h2", "logLik")
@@ -247,10 +270,12 @@ h2_18 <- fread("./Phenotype_Database/NarrowSenseHeritability_18.txt")
 ## 2019
 
 gryld19 <- gryld19 %>%
-  semi_join(snpMatrix, by = c("Variety" = "rn"))
+  semi_join(snpMatrix, by = c("Variety" = "rn")) %>%
+  arrange(Variety)
 
 snpMatrix19 <- snpMatrix %>%
-  semi_join(gryld19, by = c("rn" = "Variety"))
+  semi_join(gryld19, by = c("rn" = "Variety")) %>%
+  arrange(rn)
 colnames(gryld19)
 
 phenoVI_19 <- fread("./Phenotype_Database/pheno19_htpLong.txt")
@@ -258,13 +283,16 @@ phenoVI_19 <- phenoVI_19 %>%
   tidylog::select(-GRYLD, -year) %>%
   unite("trait_id", ID:Date, sep = "_") %>%
   pivot_wider(names_from = trait_id, values_from = value) %>%
+  arrange(Variety) %>%
   tidylog::select(-Variety)
 
 gryld19 <- gryld19 %>%
-  left_join(phenoVI_19, by = c("entity_id"))
+  left_join(phenoVI_19, by = c("entity_id")) %>%
+  arrange(Variety)
+
 colnames(gryld19)
 
-h2_19 <- h2_function(dat = gryld19, kinshipMat = kinMat)
+h2_19 <- h2_function(dat = gryld19, snpMat = snpMatrix)
 
 h2_19 <- setDT(as.data.frame(t(h2_19)), keep.rownames = T)
 names(h2_19) <- c("trait_id", "VarAdditive", "VarEnvironment", "h2", "logLik")
@@ -278,10 +306,12 @@ h2_19 <- fread("./Phenotype_Database/NarrowSenseHeritability_19.txt")
 ##### Variance and covariance for correlation ####
 
 pheno17 <- gryld17 %>%
+  arrange(Variety) %>%
   tidylog::select(-entity_id, -Variety, -rep, -year, -rep1, -rep2)
 coVariance_17 <- cov(as.matrix(pheno17))
 
 pheno18 <- gryld18 %>%
+  arrange(Variety) %>%
   tidylog::select(-entity_id, -Variety, -rep, -rep1, -rep2)
 coVariance_18 <- cov(as.matrix(pheno18))
 
@@ -291,6 +321,7 @@ pheno19 <- phenoVI_19 %>%
   tidylog::select(-year) %>%
   unite("trait_id", ID:Date, sep = "_") %>%
   pivot_wider(names_from = trait_id, values_from = value) %>%
+  arrange(Variety) %>%
   tidylog::select(-entity_id, -Variety) %>%
   glimpse()
 
@@ -298,43 +329,61 @@ coVariance_19 <- cov(as.matrix(pheno19))
 
 #### function for expected gain from selection of correlated traits ####
 
-expectedGainSelection <- function(heritability, phenotypic, traitInterest, intensity) {
+expectedGainSelection <- function(heritability, phenotypic,
+                                  traitInterest, intensity) {
   traits <- phenotypic %>%
-    tidylog::select(-traitInterest)
+    tidylog::select(-any_of(traitInterest))
   traits <- colnames(traits)
+
   heritability <- heritability %>%
     tidylog::select(trait_id, h2)
+
   correlatedTrait <- traits
+
   h2_interest <- heritability %>%
     filter(trait_id == traitInterest) %>%
     tidylog::select(h2)
-  h2_interest <- h2_interest[1, 1]
+
+  h2_interest <- h2_interest %>%
+    pull(h2)
+
   gainCorrelated <- tibble::tibble(correlatedTrait, h2_interest)
   gainCorrelated <- add_column(gainCorrelated,
-    h2_correlated = NA,
-    geneticCorrelation = NA,
-    expectedGain = NA
+    h2_correlated = as.numeric(NA),
+    geneticCorrelation = as.numeric(NA),
+    expectedGain = as.numeric(NA)
   )
   for (i in traits) {
     print(paste("Working on trait", i))
     her <- heritability %>%
       filter(trait_id == i) %>%
       tidylog::select(h2)
-    her <- her[1, 1]
+    her <- her %>%
+      pull(h2)
+
     gainCorrelated[
       match(i, gainCorrelated$correlatedTrait), "h2_correlated"
     ] <- her
-    geneticCorrelation <- cov(phenotypic[, traitInterest], phenotypic[, i]) /
-      (sqrt(var(phenotypic[, traitInterest]) * var(phenotypic[, i])))
+
+    trait_interest <- phenotypic %>%
+      pull(all_of(traitInterest))
+    trait_correlated <- phenotypic %>%
+      pull(all_of(i))
+
+    geneticCorrelation <- cov(trait_interest, trait_correlated) /
+      (sqrt(var(trait_interest) * var(trait_correlated)))
+
     print(paste("genetic correlation ", geneticCorrelation))
+
     gainCorrelated[
       match(i, gainCorrelated$correlatedTrait), "geneticCorrelation"
     ] <- geneticCorrelation
-    expectedGain<- intensity * sqrt(h2_interest) * sqrt(her) * 
-      geneticCorrelation * (sd(phenotypic[,i])/sqrt(length(phenotypic)))
+
+    expectedGain <- intensity * sqrt(h2_interest) * sqrt(her) *
+      geneticCorrelation * (sd(trait_correlated) / sqrt(length(phenotypic)))
     gainCorrelated[
       match(i, gainCorrelated$correlatedTrait), "expectedGain"
-      ] <- expectedGain
+    ] <- expectedGain
   }
   return(gainCorrelated)
 }
@@ -385,87 +434,180 @@ gain19_6 <- expectedGainSelection(
 )
 
 write.table(gain17_2, "./Phenotype_Database/ExpectedGainSelection_2_17.txt",
-            quote = FALSE, sep = "\t", row.names = FALSE)
+  quote = FALSE, sep = "\t", row.names = FALSE
+)
 write.table(gain17_4, "./Phenotype_Database/ExpectedGainSelection_4_17.txt",
-            quote = FALSE, sep = "\t", row.names = FALSE)
+  quote = FALSE, sep = "\t", row.names = FALSE
+)
 write.table(gain17_6, "./Phenotype_Database/ExpectedGainSelection_6_17.txt",
-            quote = FALSE, sep = "\t", row.names = FALSE)
+  quote = FALSE, sep = "\t", row.names = FALSE
+)
 write.table(gain18_2, "./Phenotype_Database/ExpectedGainSelection_2_18.txt",
-            quote = FALSE, sep = "\t", row.names = FALSE)
+  quote = FALSE, sep = "\t", row.names = FALSE
+)
 write.table(gain18_4, "./Phenotype_Database/ExpectedGainSelection_4_18.txt",
-            quote = FALSE, sep = "\t", row.names = FALSE)
+  quote = FALSE, sep = "\t", row.names = FALSE
+)
 write.table(gain18_6, "./Phenotype_Database/ExpectedGainSelection_6_18.txt",
-            quote = FALSE, sep = "\t", row.names = FALSE)
+  quote = FALSE, sep = "\t", row.names = FALSE
+)
 write.table(gain19_2, "./Phenotype_Database/ExpectedGainSelection_2_19.txt",
-            quote = FALSE, sep = "\t", row.names = FALSE)
+  quote = FALSE, sep = "\t", row.names = FALSE
+)
 write.table(gain19_4, "./Phenotype_Database/ExpectedGainSelection_4_19.txt",
-            quote = FALSE, sep = "\t", row.names = FALSE)
+  quote = FALSE, sep = "\t", row.names = FALSE
+)
 write.table(gain19_6, "./Phenotype_Database/ExpectedGainSelection_6_19.txt",
-            quote = FALSE, sep = "\t", row.names = FALSE)
+  quote = FALSE, sep = "\t", row.names = FALSE
+)
 
-gain17<- gain17_2 %>% 
-  mutate(intensity = as.factor(0.2)) %>% 
-  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
-  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) 
-gain17<- gain17_4 %>% 
-  mutate(intensity = as.factor(0.4)) %>% 
-  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
-  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>% 
+gain17_2<- fread("./Phenotype_Database/ExpectedGainSelection0.2_17.txt")
+gain17_4<- fread("./Phenotype_Database/ExpectedGainSelection0.4_17.txt")
+gain17_6<- fread("./Phenotype_Database/ExpectedGainSelection0.6_17.txt")
+gain18_2<- fread("./Phenotype_Database/ExpectedGainSelection0.2_18.txt")
+gain18_4<- fread("./Phenotype_Database/ExpectedGainSelection0.4_18.txt")
+gain18_6<- fread("./Phenotype_Database/ExpectedGainSelection0.6_18.txt")
+gain19_2<- fread("./Phenotype_Database/ExpectedGainSelection0.2_19.txt")
+gain19_4<- fread("./Phenotype_Database/ExpectedGainSelection0.4_19.txt")
+gain19_6<- fread("./Phenotype_Database/ExpectedGainSelection0.6_19.txt")
+
+gain17 <- gain17_2 %>%
+  mutate(intensity = as.factor(0.2)) %>%
+  separate(correlatedTrait, c("trait_id", "phenotype_date"), sep = "_") %>%
+  filter(trait_id != "GRVI") %>%
+  filter(trait_id != "NIR") %>%
+  filter(trait_id != "Nir") %>%
+  filter(trait_id != "RE") %>%
+  filter(trait_id != "RedEdge") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d"))
+
+gain17 <- gain17_4 %>%
+  mutate(intensity = as.factor(0.4)) %>%
+  separate(correlatedTrait, c("trait_id", "phenotype_date"), sep = "_") %>%
+  filter(trait_id != "GRVI") %>%
+  filter(trait_id != "NIR") %>%
+  filter(trait_id != "Nir") %>%
+  filter(trait_id != "RE") %>%
+  filter(trait_id != "RedEdge") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>%
   bind_rows(gain17)
-gain17<- gain17_6 %>% 
-  mutate(intensity = as.factor(0.6)) %>% 
-  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
-  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>% 
+
+gain17 <- gain17_6 %>%
+  mutate(intensity = as.factor(0.6)) %>%
+  separate(correlatedTrait, c("trait_id", "phenotype_date"), sep = "_") %>%
+  filter(trait_id != "GRVI") %>%
+  filter(trait_id != "NIR") %>%
+  filter(trait_id != "Nir") %>%
+  filter(trait_id != "RE") %>%
+  filter(trait_id != "RedEdge") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>%
   bind_rows(gain17)
 
-gain18<- gain18_2 %>% 
-  mutate(intensity = as.factor(0.2)) %>% 
-  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
-  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) 
-gain18<- gain18_4 %>% 
-  mutate(intensity = as.factor(0.4)) %>% 
-  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
-  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>% 
-  bind_rows(gain18)
-gain18<- gain18_6 %>% 
-  mutate(intensity = as.factor(0.6)) %>% 
-  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
-  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>% 
+gain18 <- gain18_2 %>%
+  mutate(intensity = as.factor(0.2)) %>%
+  separate(correlatedTrait, c("trait_id", "phenotype_date"), sep = "_") %>%
+  filter(trait_id != "GRVI") %>%
+  filter(trait_id != "NIR") %>%
+  filter(trait_id != "Nir") %>%
+  filter(trait_id != "RE") %>%
+  filter(trait_id != "RedEdge") %>% 
+  filter(trait_id != "height") %>% 
+  filter(phenotype_date > "2018-02-01") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d"))
+
+gain18 <- gain18_4 %>%
+  mutate(intensity = as.factor(0.4)) %>%
+  separate(correlatedTrait, c("trait_id", "phenotype_date"), sep = "_") %>%
+  filter(trait_id != "GRVI") %>%
+  filter(trait_id != "NIR") %>%
+  filter(trait_id != "Nir") %>%
+  filter(trait_id != "RE") %>%
+  filter(trait_id != "RedEdge") %>% 
+  filter(trait_id != "height") %>% 
+  filter(phenotype_date > "2018-02-01") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>%
   bind_rows(gain18)
 
-gain19<- gain19_2 %>% 
-  mutate(intensity = as.factor(0.2)) %>% 
-  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
-  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) 
-gain19<- gain19_4 %>% 
-  mutate(intensity = as.factor(0.4)) %>% 
-  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
-  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>% 
-  bind_rows(gain19)
-gain19<- gain19_6 %>% 
-  mutate(intensity = as.factor(0.6)) %>% 
-  separate(correlatedTrait,c("trait_id","phenotype_date"), sep = "_") %>% 
-  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>% 
+gain18 <- gain18_6 %>%
+  mutate(intensity = as.factor(0.6)) %>%
+  separate(correlatedTrait, c("trait_id", "phenotype_date"), sep = "_") %>%
+  filter(trait_id != "GRVI") %>%
+  filter(trait_id != "NIR") %>%
+  filter(trait_id != "Nir") %>%
+  filter(trait_id != "RE") %>%
+  filter(trait_id != "RedEdge") %>% 
+  filter(trait_id != "height") %>% 
+  filter(phenotype_date > "2018-02-01") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>%
+  bind_rows(gain18)
+
+gain19 <- gain19_2 %>%
+  mutate(intensity = as.factor(0.2)) %>%
+  separate(correlatedTrait, c("trait_id", "phenotype_date"), sep = "_") %>%
+  filter(trait_id != "GRVI") %>%
+  filter(trait_id != "NIR") %>%
+  filter(trait_id != "Nir") %>%
+  filter(trait_id != "RE") %>%
+  filter(trait_id != "RedEdge") %>% 
+  filter(trait_id != "height") %>% 
+  filter(phenotype_date > "2019-02-01") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d"))
+
+gain19 <- gain19_4 %>%
+  mutate(intensity = as.factor(0.4)) %>%
+  separate(correlatedTrait, c("trait_id", "phenotype_date"), sep = "_") %>%
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>%
+  filter(trait_id != "GRVI") %>%
+  filter(trait_id != "NIR") %>%
+  filter(trait_id != "Nir") %>%
+  filter(trait_id != "RE") %>%
+  filter(trait_id != "RedEdge") %>% 
+  filter(trait_id != "height") %>% 
+  filter(phenotype_date > "2019-02-01") %>% 
   bind_rows(gain19)
 
-plot17<- gain17 %>% 
+gain19 <- gain19_6 %>%
+  mutate(intensity = as.factor(0.6)) %>%
+  separate(correlatedTrait, c("trait_id", "phenotype_date"), sep = "_") %>%
+  filter(trait_id != "GRVI") %>%
+  filter(trait_id != "NIR") %>%
+  filter(trait_id != "Nir") %>%
+  filter(trait_id != "RE") %>%
+  filter(trait_id != "RedEdge") %>% 
+  filter(trait_id != "height") %>% 
+  filter(phenotype_date > "2019-02-01") %>% 
+  mutate(phenotype_date = as.Date(phenotype_date, format = "%Y-%m-%d")) %>%
+  bind_rows(gain19)
+
+plot17 <- gain17 %>%
   ggplot(aes(x = phenotype_date, y = expectedGain, colour = intensity)) +
   geom_point() +
   facet_wrap(~trait_id, scales = "free_y") +
+  scale_x_date(
+    date_labels = "%m/%d",
+    date_breaks = "2 weeks"
+  ) +
   labs(title = "Expected gain in GRYLD from correlated phenotype 2016-2017")
 plot17
 
-plot18<- gain18 %>% 
+plot18 <- gain18 %>%
   ggplot(aes(x = phenotype_date, y = expectedGain, colour = intensity)) +
   geom_point() +
   facet_wrap(~trait_id, scales = "free_y") +
+  scale_x_date(
+    date_labels = "%m/%d",
+    date_breaks = "2 weeks"
+  ) +
   labs(title = "Expected gain in GRYLD from correlated phenotype 2017-2018")
 plot18
 
-plot19<- gain19 %>% 
+plot19 <- gain19 %>%
   ggplot(aes(x = phenotype_date, y = expectedGain, colour = intensity)) +
   geom_point() +
   facet_wrap(~trait_id, scales = "free_y") +
+  scale_x_date(
+    date_labels = "%m/%d",
+    date_breaks = "2 weeks"
+  ) +
   labs(title = "Expected gain in GRYLD from correlated phenotype 2018-2019")
 plot19
-

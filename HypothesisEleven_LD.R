@@ -79,7 +79,30 @@ chrSum
 snpChip[1:5,1:5]
 str(snpChip)
 snpChip$rs_number<- as.character(snpChip$rs_number)
-chromosomes<- 1:21
+
+snpChip$chrom[snpChip$chrom == 1] = "1A"
+snpChip$chrom[snpChip$chrom == 2] = "1B"
+snpChip$chrom[snpChip$chrom == 3] = "1D"
+snpChip$chrom[snpChip$chrom == 4] = "2A"
+snpChip$chrom[snpChip$chrom == 5] = "2B"
+snpChip$chrom[snpChip$chrom == 6] = "2D"
+snpChip$chrom[snpChip$chrom == 7] = "3A"
+snpChip$chrom[snpChip$chrom == 8] = "3B"
+snpChip$chrom[snpChip$chrom == 9] = "3D"
+snpChip$chrom[snpChip$chrom == 10] = "4A"
+snpChip$chrom[snpChip$chrom == 11] = "4B"
+snpChip$chrom[snpChip$chrom == 12] = "4D"
+snpChip$chrom[snpChip$chrom == 13] = "5A"
+snpChip$chrom[snpChip$chrom == 14] = "5B"
+snpChip$chrom[snpChip$chrom == 15] = "5D"
+snpChip$chrom[snpChip$chrom == 16] = "6A"
+snpChip$chrom[snpChip$chrom == 17] = "6B"
+snpChip$chrom[snpChip$chrom == 18] = "6D"
+snpChip$chrom[snpChip$chrom == 19] = "7A"
+snpChip$chrom[snpChip$chrom == 20] = "7B"
+snpChip$chrom[snpChip$chrom == 21] = "7D"
+
+chromosomes<- unique(snpChip$chrom)
 
 for (i in chromosomes) {
   chr <- i
@@ -116,8 +139,9 @@ for (i in chromosomes) {
   write.table(fltC,paste("./Genotype_Database/MarkerCorrelations_",chr,".txt"),
               sep = "\t",quote = F,col.names = T,row.names = F)
   
-  png(paste("./Figures/LD/MarkerCorrelationDensity_",chr,".png"),
-      width = 1200, height = 1000, units = "px")
+  #png(paste0("./Figures/LD/MarkerCorrelationDensity_",chr,".png"),
+      #width = 40, height = 30, units = "cm",
+      #res = 320)
   #pdf(paste("./Figures/LD/MarkerCorrelationDensity_",chr,".pdf"))
   d <- ggplot(data = fltC, aes(x = cor)) +
     geom_density() +
@@ -125,19 +149,21 @@ for (i in chromosomes) {
     labs(title = paste("Distribution of correlation between markers"),
          subtitle = paste("Chromosome ",chr))
   print(d)
-  png(paste("./Figures/LD/MarkerCorrelationOverDistance_",chr,".png"),
-      width = 1200, height = 1000, units = "px")
-  #pdf(paste("./Figures/LD/MarkerCorrelationOverDistance_",chr,".pdf"))
+  png(paste0("./Figures/LD/MarkerCorrelationOverDistance_",chr,".png"),
+      width = 12.5, height = 5, units = "cm",
+      res = 320)
   ld<- ggplot(data = fltC, aes(x = Dist, y = cor^2, colour = p)) +
-    geom_point() +
+    geom_point(size = 0.15) +
     theme_bw() + 
     geom_smooth() +
     scale_color_gradient2(low = "#762a83",
                           mid = "#f7f7f7",
                           high = "#5aae61",
-                          midpoint = 0.25) +
-    labs(title = "Correlation of markers over physical distance",
-         subtitle = paste("Chromosome ",chr))
+                          midpoint = 0.25,
+                          name = "p-value") +
+    labs(subtitle = paste("Chromosome ",chr),
+         x = "Distance (bp)",
+         y = expression(paste("r"^2)))
   print(ld)
   
   dev.off()
@@ -202,3 +228,5 @@ melted_cormat<- melted_cormat %>%
   inner_join(pos, by = c("Var2" = "rs_number")) %>%
   dplyr::rename(Chr2 = chrom, Pos2 = pos) %>%
   glimpse()
+
+

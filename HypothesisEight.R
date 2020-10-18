@@ -7,7 +7,6 @@ library(tidyverse)
 library(janitor)
 library(tidylog)
 library(broom)
-library(plotly)
 library(rrBLUP)
 
 ##### Set up work space ####
@@ -103,6 +102,15 @@ setwd("~/Dropbox/Research_Poland_Lab/AM Panel/")
 set.seed(1642)
 
 #### Load data ####
+
+phenoLong <- fread("./Phenotype_Database/Pheno_Long171819.txt")
+
+phenoLines<- phenoLong %>% 
+  select(Variety) %>% 
+  distinct()
+
+rm(phenoLong)
+
 snpChip <- read_delim(
   "./Genotype_Database/snpChip_90K_outliers/AMsnpChipImputed_outliers.hmp.txt",
   "\t",
@@ -121,8 +129,8 @@ snpChip <- cbind(snpChip[, 1:12], hapgeno)
 rm(hapgeno)
 
 write.table(snpChip,
-            file = "./Genotype_Database/SelectedImputedBeagle.txt",
-            col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
+  file = "./Genotype_Database/SelectedImputedBeagle.txt",
+  col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
 )
 
 snpChip <- fread(
@@ -145,8 +153,8 @@ snpChip[snpChip == "."] <- NA
 snpChip <- snpChip[, c(1, 4, 5, 13:311)]
 
 write.table(snpChip,
-            file = "./Genotype_Database/SelectedImputedBeagleNumeric_outliers.txt",
-            col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
+  file = "./Genotype_Database/SelectedImputedBeagleNumeric_outliers.txt",
+  col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE
 )
 
 snpChip <- fread(
@@ -157,9 +165,14 @@ snpChip <- fread(
 chrSum <- plyr::count(snpChip, vars = "chrom")
 snpChip <- snpChip %>%
   tidylog::filter(chrom != "UN") %>%
-  tidylog::mutate(akron = as.numeric(akron)) 
+  tidylog::mutate(akron = as.numeric(akron))
 
 snpMatrix <- t(snpChip[, c(-1, -2, -3)])
+
+snpMatrix<- setDT(as.data.frame(snpMatrix),keep.rownames = TRUE) %>% 
+  semi_join(phenoLines, by = c("rn" = "Variety")) %>% 
+  column_to_rownames(var = "rn") 
+snpMatrix<- as.matrix(snpMatrix)
 
 pcaMethods::checkData(snpMatrix) # Check PCA assumptions
 
@@ -170,41 +183,23 @@ sumPCA <- as.data.frame(summary(pcaAM))
 Scores <- as.data.frame(pcaMethods::scores(pcaAM))
 Scores <- setDT(Scores, keep.rownames = TRUE)
 
-## Function to add column based on another column 
-ff <- function(x, patterns, replacements = patterns, fill = NA, ...) {
-  stopifnot(length(patterns) == length(replacements))
-  
-  ans <- rep_len(as.character(fill), length(x))
-  empty <- seq_along(x)
-  
-  for (i in seq_along(patterns)) {
-    greps <- grepl(patterns[[i]], x[empty], ...)
-    ans[empty[greps]] <- replacements[[i]]
-    empty <- empty[!greps]
-  }
-  
-  return(ans)
-}
-
-# Adding an overall trial column
-Scores$annotation <- ff(Scores$rn,
-                        c(
-                          "jagger", "mt9513","tam107","tam107_r7"
-                        ),
-                        c(
-                          "Jagger","MT9513","TAM107",NA
-                        ),
-                        NA,
-                        ignore.case = TRUE
-)
-
-Scores[16,17] <- NA
+Scores <- Scores %>%
+  tidylog::mutate(founders = if_else(
+    rn %in% c(
+      "everest", "kanmark", "joe", "wb4458", "zenda", "danby",
+      "bobdole", "overley", "monument", "jagger", "tam401",
+      "tam107", "vona", "guymon", "prairie_red",
+      "duke", "warrior", "deliver"
+    ), "yes", "no"
+  ))
 
 pca.plot <- function(x, p, q, ...) {
   plots <- ggplot(data = x, aes_string(x = p, y = q)) +
     geom_point(position = "jitter") +
-    ggrepel::geom_label_repel(aes(label = annotation), 
-               label.padding = unit(0.5,"lines")) +
+    gghighlight::gghighlight(founders == "yes",
+      label_key = rn,
+      label_params = list(box.padding = 1)
+    ) +
     theme(aspect.ratio = 1:1) +
     labs(
       title = paste0("PCA Plot ", p, " and ", q),
@@ -221,18 +216,16 @@ pca.plot(Scores, "PC1", "PC4")
 pca.plot(Scores, "PC2", "PC4")
 pca.plot(Scores, "PC3", "PC4")
 
-ggarrange(pc1 + guides(colour = FALSE),
-          pc2 + guides(colour = FALSE),
-          ncol = 2
+ggpubr::ggarrange(pc1 + guides(colour = FALSE),
+  pc2 + guides(colour = FALSE),
+  ncol = 2
 )
 
-
-p <- plot_ly(Scores,
-             x = ~PC1, y = ~PC2, z = ~PC3,
-             color = ~Program, size = 2
+p <- plotly::plot_ly(Scores,
+  x = ~PC1, y = ~PC2, z = ~PC3, size = 2
 ) %>%
-  add_markers(size = 2) %>%
-  layout(scene = list(
+  plotly::add_markers(size = 2) %>%
+  plotly::layout(scene = list(
     xaxis = list(title = "PC1 R2 = 5.2%"),
     yaxis = list(title = "PC2 R2 = 4.5%"),
     zaxis = list(title = "PC3 R2 = 3.7%")
@@ -240,7 +233,7 @@ p <- plot_ly(Scores,
 p
 
 ggplot(data = Scores, aes_string(x = "PC2", y = "PC3")) +
-  geom_point(position = "jitter", aes(colour = Program)) +
+  geom_point(position = "jitter") +
   labs(
     title = "PCA Plot PC2 and PC3",
     x = expression(paste("PC2 ", "R"^{
